@@ -7,6 +7,9 @@ import PairingModal from './ui/PairingModal';
 import ShopModal from './ui/ShopModal';
 import EditBar, { type EditState } from './ui/EditBar';
 import Journal, { MemoryViewer } from './ui/Journal';
+import WardrobeModal from './ui/WardrobeModal';
+import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
+import CheckinModal from './ui/CheckinModal';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import { startSync } from './lib/sync';
@@ -20,6 +23,8 @@ export default function App() {
   const [usOpen, setUsOpen] = useState(false);
   const [journal, setJournal] = useState<{ open: boolean; prefill?: Quest }>({ open: false });
   const [viewing, setViewing] = useState<string | null>(null);
+  const [panel, setPanel] = useState<'checkin' | 'boxes' | 'wardrobe' | null>(null);
+  const [reveal, setReveal] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0 });
@@ -50,6 +55,28 @@ export default function App() {
     setEditing(true);
   };
 
+  // Show the blind box reveal on both phones, once per reveal.
+  const last = state.lastReveal;
+  useEffect(() => {
+    if (!last) return;
+    let seen: string | null = null;
+    try {
+      seen = localStorage.getItem('olw:seenReveal');
+    } catch {
+      /* ignore */
+    }
+    if (seen !== last.id && Date.now() - last.ts < 10 * 60 * 1000) setReveal(true);
+  }, [last]);
+
+  const closeReveal = () => {
+    try {
+      if (last) localStorage.setItem('olw:seenReveal', last.id);
+    } catch {
+      /* ignore */
+    }
+    setReveal(false);
+  };
+
   const pick = (p: StartingPath) => {
     setStartingPath(p);
     setModalOpen(false);
@@ -67,6 +94,9 @@ export default function App() {
         onUs={() => setUsOpen(true)}
         onDecorate={startDecorating}
         onJournal={() => setJournal({ open: true })}
+        onCheckin={() => setPanel('checkin')}
+        onBoxes={() => setPanel('boxes')}
+        onWardrobe={() => setPanel('wardrobe')}
         editing={editing}
       />
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
@@ -78,6 +108,10 @@ export default function App() {
         />
       )}
       {journal.open && <Journal prefill={journal.prefill} onClose={() => setJournal({ open: false })} onView={setViewing} />}
+      {panel === 'checkin' && <CheckinModal onClose={() => setPanel(null)} />}
+      {panel === 'boxes' && <BlindBoxModal onClose={() => setPanel(null)} />}
+      {panel === 'wardrobe' && <WardrobeModal onClose={() => setPanel(null)} />}
+      {reveal && last && <RevealModal reward={last.reward} openedBy={`${state.names.A} and ${state.names.B}`} onClose={closeReveal} />}
       {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}

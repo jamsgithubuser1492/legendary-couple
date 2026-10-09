@@ -5,14 +5,16 @@ import {
 } from '../iso';
 import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
 import { getMe, getState, onStateChange, placeObject, removeObject, setAvatarPos } from '../../state/store';
-import { blockedTiles, canPlace, tilesOf, PLOT } from '../../state/placement';
+import { blockedTiles, canPlace, decorFace, tilesOf, PLOT } from '../../state/placement';
 import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
 import { drawPlaced, box, diamond as isoDiamond } from '../draw';
 import { SPRITES, WALK_SHEET } from '../spriteList';
 import { Avatar, createWalkAnims } from '../Avatar';
+import { Companion } from '../Companion';
+import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { getTheme, onThemeChange } from '../../state/season';
-import type { PlacedObject, PlayerId } from '../../types';
+import type { CompanionId, PlacedObject, PlayerId } from '../../types';
 
 const CENTER_TILE = { x: GRID_SIZE / 2, y: GRID_SIZE / 2 };
 const MIN_ZOOM = 0.5;
@@ -36,6 +38,7 @@ export class MainScene extends Phaser.Scene {
   private pinchDist = 0;
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
+  private companions = new Map<CompanionId, Companion>();
 
   constructor() {
     super('MainScene');
@@ -60,6 +63,7 @@ export class MainScene extends Phaser.Scene {
     this.avatars = { A: new Avatar(this, 'A', st.avatars.A), B: new Avatar(this, 'B', st.avatars.B) };
     this.setStartingPath(loadStartingPath());
     this.renderPlaced();
+    this.syncCompanions();
 
     this.centerCamera();
     this.input.addPointer(1); // second pointer for pinch zoom
@@ -84,6 +88,7 @@ export class MainScene extends Phaser.Scene {
     const offState = onStateChange(() => {
       this.renderPlaced();
       this.syncPartner();
+      this.syncCompanions();
     });
     const offTheme = onThemeChange(() => this.ambient.apply(getTheme()));
     gameBus.on(BUS.edit, onEdit);
@@ -120,7 +125,10 @@ export class MainScene extends Phaser.Scene {
     const av = this.avatars[me];
     const path = findPath(av.tile, { x: tx, y: ty }, this.pathingBlocked(me));
     if (!path.length) return;
-    av.walk(path, () => setAvatarPos(me, av.tile.x, av.tile.y));
+    av.walk(path, () => {
+      setAvatarPos(me, av.tile.x, av.tile.y);
+      this.followLocal();
+    });
   }
 
   /** Walks the other partner's avatar to where the shared state says they are. */
@@ -135,6 +143,63 @@ export class MainScene extends Phaser.Scene {
       if (path.length) av.walk(path);
       else av.snap(t.x, t.y);
     }
+  }
+
+  // ---------- companions ----------
+
+  /** Free tiles around the local avatar, nearest first, for companions to stand on. */
+  private nearbyFreeTiles(): { x: number; y: number }[] {
+    const o = this.avatars[getMe()].tile;
+    const taken = new Set<string>([...this.blocked, `${this.avatars.A.tile.x},${this.avatars.A.tile.y}`, `${this.avatars.B.tile.x},${this.avatars.B.tile.y}`]);
+    const out: { x: number; y: number }[] = [];
+    for (let r = 1; r <= 3; r++)
+      for (let dx = -r; dx <= r; dx++)
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const t = { x: o.x + dx, y: o.y + dy };
+          if (inBounds(t.x, t.y) && !taken.has(`${t.x},${t.y}`)) out.push(t);
+        }
+    // side by side first, diagonals last, so friends do not stack on top of you
+    return out.sort((a, b) => Math.abs(a.x - o.x) + Math.abs(a.y - o.y) - (Math.abs(b.x - o.x) + Math.abs(b.y - o.y)));
+  }
+
+  private followLocal(): void {
+    const claimed = new Set<string>();
+    const free = this.nearbyFreeTiles();
+    for (const comp of this.companions.values()) {
+      const spot = free.find((t) => !claimed.has(`${t.x},${t.y}`));
+      if (!spot) continue;
+      claimed.add(`${spot.x},${spot.y}`);
+      if (comp.tile.x === spot.x && comp.tile.y === spot.y) continue;
+      const path = findPath(comp.tile, spot, this.blocked);
+      if (path.length) comp.walk(path);
+      else comp.snap(spot.x, spot.y);
+    }
+  }
+
+  /** Brings invited companions onto the island, sends the rest home, and keeps outfits up to date. */
+  private syncCompanions(): void {
+    const w = getState().wardrobe;
+    for (const [id, comp] of this.companions) {
+      if (!w.invited.includes(id)) {
+        comp.destroy();
+        this.companions.delete(id);
+      }
+    }
+    let added = false;
+    for (const id of w.invited) {
+      const sprite = outfitOf(w.equipped[id])?.sprite;
+      if (!sprite || !this.textures.exists(sprite)) continue;
+      const existing = this.companions.get(id);
+      if (existing) {
+        existing.setOutfit(sprite);
+        continue;
+      }
+      const spot = this.nearbyFreeTiles()[this.companions.size] ?? this.avatars[getMe()].tile;
+      this.companions.set(id, new Companion(this, sprite, spot));
+      added = true;
+    }
+    if (added) this.followLocal();
   }
 
   // ---------- starting structure ----------
@@ -164,6 +229,8 @@ export class MainScene extends Phaser.Scene {
     const front = cartesianToIso(PLOT.x + 1, PLOT.y + 1);
     if (p === 'shop' && this.textures.exists('cafe_exterior')) {
       this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));
+    } else if (p === 'rv' && this.textures.exists('rv_b')) {
+      this.structure.push(this.img('rv_b', front.x, front.y - 4, 0.5, 1).setDepth(depth));
     } else if (p === 'home' && this.textures.exists('floor_wood')) {
       const c = tileCenter(PLOT.x, PLOT.y);
       this.structure.push(this.img('floor_wood', c.x, c.y, 0.5, 0.39).setDepth(-29));
@@ -172,7 +239,7 @@ export class MainScene extends Phaser.Scene {
     } else {
       const g = this.add.graphics().setDepth(depth);
       const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
-      box(g, cx, cy, 0.9, 0.9, 30, 0, 0xffd3de); // RV body (no RV art in the sheets yet)
+      box(g, cx, cy, 0.9, 0.9, 30, 0, 0xffd3de); // fallback if the RV art is missing
       box(g, cx, cy, 0.92, 0.92, 5, 14, 0xbfe6f2);
       this.structure.push(g);
     }
@@ -221,6 +288,7 @@ export class MainScene extends Phaser.Scene {
     const item = itemOf(o.itemId);
     if (!item) return [];
     if (item.sprite && this.textures.exists(item.sprite)) return this.spawnSprite(item, o, wallAt, alpha, tint);
+    if (item.layer === 'walldecor') return [];
     const g = this.add.graphics();
     g.setDepth(drawPlaced(g, o, { wallAt, alpha }));
     return [g];
@@ -255,6 +323,16 @@ export class MainScene extends Phaser.Scene {
       const right = cartesianToIso(x + 1, y); // north edge, right vertex
       return [mk(key, right.x, right.y + 2, 1, 1, flip).setDepth(depth)];
     }
+    if (item.layer === 'walldecor') {
+      const face = decorFace(getState(), o.tileX, o.tileY, o.rotation);
+      if (!face) return [];
+      const { tileX: x, tileY: y } = o;
+      // sit on the middle of the wall's visible face, a little in front of it
+      const mid = face === 'y' ? cartesianToIso(x, y + 0.5) : cartesianToIso(x + 0.5, y);
+      const nx = face === 'y' ? 2.6 : -2.6;
+      const im = mk(key, mid.x + nx, mid.y + 1.3 - (item.lift ?? 34), 0.5, 0.5, face === 'x');
+      return [im.setDepth(x + y + 0.3)]; // always just above its wall (wall depth is x + y + 0.1)
+    }
     const fp = footprint(item, o.rotation);
     const front = cartesianToIso(o.tileX + fp.w, o.tileY + fp.d);
     const depth = o.tileX + fp.w - 1 + (o.tileY + fp.d - 1) + 0.4;
@@ -278,7 +356,7 @@ export class MainScene extends Phaser.Scene {
   /** Topmost placed object covering a tile (objects and walls win over floors). */
   private objectAt(x: number, y: number) {
     const hits = getState().placed.filter((o) => tilesOf(o.itemId, o.tileX, o.tileY, o.rotation).some((t) => t.x === x && t.y === y));
-    return hits.find((o) => itemOf(o.itemId)?.layer !== 'floor') ?? hits[0];
+    return hits.find((o) => itemOf(o.itemId)?.layer === 'walldecor') ?? hits.find((o) => itemOf(o.itemId)?.layer !== 'floor') ?? hits[0];
   }
 
   private setHover(t: { x: number; y: number } | null): void {

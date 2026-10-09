@@ -1,0 +1,15 @@
+{
+  "name": "Our Little World",
+  "short_name": "Little World",
+  "description": "A cozy island game for two that rewards real life.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#bfe6f2",
+  "theme_color": "#bfe6f2",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -421,6 +421,440 @@ export const SPRITES = [
     "dw": 22
   },
   {
+    "key": "lamp_floor",
+    "file": "lamp_floor.png",
+    "w": 68,
+    "h": 100,
+    "dw": 34
+  },
+  {
+    "key": "bed_wood",
+    "file": "bed_wood.png",
+    "w": 200,
+    "h": 145,
+    "dw": 100
+  },
+  {
+    "key": "bookshelf_small",
+    "file": "bookshelf_small.png",
+    "w": 100,
+    "h": 113,
+    "dw": 50
+  },
+  {
+    "key": "plant_floor",
+    "file": "plant_floor.png",
+    "w": 80,
+    "h": 140,
+    "dw": 40
+  },
+  {
+    "key": "wreath_holiday",
+    "file": "wreath_holiday.png",
+    "w": 68,
+    "h": 75,
+    "dw": 34
+  },
+  {
+    "key": "string_lights",
+    "file": "string_lights.png",
+    "w": 112,
+    "h": 98,
+    "dw": 56
+  },
+  {
+    "key": "print_palm",
+    "file": "print_palm.png",
+    "w": 44,
+    "h": 81,
+    "dw": 22
+  },
+  {
+    "key": "print_coffee",
+    "file": "print_coffee.png",
+    "w": 44,
+    "h": 79,
+    "dw": 22
+  },
+  {
+    "key": "print_sunset",
+    "file": "print_sunset.png",
+    "w": 48,
+    "h": 86,
+    "dw": 24
+  },
+  {
+    "key": "shelf_plant",
+    "file": "shelf_plant.png",
+    "w": 68,
+    "h": 63,
+    "dw": 34
+  },
+  {
+    "key": "shelf_books",
+    "file": "shelf_books.png",
+    "w": 68,
+    "h": 45,
+    "dw": 34
+  },
+  {
+    "key": "latte_gold",
+    "file": "latte_gold.png",
+    "w": 56,
+    "h": 53,
+    "dw": 28
+  },
+  {
+    "key": "pastry_trio",
+    "file": "pastry_trio.png",
+    "w": 68,
+    "h": 49,
+    "dw": 34
+  },
+  {
+    "key": "wreath_xmas",
+    "file": "wreath_xmas.png",
+    "w": 72,
+    "h": 73,
+    "dw": 36
+  },
+  {
+    "key": "garland_stars",
+    "file": "garland_stars.png",
+    "w": 112,
+    "h": 52,
+    "dw": 56
+  },
+  {
+    "key": "wreath_spring",
+    "file": "wreath_spring.png",
+    "w": 68,
+    "h": 62,
+    "dw": 34
+  },
+  {
+    "key": "garland_spring",
+    "file": "garland_spring.png",
+    "w": 112,
+    "h": 39,
+    "dw": 56
+  },
+  {
+    "key": "wreath_summer",
+    "file": "wreath_summer.png",
+    "w": 68,
+    "h": 64,
+    "dw": 34
+  },
+  {
+    "key": "garland_summer",
+    "file": "garland_summer.png",
+    "w": 104,
+    "h": 42,
+    "dw": 56
+  },
+  {
+    "key": "wreath_autumn",
+    "file": "wreath_autumn.png",
+    "w": 68,
+    "h": 64,
+    "dw": 34
+  },
+  {
+    "key": "garland_autumn",
+    "file": "garland_autumn.png",
+    "w": 112,
+    "h": 41,
+    "dw": 56
+  },
+  {
+    "key": "wreath_winter",
+    "file": "wreath_winter.png",
+    "w": 68,
+    "h": 65,
+    "dw": 34
+  },
+  {
+    "key": "garland_winter",
+    "file": "garland_winter.png",
+    "w": 112,
+    "h": 40,
+    "dw": 56
+  },
+  {
+    "key": "kitty_o1",
+    "file": "kitty_o1.png",
+    "w": 64,
+    "h": 73,
+    "dw": 32
+  },
+  {
+    "key": "kitty_o2",
+    "file": "kitty_o2.png",
+    "w": 64,
+    "h": 71,
+    "dw": 32
+  },
+  {
+    "key": "kitty_o4",
+    "file": "kitty_o4.png",
+    "w": 64,
+    "h": 76,
+    "dw": 32
+  },
+  {
+    "key": "kitty_picnic",
+    "file": "kitty_picnic.png",
+    "w": 138,
+    "h": 100,
+    "dw": 76
+  },
+  {
+    "key": "miffy_sweater",
+    "file": "miffy_sweater.png",
+    "w": 60,
+    "h": 91,
+    "dw": 30
+  },
+  {
+    "key": "miffy_raincoat",
+    "file": "miffy_raincoat.png",
+    "w": 60,
+    "h": 103,
+    "dw": 30
+  },
+  {
+    "key": "miffy_boots",
+    "file": "miffy_boots.png",
+    "w": 60,
+    "h": 124,
+    "dw": 30
+  },
+  {
+    "key": "camp_site",
+    "file": "camp_site.png",
+    "w": 280,
+    "h": 277,
+    "dw": 140
+  },
+  {
+    "key": "snoopy_o1",
+    "file": "snoopy_o1.png",
+    "w": 68,
+    "h": 99,
+    "dw": 34
+  },
+  {
+    "key": "snoopy_o2",
+    "file": "snoopy_o2.png",
+    "w": 67,
+    "h": 137,
+    "dw": 34
+  },
+  {
+    "key": "snoopy_o3",
+    "file": "snoopy_o3.png",
+    "w": 68,
+    "h": 113,
+    "dw": 34
+  },
+  {
+    "key": "snoopy_o4",
+    "file": "snoopy_o4.png",
+    "w": 64,
+    "h": 119,
+    "dw": 32
+  },
+  {
+    "key": "rv_a",
+    "file": "rv_a.png",
+    "w": 163,
+    "h": 141,
+    "dw": 120
+  },
+  {
+    "key": "rv_b",
+    "file": "rv_b.png",
+    "w": 164,
+    "h": 136,
+    "dw": 120
+  },
+  {
+    "key": "lantern_camp",
+    "file": "lantern_camp.png",
+    "w": 40,
+    "h": 70,
+    "dw": 20
+  },
+  {
+    "key": "lantern_soft",
+    "file": "lantern_soft.png",
+    "w": 40,
+    "h": 70,
+    "dw": 20
+  },
+  {
+    "key": "lantern_oil",
+    "file": "lantern_oil.png",
+    "w": 40,
+    "h": 60,
+    "dw": 20
+  },
+  {
+    "key": "sleeping_bag_a",
+    "file": "sleeping_bag_a.png",
+    "w": 68,
+    "h": 52,
+    "dw": 34
+  },
+  {
+    "key": "sleeping_bag_b",
+    "file": "sleeping_bag_b.png",
+    "w": 68,
+    "h": 53,
+    "dw": 34
+  },
+  {
+    "key": "sleeping_bag_pink",
+    "file": "sleeping_bag_pink.png",
+    "w": 68,
+    "h": 53,
+    "dw": 34
+  },
+  {
+    "key": "mugs_enamel",
+    "file": "mugs_enamel.png",
+    "w": 52,
+    "h": 42,
+    "dw": 26
+  },
+  {
+    "key": "coffee_pot",
+    "file": "coffee_pot.png",
+    "w": 40,
+    "h": 58,
+    "dw": 20
+  },
+  {
+    "key": "camp_percolator",
+    "file": "camp_percolator.png",
+    "w": 44,
+    "h": 52,
+    "dw": 22
+  },
+  {
+    "key": "firewood",
+    "file": "firewood.png",
+    "w": 56,
+    "h": 45,
+    "dw": 28
+  },
+  {
+    "key": "cooler",
+    "file": "cooler.png",
+    "w": 68,
+    "h": 69,
+    "dw": 34
+  },
+  {
+    "key": "radio",
+    "file": "radio.png",
+    "w": 56,
+    "h": 59,
+    "dw": 28
+  },
+  {
+    "key": "camp_stove",
+    "file": "camp_stove.png",
+    "w": 55,
+    "h": 63,
+    "dw": 28
+  },
+  {
+    "key": "camp_pan",
+    "file": "camp_pan.png",
+    "w": 64,
+    "h": 44,
+    "dw": 32
+  },
+  {
+    "key": "camp_chair_pink",
+    "file": "camp_chair_pink.png",
+    "w": 72,
+    "h": 75,
+    "dw": 36
+  },
+  {
+    "key": "camp_chair_blue",
+    "file": "camp_chair_blue.png",
+    "w": 72,
+    "h": 95,
+    "dw": 36
+  },
+  {
+    "key": "bedding_cozy",
+    "file": "bedding_cozy.png",
+    "w": 140,
+    "h": 103,
+    "dw": 70
+  },
+  {
+    "key": "plant_rack",
+    "file": "plant_rack.png",
+    "w": 68,
+    "h": 106,
+    "dw": 34
+  },
+  {
+    "key": "books_blanket",
+    "file": "books_blanket.png",
+    "w": 56,
+    "h": 46,
+    "dw": 28
+  },
+  {
+    "key": "pet_bed",
+    "file": "pet_bed.png",
+    "w": 68,
+    "h": 50,
+    "dw": 34
+  },
+  {
+    "key": "laundry_basket",
+    "file": "laundry_basket.png",
+    "w": 58,
+    "h": 53,
+    "dw": 30
+  },
+  {
+    "key": "kitchenette",
+    "file": "kitchenette.png",
+    "w": 140,
+    "h": 113,
+    "dw": 70
+  },
+  {
+    "key": "dinette_seating",
+    "file": "dinette_seating.png",
+    "w": 160,
+    "h": 112,
+    "dw": 80
+  },
+  {
+    "key": "cabinet_shelving",
+    "file": "cabinet_shelving.png",
+    "w": 102,
+    "h": 149,
+    "dw": 56
+  },
+  {
+    "key": "bathroom_module",
+    "file": "bathroom_module.png",
+    "w": 112,
+    "h": 142,
+    "dw": 56
+  },
+  {
     "key": "rachel_front",
     "file": "rachel_front.png",
     "w": 62,

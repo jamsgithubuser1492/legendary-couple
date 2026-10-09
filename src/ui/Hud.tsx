@@ -1,6 +1,7 @@
 import type { HoverPayload } from '../game/events';
 import type { StartingPath } from '../types';
-import { levelOf, pendingFor, useGameState, useMe } from '../state/store';
+import { levelOf, otherPlayer, pendingFor, useGameState, useMe } from '../state/store';
+import { dateKey } from '../state/questions';
 import { useSyncStatus } from '../lib/sync';
 
 const LABEL: Record<StartingPath, string> = {
@@ -19,6 +20,7 @@ const DOT: Record<string, string> = {
 
 interface Props {
   hover: HoverPayload;
+  editing: boolean;
   onCenter: () => void;
   onZoom: (d: number) => void;
   onChangePath: () => void;
@@ -26,28 +28,34 @@ interface Props {
   onUs: () => void;
   onDecorate: () => void;
   onJournal: () => void;
-  editing: boolean;
+  onCheckin: () => void;
+  onBoxes: () => void;
+  onWardrobe: () => void;
 }
 
 const btn =
   'pointer-events-auto relative rounded-full bg-cream/90 px-4 py-2 font-display text-base font-bold text-cocoa shadow active:scale-95';
+const side =
+  'pointer-events-auto relative flex h-11 w-11 items-center justify-center rounded-full bg-cream/90 text-xl shadow active:scale-95';
+const badge = 'absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs text-white';
 
-export default function Hud({ hover, onCenter, onZoom, onChangePath, onQuests, onUs, onDecorate, onJournal, editing }: Props) {
+export default function Hud(p: Props) {
   const s = useGameState();
   const me = useMe();
   const sync = useSyncStatus();
   const pending = pendingFor(s, me).length;
   const level = levelOf(s.xp);
-  const into = s.xp % 100;
+  const unanswered = !s.checkins[dateKey()]?.[me];
+  const boxWaiting = s.pendingBox && s.pendingBox.by === otherPlayer(me);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-3">
       <div className="flex items-start justify-between gap-2">
-        <button onClick={onUs} className="pointer-events-auto flex items-center gap-2 rounded-full bg-cream/90 px-3 py-1.5 shadow">
+        <button onClick={p.onUs} className="pointer-events-auto flex items-center gap-2 rounded-full bg-cream/90 px-3 py-1.5 shadow">
           <span className="text-xl">{me === 'A' ? '🧑' : '👩'}</span>
           <span className="text-left">
             <span className="block font-display text-sm font-bold leading-none text-cocoa">{s.names[me]} · Lv. {level}</span>
-            <span className="mt-1 block h-1.5 w-20 rounded-full bg-blush"><span className="block h-full rounded-full bg-pink-400" style={{ width: `${into}%` }} /></span>
+            <span className="mt-1 block h-1.5 w-20 rounded-full bg-blush"><span className="block h-full rounded-full bg-pink-400" style={{ width: `${s.xp % 100}%` }} /></span>
           </span>
           <span className="font-display text-sm text-cocoa">🪙 {s.coins.toLocaleString()}</span>
           <span className="font-display text-sm text-cocoa">💎 {s.gems}</span>
@@ -59,20 +67,28 @@ export default function Hud({ hover, onCenter, onZoom, onChangePath, onQuests, o
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-2">
-        <div className={`rounded-full bg-cream/90 px-3 py-1.5 text-xs text-cocoa shadow ${editing ? 'invisible' : ''}`}>
-          {hover ? `Tile (${hover.x}, ${hover.y})` : 'Tap a tile to walk'}
+      {!p.editing && (
+        <div className="absolute right-3 top-20 flex flex-col gap-2">
+          <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
+          <button className={side} onClick={p.onBoxes} aria-label="Blind boxes">🎁{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
+          <button className={side} onClick={p.onWardrobe} aria-label="Wardrobe">👗</button>
+          <button className={side} onClick={p.onJournal} aria-label="Memory Journal">📔</button>
+          <button className={side} onClick={p.onDecorate} aria-label="Decorate">🎨</button>
+          <button className={side} onClick={p.onChangePath} aria-label="Starting path">🗺️</button>
         </div>
-        <div className={`flex flex-wrap justify-end gap-2 ${editing ? 'invisible' : ''}`}>
-          <button className={btn} onClick={() => onZoom(-0.2)} aria-label="Zoom out">−</button>
-          <button className={btn} onClick={() => onZoom(0.2)} aria-label="Zoom in">+</button>
-          <button className={btn} onClick={onCenter}>🎯</button>
-          <button className={btn} onClick={onChangePath}>🗺️</button>
-          <button className={btn} onClick={onDecorate} aria-label="Decorate">🎨</button>
-          <button className={btn} onClick={onJournal} aria-label="Memory Journal">📔</button>
-          <button className={`${btn} bg-pink-400 text-white`} onClick={onQuests}>
+      )}
+
+      <div className={`flex items-end justify-between gap-2 ${p.editing ? 'invisible' : ''}`}>
+        <div className="rounded-full bg-cream/90 px-3 py-1.5 text-xs text-cocoa shadow">
+          {p.hover ? `Tile (${p.hover.x}, ${p.hover.y})` : 'Tap a tile to walk'}
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button className={btn} onClick={() => p.onZoom(-0.2)} aria-label="Zoom out">−</button>
+          <button className={btn} onClick={() => p.onZoom(0.2)} aria-label="Zoom in">+</button>
+          <button className={btn} onClick={p.onCenter} aria-label="Center">🎯</button>
+          <button className={`${btn} bg-pink-400 text-white`} onClick={p.onQuests}>
             📋 Quests
-            {pending > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">{pending}</span>}
+            {pending > 0 && <span className={badge}>{pending}</span>}
           </button>
         </div>
       </div>

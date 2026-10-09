@@ -1,8 +1,11 @@
 import { useSyncExternalStore } from 'react';
-import type { GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
+import type { CompanionId, GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, freeShoreTile } from './placement';
 import { getTheme } from './season';
+import { defaultWardrobe, outfitOf } from './wardrobe';
+import { BOX_PRICE_GEMS, rollReward } from './blindbox';
+import { dateKey, streakOf } from './questions';
 
 const STATE_KEY = 'olw:state:v1';
 const ME_KEY = 'olw:me';
@@ -21,6 +24,12 @@ const initial = (): GameState => ({
   placed: [],
   memories: [],
   avatars: { A: { x: 1, y: 1 }, B: { x: 2, y: 1 } },
+  wardrobe: defaultWardrobe(),
+  blindBoxes: 1, // a welcome box to open together
+  pendingBox: null,
+  lastReveal: null,
+  checkins: {},
+  approvedCount: 0,
 });
 
 function load(): GameState {
@@ -183,6 +192,9 @@ export function approveQuest(id: string, reviewer: PlayerId) {
     gems: state.gems + q.reward.gems,
     xp: state.xp + q.reward.coins,
     inventory: q.reward.itemId ? addToInventory(state.inventory, q.reward.itemId, 1) : state.inventory,
+    // quest boxes, plus a bonus box for every 5th approved quest (a milestone streak)
+    blindBoxes: state.blindBoxes + (q.reward.blindBoxes ?? 0) + ((state.approvedCount + 1) % 5 === 0 ? 1 : 0),
+    approvedCount: state.approvedCount + 1,
   });
 }
 
@@ -226,10 +238,97 @@ export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 
 export function removeObject(id: string) {
   const o = state.placed.find((p) => p.id === id);
   if (!o) return;
+  // taking down a wall also takes down whatever hangs on it
+  const attached =
+    itemOf(o.itemId)?.layer === 'wall'
+      ? state.placed.filter((p) => p.id !== id && p.tileX === o.tileX && p.tileY === o.tileY && itemOf(p.itemId)?.layer === 'walldecor')
+      : [];
+  const gone = new Set([id, ...attached.map((a) => a.id)]);
+  let inventory = state.inventory;
+  for (const r of [o, ...attached]) inventory = addToInventory(inventory, r.itemId, 1);
+  commit({ ...state, placed: state.placed.filter((p) => !gone.has(p.id)), inventory });
+}
+
+// ---------- wardrobe ----------
+
+export function buyOutfit(id: string): boolean {
+  const o = outfitOf(id);
+  if (!o || state.wardrobe.owned.includes(id) || state.coins < o.price.coins || state.gems < o.price.gems) return false;
   commit({
     ...state,
-    placed: state.placed.filter((p) => p.id !== id),
-    inventory: addToInventory(state.inventory, o.itemId, 1),
+    coins: state.coins - o.price.coins,
+    gems: state.gems - o.price.gems,
+    wardrobe: { ...state.wardrobe, owned: [...state.wardrobe.owned, id] },
+  });
+  return true;
+}
+
+export function wearOutfit(id: string) {
+  const o = outfitOf(id);
+  if (!o || !state.wardrobe.owned.includes(id)) return;
+  commit({ ...state, wardrobe: { ...state.wardrobe, equipped: { ...state.wardrobe.equipped, [o.companion]: id } } });
+}
+
+export function setInvited(cid: CompanionId, invited: boolean) {
+  const rest = state.wardrobe.invited.filter((c) => c !== cid);
+  commit({ ...state, wardrobe: { ...state.wardrobe, invited: invited ? [...rest, cid] : rest } });
+}
+
+// ---------- blind boxes: opened together ----------
+
+export function buyBlindBox(): boolean {
+  if (state.gems < BOX_PRICE_GEMS) return false;
+  commit({ ...state, gems: state.gems - BOX_PRICE_GEMS, blindBoxes: state.blindBoxes + 1 });
+  return true;
+}
+
+/** One partner asks to open a box. It stays sealed until the other joins. */
+export function startOpenBox(by: PlayerId) {
+  if (state.blindBoxes < 1 || state.pendingBox) return;
+  commit({ ...state, pendingBox: { by } });
+}
+
+export function cancelOpenBox() {
+  if (state.pendingBox) commit({ ...state, pendingBox: null });
+}
+
+/** The other partner joins. Rolls the reward once and stores it so both phones show the same reveal. */
+export function confirmOpenBox(by: PlayerId) {
+  if (!state.pendingBox || state.pendingBox.by === by || state.blindBoxes < 1) return;
+  const reward = rollReward(getTheme(), state.wardrobe.owned);
+  let { coins, gems, inventory, wardrobe } = state;
+  if (reward.kind === 'coins') coins += reward.amount ?? 0;
+  else if (reward.kind === 'gems') gems += reward.amount ?? 0;
+  else if (reward.kind === 'item' && reward.refId) inventory = addToInventory(inventory, reward.refId, 1);
+  else if (reward.kind === 'outfit' && reward.refId) wardrobe = { ...wardrobe, owned: [...wardrobe.owned, reward.refId] };
+  commit({
+    ...state,
+    coins, gems, inventory, wardrobe,
+    blindBoxes: state.blindBoxes - 1,
+    pendingBox: null,
+    lastReveal: { id: uid(), reward, ts: Date.now() },
+  });
+}
+
+// ---------- daily check-in ----------
+
+/** Records one partner's answer. When both have answered, the shared reward is paid once. */
+export function answerCheckin(player: PlayerId, text: string) {
+  const key = dateKey();
+  const today = state.checkins[key] ?? {};
+  if (today[player] || !text.trim()) return;
+  const next = { ...today, [player]: text.trim() };
+  const both = next.A && next.B;
+  const checkins = { ...state.checkins, [key]: { ...next, paid: both ? true : today.paid } };
+  if (!both || today.paid) return commit({ ...state, checkins });
+  const streak = streakOf(checkins, key);
+  commit({
+    ...state,
+    checkins,
+    coins: state.coins + 15,
+    gems: state.gems + 2,
+    xp: state.xp + 15,
+    blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0), // a week of check-ins earns a box
   });
 }
 
