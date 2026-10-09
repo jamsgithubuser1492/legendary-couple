@@ -106,6 +106,12 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * The coastline orientation is fixed so the beach bands no longer spike at tight turns, and the sails and masts of the boat sprites are intact
 * **Dark cap and beanie look** for James and Rachel, from the new walk sheet: separate left and right walk cycles plus front and back poses. Switch each partner's look in the Wardrobe
 
+### Build 13 status: Park, street and rewards art
+
+* **Seaside Park** grows into the coast as you do: duck pond, gazebo, picnic tree, flower garden, playground and a park sign, each with a real life date idea you can add as a quest. Parked pink beetle and retro van, a postbox and street bin dress the streets
+* The shop has a **Park** tab (pond, fountain, tennis court, playground, gazebo, flower garden, benches, lamp posts) and more **Street** items (crosswalks, cars, scooter, mailboxes, bike rack, signs)
+* Your **blind box, coin and gem art** now appears on the HUD, shop, blind box screen and reveal. Reveal screens show a different box for each rarity
+
 ## Run it
 
 ```bash

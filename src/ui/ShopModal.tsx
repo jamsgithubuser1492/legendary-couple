@@ -3,6 +3,7 @@ import { availableIn, CATALOG, CATEGORIES, type ShopCategory } from '../state/ca
 import { THEMES, useTheme } from '../state/season';
 import { buyItem, useGameState } from '../state/store';
 import ItemIcon from './ItemIcon';
+import { CurrencyIcon } from './Currency';
 import { PRESETS } from '../state/presets';
 
 export default function ShopModal({ onClose, onPickPreset, initialCat }: { onClose: () => void; onPickPreset?: (id: string) => void; initialCat?: ShopCategory }) {
@@ -20,8 +21,8 @@ export default function ShopModal({ onClose, onPickPreset, initialCat }: { onClo
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold text-cocoa">Decor Shop</h2>
           <div className="flex items-center gap-3 font-display font-bold text-cocoa">
-            <span>🪙 {s.coins.toLocaleString()}</span>
-            <span>💎 {s.gems}</span>
+            <span><CurrencyIcon kind="coin" size={20} /> {s.coins.toLocaleString()}</span>
+            <span><CurrencyIcon kind="gem" size={20} /> {s.gems}</span>
             <button onClick={onClose} className="rounded-full bg-blush px-3 py-1" aria-label="Close">✕</button>
           </div>
         </div>

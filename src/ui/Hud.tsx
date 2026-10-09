@@ -3,6 +3,7 @@ import type { StartingPath } from '../types';
 import { levelOf, otherPlayer, pendingFor, useGameState, useMe } from '../state/store';
 import { dateKey } from '../state/questions';
 import { useSyncStatus } from '../lib/sync';
+import { CurrencyIcon } from './Currency';
 
 const LABEL: Record<StartingPath, string> = {
   rv: '🚐 The RV Life',
@@ -62,8 +63,8 @@ export default function Hud(p: Props) {
             <span className="block font-display text-sm font-bold leading-none text-cocoa">{s.names[me]} · Lv. {level}</span>
             <span className="mt-1 block h-1.5 w-20 rounded-full bg-blush"><span className="block h-full rounded-full bg-pink-400" style={{ width: `${s.xp % 100}%` }} /></span>
           </span>
-          <span className="font-display text-sm text-cocoa">🪙 {s.coins.toLocaleString()}</span>
-          <span className="font-display text-sm text-cocoa">💎 {s.gems}</span>
+          <span className="font-display text-sm text-cocoa"><CurrencyIcon kind="coin" size={18} /> {s.coins.toLocaleString()}</span>
+          <span className="font-display text-sm text-cocoa"><CurrencyIcon kind="gem" size={18} /> {s.gems}</span>
           <span className={`h-2.5 w-2.5 rounded-full ${DOT[sync]}`} title={`Sync: ${sync}`} />
         </button>
         <div className="rounded-2xl bg-cream/90 px-3 py-1.5 text-right shadow">
@@ -84,7 +85,7 @@ export default function Hud(p: Props) {
         <div className="absolute right-3 top-20 flex flex-col gap-2">
           <button className={side} onClick={() => p.onView('town')} aria-label="Town map">🌍</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
-          <button className={side} onClick={p.onBoxes} aria-label="Blind boxes">🎁{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
+          <button className={side} onClick={p.onBoxes} aria-label="Blind boxes"><CurrencyIcon kind="box" size={28} />{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
           <button className={side} onClick={p.onWardrobe} aria-label="Wardrobe">👗</button>
           <button className={side} onClick={p.onJournal} aria-label="Memory Journal">📔</button>
           <button className={side} onClick={p.onDecorate} aria-label="Decorate">🎨</button>
