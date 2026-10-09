@@ -11,6 +11,17 @@ A couple's gamified experience that serves as a catalyst for real-world relation
 * GitHub Actions deploy to GitHub Pages
 * Supabase placeholders for Build 2: `src/lib/supabase.ts`, `.env.example`, `supabase/schema.sql`
 
+## Build 2 status: Peer-Verification & Quest Engine
+
+* Quest Board for the 8 Areas of Life, with preset habit templates from the Q3/Q4 check-in and custom quests
+* State machine: IN_PROGRESS, PENDING_VERIFICATION, APPROVED or REJECTED. Only the partner who did not do the quest can approve it
+* Optional note and photo evidence, "Request edit" with a message, and a red badge for quests waiting on you
+* Rewards (coins, gems, XP and levels) pay out exactly once on approval. Recurring habits respawn
+* Offline first: everything saves to `localStorage`. With Supabase configured, a room code links both phones with real time sync and an offline queue that flushes when you reconnect
+* Tap your name in the top left to rename partners, switch who you are playing as (handy for solo testing), and set the room code
+
+To turn on real time sync: create a Supabase project, run `supabase/schema.sql`, then put the URL and anon key in `.env.local` (and as repo secrets for Pages).
+
 ## Run it
 
 ```bash

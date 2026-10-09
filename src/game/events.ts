@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { StartingPath } from '../types';
+import { getState, setStartingPath } from '../state/store';
 
 /** Tiny bridge between React and Phaser. */
 export const gameBus = new Phaser.Events.EventEmitter();
@@ -14,21 +15,5 @@ export const BUS = {
 export type HoverPayload = { x: number; y: number } | null;
 export type PathPayload = StartingPath | null;
 
-const KEY = 'olw:startingPath';
-
-export function loadStartingPath(): StartingPath | null {
-  try {
-    const v = localStorage.getItem(KEY);
-    return v === 'rv' || v === 'shop' || v === 'home' ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveStartingPath(p: StartingPath): void {
-  try {
-    localStorage.setItem(KEY, p);
-  } catch {
-    /* storage unavailable, ignore */
-  }
-}
+export const loadStartingPath = (): StartingPath | null => getState().startingPath;
+export const saveStartingPath = (p: StartingPath): void => setStartingPath(p);
