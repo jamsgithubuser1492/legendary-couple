@@ -69,6 +69,7 @@ add('coast', 0, 18, 2, 2, 'sprite', 14, 'Souvenir Shop', { sprite: 'shop_souveni
 add('coast', 13, 19, 2, 2, 'house', 15, 'Garden House', { variant: 3 });
 add('coast', 13, 25, 2, 2, 'sprite', 18, 'Our Little Café', { sprite: 'cafe_exterior', blurb: 'The café you are building together.' });
 add('coast', 3, 21, 2, 2, 'house', 21, 'Peach House', { variant: 4 });
+add('coast', 11, 17, 1, 1, 'sprite', 22, 'Town Fountain', { sprite: 'town_fountain', blurb: 'Make a wish together.' });
 add('coast', 13, 28, 3, 2, 'sprite', 20, 'Beach Volleyball', { sprite: 'volleyball_net', blurb: 'Loser buys the matcha.' });
 add('coast', 0, 26, 2, 2, 'sprite', 23, 'Beach Lounge', { sprite: 'beach_set', blurb: 'Umbrella, lounger and a good book.' });
 add('coast', 3, 19, 2, 2, 'house', 24, 'Lilac House', { variant: 5 });
@@ -96,6 +97,7 @@ add('country', 13, 1, 2, 2, 'barn', 39, 'Hay Barn', { variant: 1 });
 add('country', 8, 8, 1, 1, 'sprite', 40, 'Farm Tools', { sprite: 'farm_tools' });
 add('country', 13, 5, 2, 2, 'house', 42, 'Orchard House', { variant: 1 });
 add('country', 12, 8, 1, 1, 'sprite', 44, 'Orange Tree', { sprite: 'orange_tree' });
+add('country', 11, 10, 2, 2, 'sprite', 46, 'Windmill', { sprite: 'house_windmill', blurb: 'Grinding flour for tomorrow\'s croissants.' });
 add('country', 9, 9, 2, 2, 'barn', 45, 'Little Barn', { variant: 0 });
 add('country', 3, 9, 2, 2, 'house', 48, 'Meadow House', { variant: 3 });
 add('country', 6, 11, 1, 1, 'sprite', 50, 'Veggie Crates', { sprite: 'crate_veg' });
@@ -104,6 +106,7 @@ add('country', 13, 9, 2, 2, 'house', 52, 'Creek House', { variant: 5 });
 // ---- Mountain Trail & Cabin ----
 add('mountain', 22, 2, 5, 5, 'sprite', 70, 'The Mountain Cabin', { sprite: 'region_mountain', blurb: 'A cabin with a view and a winding trail.' });
 add('mountain', 18, 1, 1, 1, 'pine', 72, 'Pine');
+add('mountain', 28, 3, 2, 2, 'sprite', 84, 'Waterfall', { sprite: 'waterfall_big', blurb: 'A hidden pool to cool off in.' });
 add('mountain', 19, 7, 1, 1, 'sprite', 76, 'Trail Gear', { sprite: 'hiking_poles' });
 add('mountain', 19, 4, 1, 1, 'pine', 74, 'Pine');
 add('mountain', 24, 8, 3, 3, 'sprite', 80, 'Campfire Clearing', { sprite: 'camp_site', blurb: 'Marshmallows and long talks.' });

@@ -1275,6 +1275,370 @@ export const SPRITES = [
     "dw": 36
   },
   {
+    "key": "house_terracotta",
+    "file": "house_terracotta.png",
+    "w": 178,
+    "h": 147,
+    "dw": 112
+  },
+  {
+    "key": "house_bluedoor",
+    "file": "house_bluedoor.png",
+    "w": 163,
+    "h": 143,
+    "dw": 108
+  },
+  {
+    "key": "house_pink",
+    "file": "house_pink.png",
+    "w": 145,
+    "h": 156,
+    "dw": 100
+  },
+  {
+    "key": "house_balcony",
+    "file": "house_balcony.png",
+    "w": 173,
+    "h": 162,
+    "dw": 112
+  },
+  {
+    "key": "house_barn",
+    "file": "house_barn.png",
+    "w": 167,
+    "h": 152,
+    "dw": 108
+  },
+  {
+    "key": "house_windmill",
+    "file": "house_windmill.png",
+    "w": 155,
+    "h": 153,
+    "dw": 100
+  },
+  {
+    "key": "house_coastal",
+    "file": "house_coastal.png",
+    "w": 163,
+    "h": 153,
+    "dw": 108
+  },
+  {
+    "key": "house_modern",
+    "file": "house_modern.png",
+    "w": 163,
+    "h": 147,
+    "dw": 108
+  },
+  {
+    "key": "tower_coastal",
+    "file": "tower_coastal.png",
+    "w": 179,
+    "h": 245,
+    "dw": 112
+  },
+  {
+    "key": "tower_pastel",
+    "file": "tower_pastel.png",
+    "w": 177,
+    "h": 246,
+    "dw": 108
+  },
+  {
+    "key": "tower_garden",
+    "file": "tower_garden.png",
+    "w": 176,
+    "h": 245,
+    "dw": 112
+  },
+  {
+    "key": "tower_city",
+    "file": "tower_city.png",
+    "w": 177,
+    "h": 251,
+    "dw": 112
+  },
+  {
+    "key": "town_fountain",
+    "file": "town_fountain.png",
+    "w": 83,
+    "h": 69,
+    "dw": 56
+  },
+  {
+    "key": "tree_round",
+    "file": "tree_round.png",
+    "w": 92,
+    "h": 115,
+    "dw": 46
+  },
+  {
+    "key": "tree_pine",
+    "file": "tree_pine.png",
+    "w": 76,
+    "h": 114,
+    "dw": 38
+  },
+  {
+    "key": "tree_blossom",
+    "file": "tree_blossom.png",
+    "w": 92,
+    "h": 121,
+    "dw": 46
+  },
+  {
+    "key": "tree_maple",
+    "file": "tree_maple.png",
+    "w": 92,
+    "h": 124,
+    "dw": 46
+  },
+  {
+    "key": "tree_snowpine",
+    "file": "tree_snowpine.png",
+    "w": 80,
+    "h": 118,
+    "dw": 40
+  },
+  {
+    "key": "palm_short",
+    "file": "palm_short.png",
+    "w": 80,
+    "h": 87,
+    "dw": 40
+  },
+  {
+    "key": "palm_medium",
+    "file": "palm_medium.png",
+    "w": 84,
+    "h": 97,
+    "dw": 42
+  },
+  {
+    "key": "palm_tall",
+    "file": "palm_tall.png",
+    "w": 88,
+    "h": 111,
+    "dw": 44
+  },
+  {
+    "key": "umbrella_pink",
+    "file": "umbrella_pink.png",
+    "w": 104,
+    "h": 110,
+    "dw": 52
+  },
+  {
+    "key": "umbrella_blue",
+    "file": "umbrella_blue.png",
+    "w": 100,
+    "h": 114,
+    "dw": 50
+  },
+  {
+    "key": "sandcastle",
+    "file": "sandcastle.png",
+    "w": 72,
+    "h": 61,
+    "dw": 36
+  },
+  {
+    "key": "rowboat_sand",
+    "file": "rowboat_sand.png",
+    "w": 108,
+    "h": 69,
+    "dw": 54
+  },
+  {
+    "key": "sail_fr",
+    "file": "sail_fr.png",
+    "w": 76,
+    "h": 94,
+    "dw": 76
+  },
+  {
+    "key": "sail_fl",
+    "file": "sail_fl.png",
+    "w": 77,
+    "h": 94,
+    "dw": 76
+  },
+  {
+    "key": "sail_br",
+    "file": "sail_br.png",
+    "w": 77,
+    "h": 94,
+    "dw": 76
+  },
+  {
+    "key": "sail_bl",
+    "file": "sail_bl.png",
+    "w": 79,
+    "h": 94,
+    "dw": 76
+  },
+  {
+    "key": "fish_fr",
+    "file": "fish_fr.png",
+    "w": 86,
+    "h": 73,
+    "dw": 70
+  },
+  {
+    "key": "fish_fl",
+    "file": "fish_fl.png",
+    "w": 86,
+    "h": 73,
+    "dw": 70
+  },
+  {
+    "key": "fish_br",
+    "file": "fish_br.png",
+    "w": 86,
+    "h": 73,
+    "dw": 70
+  },
+  {
+    "key": "fish_bl",
+    "file": "fish_bl.png",
+    "w": 86,
+    "h": 73,
+    "dw": 70
+  },
+  {
+    "key": "dinghy_a",
+    "file": "dinghy_a.png",
+    "w": 95,
+    "h": 39,
+    "dw": 52
+  },
+  {
+    "key": "dinghy_b",
+    "file": "dinghy_b.png",
+    "w": 97,
+    "h": 51,
+    "dw": 52
+  },
+  {
+    "key": "lighthouse_n",
+    "file": "lighthouse_n.png",
+    "w": 86,
+    "h": 134,
+    "dw": 96
+  },
+  {
+    "key": "lighthouse_e",
+    "file": "lighthouse_e.png",
+    "w": 85,
+    "h": 135,
+    "dw": 96
+  },
+  {
+    "key": "pier_end_a",
+    "file": "pier_end_a.png",
+    "w": 116,
+    "h": 101,
+    "dw": 76
+  },
+  {
+    "key": "pier_end_b",
+    "file": "pier_end_b.png",
+    "w": 120,
+    "h": 118,
+    "dw": 76
+  },
+  {
+    "key": "mountain_a",
+    "file": "mountain_a.png",
+    "w": 338,
+    "h": 201,
+    "dw": 520
+  },
+  {
+    "key": "mountain_b",
+    "file": "mountain_b.png",
+    "w": 289,
+    "h": 161,
+    "dw": 440
+  },
+  {
+    "key": "pine_a",
+    "file": "pine_a.png",
+    "w": 68,
+    "h": 107,
+    "dw": 34
+  },
+  {
+    "key": "pine_b",
+    "file": "pine_b.png",
+    "w": 53,
+    "h": 97,
+    "dw": 32
+  },
+  {
+    "key": "pine_snow",
+    "file": "pine_snow.png",
+    "w": 37,
+    "h": 60,
+    "dw": 22
+  },
+  {
+    "key": "pine_c",
+    "file": "pine_c.png",
+    "w": 64,
+    "h": 104,
+    "dw": 32
+  },
+  {
+    "key": "pines_cluster_a",
+    "file": "pines_cluster_a.png",
+    "w": 97,
+    "h": 124,
+    "dw": 52
+  },
+  {
+    "key": "pines_cluster_b",
+    "file": "pines_cluster_b.png",
+    "w": 110,
+    "h": 130,
+    "dw": 56
+  },
+  {
+    "key": "pines_cluster_c",
+    "file": "pines_cluster_c.png",
+    "w": 105,
+    "h": 113,
+    "dw": 54
+  },
+  {
+    "key": "cabin_close",
+    "file": "cabin_close.png",
+    "w": 212,
+    "h": 196,
+    "dw": 110
+  },
+  {
+    "key": "waterfall_big",
+    "file": "waterfall_big.png",
+    "w": 180,
+    "h": 199,
+    "dw": 90
+  },
+  {
+    "key": "trail_a",
+    "file": "trail_a.png",
+    "w": 180,
+    "h": 124,
+    "dw": 90
+  },
+  {
+    "key": "trail_b",
+    "file": "trail_b.png",
+    "w": 191,
+    "h": 164,
+    "dw": 100
+  },
+  {
     "key": "rachel_front",
     "file": "rachel_front.png",
     "w": 62,
