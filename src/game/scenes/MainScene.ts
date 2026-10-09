@@ -3,9 +3,14 @@ import {
   GRID_SIZE, TILE_W, TILE_W_HALF, TILE_H_HALF, TILE_H,
   cartesianToIso, isoToCartesian, tileCenter, inBounds, findPath,
 } from '../iso';
-import { gameBus, BUS, loadStartingPath, type PathPayload } from '../events';
+import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
+import { getState, onStateChange, placeObject, removeObject } from '../../state/store';
+import { blockedTiles, canPlace, tilesOf } from '../../state/placement';
+import { itemOf } from '../../state/catalog';
+import { PLOT } from '../../state/placement';
+import { drawPlaced, box, diamond as isoDiamond } from '../draw';
 
-const PLOT = { x: 4, y: 4 };
+
 const CENTER_TILE = { x: GRID_SIZE / 2, y: GRID_SIZE / 2 };
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
@@ -21,6 +26,10 @@ export class MainScene extends Phaser.Scene {
   private dragStart?: { x: number; y: number; camX: number; camY: number };
   private dragging = false;
   private pinchDist = 0;
+  private placedGfx: Phaser.GameObjects.Graphics[] = [];
+  private ghost!: Phaser.GameObjects.Graphics;
+  private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
+  private lastHover: { x: number; y: number } | null = null;
 
   constructor() {
     super('MainScene');
@@ -32,6 +41,7 @@ export class MainScene extends Phaser.Scene {
     this.drawIsland();
 
     this.highlight = this.add.graphics().setDepth(1000);
+    this.ghost = this.add.graphics().setDepth(1001);
     this.createAvatar();
     this.setStartingPath(loadStartingPath());
 
@@ -47,10 +57,19 @@ export class MainScene extends Phaser.Scene {
     const onPath = (p: PathPayload) => this.setStartingPath(p);
     const onCenter = () => this.centerCamera();
     const onZoom = (d: number) => this.zoomBy(d);
+    const onEdit = (e: EditPayload) => {
+      this.edit = e;
+      this.refreshHover();
+    };
+    const offState = onStateChange(() => this.renderPlaced());
+    this.renderPlaced();
+    gameBus.on(BUS.edit, onEdit);
     gameBus.on(BUS.startingPath, onPath);
     gameBus.on(BUS.center, onCenter);
     gameBus.on(BUS.zoom, onZoom);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offState();
+      gameBus.off(BUS.edit, onEdit);
       gameBus.off(BUS.startingPath, onPath);
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
@@ -176,20 +195,20 @@ export class MainScene extends Phaser.Scene {
 
   // ---------- starting structure ----------
 
+  private hasStarter = false;
+
   private setStartingPath(p: PathPayload): void {
     this.structure?.destroy();
     this.structure = undefined;
-    this.blocked.clear();
+    this.hasStarter = !!p;
+    this.blocked = blockedTiles(getState(), this.hasStarter);
     if (!p) return;
-    this.blocked.add(`${PLOT.x},${PLOT.y}`);
     // if the avatar happens to be standing on the plot, nudge it off
     if (this.avatarTile.x === PLOT.x && this.avatarTile.y === PLOT.y) {
       this.avatarTile = { x: PLOT.x - 1, y: PLOT.y };
       this.placeAvatar(this.avatarTile.x, this.avatarTile.y);
     }
     const g = this.add.graphics();
-    const c = tileCenter(PLOT.x, PLOT.y);
-    g.setPosition(c.x, c.y);
     g.setDepth(PLOT.x + PLOT.y + 0.5);
     if (p === 'rv') this.drawRV(g);
     if (p === 'shop') this.drawShop(g);
@@ -197,54 +216,48 @@ export class MainScene extends Phaser.Scene {
     this.structure = g;
   }
 
-  /** Isometric cuboid centered on (0,0) tile center; w/d in tile fractions, h in px. */
-  private cuboid(
-    g: Phaser.GameObjects.Graphics,
-    w: number, d: number, h: number, z: number,
-    top: number, leftColor: number, rightColor: number,
-  ): void {
-    const hw = TILE_W_HALF * w, hh = TILE_H_HALF * w;
-    const dw = TILE_W_HALF * d, dh = TILE_H_HALF * d;
-    // corners of the footprint around center (0,0): back, right, front, left
-    const back = { x: 0, y: -(hh + dh) / 2 };
-    const right = { x: (hw + dw) / 2, y: (hh - dh) / 2 };
-    const front = { x: 0, y: (hh + dh) / 2 };
-    const lft = { x: -(hw + dw) / 2, y: (dh - hh) / 2 };
-    const lift = (p: { x: number; y: number }, up: number) => ({ x: p.x, y: p.y - up });
-    const poly = (pts: { x: number; y: number }[], color: number) => {
-      g.fillStyle(color, 1);
-      g.lineStyle(1.5, 0xffffff, 0.6);
-      g.beginPath();
-      g.moveTo(pts[0].x, pts[0].y);
-      pts.slice(1).forEach((p) => g.lineTo(p.x, p.y));
-      g.closePath();
-      g.fillPath();
-      g.strokePath();
-    };
-    poly([lift(lft, z), lift(front, z), lift(front, z + h), lift(lft, z + h)], leftColor);
-    poly([lift(front, z), lift(right, z), lift(right, z + h), lift(front, z + h)], rightColor);
-    poly([lift(back, z + h), lift(right, z + h), lift(front, z + h), lift(lft, z + h)], top);
-  }
-
   private drawRV(g: Phaser.GameObjects.Graphics): void {
-    this.cuboid(g, 0.9, 0.9, 30, 0, 0xfff4ee, 0xf7b8c8, 0xffd3de);
-    this.cuboid(g, 0.9, 0.9, 5, 14, 0xffffff, 0xbfe6f2, 0xd6f1f8); // window band
-    g.fillStyle(0xf4a6b8, 1);
-    g.fillCircle(-14, 2, 5);
-    g.fillCircle(14, 6, 5);
+    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
+    box(g, cx, cy, 0.9, 0.9, 30, 0, 0xffd3de);
+    box(g, cx, cy, 0.92, 0.92, 5, 14, 0xbfe6f2);
   }
 
   private drawShop(g: Phaser.GameObjects.Graphics): void {
-    this.cuboid(g, 0.95, 0.95, 44, 0, 0xfff0d8, 0xf6d9b8, 0xffe8cf);
-    this.cuboid(g, 1, 1, 7, 28, 0xffb3c6, 0xff9db6, 0xffc2d1); // awning
-    g.fillStyle(0xa8765a, 1);
-    g.fillRect(-4, -12, 10, 14); // door hint
+    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
+    box(g, cx, cy, 0.95, 0.95, 44, 0, 0xffe8cf);
+    box(g, cx, cy, 1, 1, 7, 28, 0xffb3c6);
   }
 
   private drawFoundation(g: Phaser.GameObjects.Graphics): void {
-    this.cuboid(g, 1, 1, 6, 0, 0xe6c79c, 0xc9a577, 0xd8b88a); // floor slab
-    this.cuboid(g, 0.12, 1, 22, 6, 0xf4e6d0, 0xe3d2b6, 0xf0e0c6); // wall stub
-    this.cuboid(g, 1, 0.12, 22, 6, 0xf4e6d0, 0xe3d2b6, 0xf0e0c6); // wall stub
+    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
+    box(g, cx, cy, 1, 1, 6, 0, 0xe6c79c);
+    box(g, cx - 0.44, cy, 0.12, 1, 22, 6, 0xf4e6d0);
+    box(g, cx, cy - 0.44, 1, 0.12, 22, 6, 0xf4e6d0);
+  }
+
+  // ---------- placed objects ----------
+
+  private renderPlaced(): void {
+    const s = getState();
+    this.placedGfx.forEach((g) => g.destroy());
+    this.placedGfx = [];
+    const wallAt = (x: number, y: number) =>
+      s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
+    for (const o of s.placed) {
+      const g = this.add.graphics();
+      g.setDepth(drawPlaced(g, o, { wallAt }));
+      this.placedGfx.push(g);
+    }
+    this.blocked = blockedTiles(s, this.hasStarter);
+    this.refreshHover();
+  }
+
+  private ghostObj(t: { x: number; y: number }) {
+    return { id: 'ghost', itemId: this.edit.itemId!, tileX: t.x, tileY: t.y, rotation: this.edit.rotation };
+  }
+
+  private refreshHover(): void {
+    this.setHover(this.lastHover);
   }
 
   // ---------- input & camera ----------
@@ -258,8 +271,31 @@ export class MainScene extends Phaser.Scene {
   }
 
   private setHover(t: { x: number; y: number } | null): void {
+    this.lastHover = t;
     this.highlight.clear();
-    if (t) {
+    this.ghost.clear();
+    if (t && this.edit.active && this.edit.mode === 'place' && this.edit.itemId) {
+      const check = canPlace(getState(), this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatarTile]);
+      const tint = check.ok ? 0x6fd48b : 0xff6b6b;
+      for (const c of tilesOf(this.edit.itemId, t.x, t.y, this.edit.rotation)) {
+        this.ghost.fillStyle(tint, 0.35);
+        isoDiamond(this.ghost, c.x, c.y);
+        this.ghost.fillPath();
+      }
+      const s = getState();
+      const wallAt = (x: number, y: number) =>
+        itemOf(this.edit.itemId!)?.layer === 'wall' && (s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall') || (x === t.x && y === t.y));
+      drawPlaced(this.ghost, this.ghostObj(t) as never, { wallAt, alpha: check.ok ? 0.65 : 0.35 });
+    } else if (t && this.edit.active && this.edit.mode === 'remove') {
+      const hit = this.objectAt(t.x, t.y);
+      if (hit) {
+        for (const c of tilesOf(hit.itemId, hit.tileX, hit.tileY, hit.rotation)) {
+          this.ghost.fillStyle(0xff6b6b, 0.4);
+          isoDiamond(this.ghost, c.x, c.y);
+          this.ghost.fillPath();
+        }
+      }
+    } else if (t) {
       this.highlight.lineStyle(3, 0xff7fa1, 1);
       this.highlight.fillStyle(0xff7fa1, 0.22);
       this.diamond(this.highlight, t.x, t.y);
@@ -268,6 +304,12 @@ export class MainScene extends Phaser.Scene {
       this.highlight.strokePath();
     }
     gameBus.emit(BUS.hover, t);
+  }
+
+  /** Topmost placed object covering a tile (objects and walls win over floors). */
+  private objectAt(x: number, y: number) {
+    const hits = getState().placed.filter((o) => tilesOf(o.itemId, o.tileX, o.tileY, o.rotation).some((t) => t.x === x && t.y === y));
+    return hits.find((o) => itemOf(o.itemId)?.layer !== 'floor') ?? hits[0];
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
@@ -306,6 +348,15 @@ export class MainScene extends Phaser.Scene {
     this.dragStart = undefined;
     if (wasDrag) return;
     const t = this.pointerTile(p);
+    if (t && this.edit.active) {
+      if (this.edit.mode === 'place' && this.edit.itemId) {
+        placeObject(this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatarTile]);
+      } else if (this.edit.mode === 'remove') {
+        const hit = this.objectAt(t.x, t.y);
+        if (hit) removeObject(hit.id);
+      }
+      return;
+    }
     if (t) this.moveAvatarTo(t.x, t.y);
     if (p.wasTouch) this.setHover(null);
   }

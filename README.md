@@ -22,6 +22,15 @@ A couple's gamified experience that serves as a catalyst for real-world relation
 
 To turn on real time sync: create a Supabase project, run `supabase/schema.sql`, then put the URL and anon key in `.env.local` (and as repo secrets for Pages).
 
+## Build 3 status: Building & Placement Engine
+
+* Catalog of 19 procedural items (floors, walls, window and door pieces, furniture, decor, seasonal) in `src/state/catalog.ts`
+* Inventory (the bag) plus a Decor Shop priced in coins and gems. Quests can now grant a bonus item on approval
+* Decorate mode: pick an item, tap a tile to place it. A green or red ghost shows whether it fits. Rotate in 90 degree steps and pick items back up
+* Collision rules in `src/state/placement.ts`: stay on the island, avoid the starter spot and avatar, no overlaps. Floors sit under objects
+* Wall auto-tiling: walls join into straight runs, corners and T shapes, and windows and doors fit into any run
+* Avatars walk around furniture and walls, and everything is saved in shared state, so your partner sees it live
+
 ## Run it
 
 ```bash

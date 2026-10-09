@@ -38,9 +38,8 @@ export interface Quest {
 }
 
 export interface InventoryItem {
-  id: string;
-  kind: 'floor' | 'wall' | 'window' | 'door' | 'furniture' | 'decor';
-  count: number;
+  id: string; // catalog id
+  count: number; // owned and not currently placed
 }
 
 export interface PlacedObject {

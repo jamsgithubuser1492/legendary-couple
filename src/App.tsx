@@ -4,6 +4,8 @@ import Hud from './ui/Hud';
 import PathModal from './ui/PathModal';
 import QuestBoard from './ui/QuestBoard';
 import PairingModal from './ui/PairingModal';
+import ShopModal from './ui/ShopModal';
+import EditBar, { type EditState } from './ui/EditBar';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import { startSync } from './lib/sync';
@@ -15,6 +17,9 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(() => path === null);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [usOpen, setUsOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0 });
   const [hover, setHover] = useState<HoverPayload>(null);
 
   useEffect(() => {
@@ -29,6 +34,16 @@ export default function App() {
   useEffect(() => {
     gameBus.emit(BUS.startingPath, path);
   }, [path]);
+
+  useEffect(() => {
+    gameBus.emit(BUS.edit, { active: editing, ...edit });
+  }, [editing, edit]);
+
+  const startDecorating = () => {
+    const first = state.inventory.find((i) => i.count > 0);
+    setEdit((e) => ({ ...e, mode: 'place', itemId: e.itemId && state.inventory.some((i) => i.id === e.itemId && i.count > 0) ? e.itemId : first?.id ?? null }));
+    setEditing(true);
+  };
 
   const pick = (p: StartingPath) => {
     setStartingPath(p);
@@ -45,7 +60,11 @@ export default function App() {
         onChangePath={() => setModalOpen(true)}
         onQuests={() => setQuestsOpen(true)}
         onUs={() => setUsOpen(true)}
+        onDecorate={startDecorating}
+        editing={editing}
       />
+      {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
+      {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
       {questsOpen && <QuestBoard onClose={() => setQuestsOpen(false)} />}
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}

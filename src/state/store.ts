@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { GameState, PlayerId, Quest, StartingPath } from '../types';
+import { itemOf } from './catalog';
+import { canPlace } from './placement';
 
 const STATE_KEY = 'olw:state:v1';
 const ME_KEY = 'olw:me';
@@ -11,7 +13,10 @@ const initial = (): GameState => ({
   xp: 0,
   names: { A: 'James', B: 'Rachel' },
   quests: [],
-  inventory: [],
+  inventory: [
+    { id: 'floor_wood', count: 4 },
+    { id: 'wall_cream', count: 4 },
+  ],
   placed: [],
 });
 
@@ -164,6 +169,7 @@ export function approveQuest(id: string, reviewer: PlayerId) {
     coins: state.coins + q.reward.coins,
     gems: state.gems + q.reward.gems,
     xp: state.xp + q.reward.coins,
+    inventory: q.reward.itemId ? addToInventory(state.inventory, q.reward.itemId, 1) : state.inventory,
   });
 }
 
@@ -171,6 +177,46 @@ export function requestEdit(id: string, reviewer: PlayerId, note: string) {
   const q = state.quests.find((x) => x.id === id);
   if (!q || q.status !== 'PENDING_VERIFICATION' || q.assignedTo === reviewer) return;
   patchQuest(id, (x) => ({ ...x, status: 'REJECTED', reviewNote: note.trim() || 'Please add more detail.', reviewedAt: Date.now() }));
+}
+
+// ---------- inventory, shop, placement ----------
+
+function addToInventory(inv: GameState['inventory'], id: string, n: number) {
+  const has = inv.some((i) => i.id === id);
+  return has ? inv.map((i) => (i.id === id ? { ...i, count: i.count + n } : i)) : [...inv, { id, count: n }];
+}
+
+export function buyItem(itemId: string): boolean {
+  const item = itemOf(itemId);
+  if (!item || state.coins < item.price.coins || state.gems < item.price.gems) return false;
+  commit({
+    ...state,
+    coins: state.coins - item.price.coins,
+    gems: state.gems - item.price.gems,
+    inventory: addToInventory(state.inventory, itemId, 1),
+  });
+  return true;
+}
+
+export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 90 | 180 | 270, extraBlocked: { x: number; y: number }[] = []): boolean {
+  if (!canPlace(state, itemId, x, y, rotation, extraBlocked).ok) return false;
+  commit({
+    ...state,
+    inventory: addToInventory(state.inventory, itemId, -1),
+    placed: [...state.placed, { id: uid(), itemId, tileX: x, tileY: y, rotation }],
+  });
+  return true;
+}
+
+/** Picks an object back up into the bag. */
+export function removeObject(id: string) {
+  const o = state.placed.find((p) => p.id === id);
+  if (!o) return;
+  commit({
+    ...state,
+    placed: state.placed.filter((p) => p.id !== id),
+    inventory: addToInventory(state.inventory, o.itemId, 1),
+  });
 }
 
 // ---------- selectors ----------

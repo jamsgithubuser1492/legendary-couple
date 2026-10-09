@@ -3,6 +3,7 @@ import type { LifeArea, PlayerId, Quest } from '../types';
 import { AREAS, areaOf, TEMPLATES, type QuestTemplate } from '../state/areas';
 import { approveQuest, createQuest, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
+import { CATALOG, itemOf } from '../state/catalog';
 
 type Tab = 'active' | 'verify' | 'done';
 
@@ -39,6 +40,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
   const [coins, setCoins] = useState(25);
   const [gems, setGems] = useState(0);
   const [recurring, setRecurring] = useState(false);
+  const [itemId, setItemId] = useState('');
 
   const applyTemplate = (t: QuestTemplate) => {
     setTitle(t.title);
@@ -83,13 +85,20 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
           <label className="flex items-center gap-1">💎<input type="number" min={0} className={`${field} w-20`} value={gems} onChange={(e) => setGems(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeats</label>
         </div>
+        <label className="flex items-center gap-2 text-sm text-cocoa">
+          🎁 Bonus item
+          <select className={field} value={itemId} onChange={(e) => setItemId(e.target.value)}>
+            <option value="">None</option>
+            {CATALOG.map((i) => <option key={i.id} value={i.id}>{i.icon} {i.name}</option>)}
+          </select>
+        </label>
         <div className="flex justify-end gap-2 pt-2">
           <button className={soft} onClick={onClose}>Cancel</button>
           <button
             className={primary}
             disabled={!title.trim()}
             onClick={() => {
-              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems }, recurring });
+              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined }, recurring });
               onClose();
             }}
           >
@@ -177,7 +186,7 @@ function QuestCard({ quest, onSubmit, onReview }: { quest: Quest; onSubmit: () =
         <div className="min-w-0 flex-1">
           <div className="font-display font-bold text-cocoa">{quest.title}{quest.recurring && <span className="ml-1 text-xs font-normal text-cocoa/60">↻ repeats</span>}</div>
           {quest.description && <div className="text-sm text-cocoa/70">{quest.description}</div>}
-          <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}</div>
+          <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}</div>
           {quest.status === 'REJECTED' && quest.reviewNote && <div className="mt-1 rounded-lg bg-peach px-2 py-1 text-xs text-cocoa">💬 {quest.reviewNote}</div>}
         </div>
         {quest.status === 'IN_PROGRESS' && <button onClick={() => deleteQuest(quest.id)} className="text-cocoa/30" aria-label="Delete quest">🗑</button>}
