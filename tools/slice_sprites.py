@@ -15,6 +15,7 @@ OUT = os.path.join(ROOT, 'public', 'assets', 'sprites')
 SHEETS = {
     's1': 'sheet1_overview.webp', 's2': 'sheet2_modular_seasonal.webp', 's6': 'sheet6_cafe_day.jpg',
     's7': 'sheet7_world_characters.jpg', 's8': 'sheet8_cafe_sunset.jpg',
+    's9': 'sheet9_starter_walldecor.jpg', 's10': 'sheet10_rv_interior.jpg', 's11': 'sheet11_camp_characters.jpg',
 }
 
 SPRITES = [
@@ -82,6 +83,72 @@ SPRITES = [
     ('pet_golden', 's7', (688, 212, 785, 308)),
     ('pet_corgi', 's7', (922, 222, 996, 308)),
     ('pet_bunny', 's7', (1010, 232, 1066, 306)),
+    # --- sheet 9: starter furniture, wall decor, micro assets ---
+    ('lamp_floor', 's9', (55, 95, 215, 328)),
+    ('bed_wood', 's9', (200, 80, 556, 336)),
+    ('bookshelf_small', 's9', (590, 85, 806, 322)),
+    ('plant_floor', 's9', (878, 85, 1026, 326)),
+    ('wreath_holiday', 's9', (85, 485, 222, 632)),
+    ('string_lights', 's9', (305, 455, 506, 626)),
+    ('print_palm', 's9', (580, 515, 650, 646)),
+    ('print_coffee', 's9', (655, 490, 725, 616)),
+    ('print_sunset', 's9', (730, 460, 802, 586)),
+    ('shelf_plant', 's9', (865, 455, 982, 562)),
+    ('shelf_books', 's9', (915, 570, 1032, 646)),
+    ('latte_gold', 's9', (65, 795, 172, 892)),
+    ('pastry_trio', 's9', (215, 780, 346, 888)),
+    # --- sheet 2: seasonal wall decor ---
+    ('wreath_xmas', 's2', (18, 768, 192, 948)),
+    ('garland_stars', 's2', (200, 800, 458, 925)),
+    ('wreath_spring', 's2', (828, 712, 952, 790)),
+    ('garland_spring', 's2', (828, 788, 952, 836)),
+    ('wreath_summer', 's2', (993, 712, 1097, 790)),
+    ('garland_summer', 's2', (993, 788, 1097, 836)),
+    ('wreath_autumn', 's2', (1150, 712, 1264, 790)),
+    ('garland_autumn', 's2', (1150, 788, 1264, 836)),
+    ('wreath_winter', 's2', (1295, 712, 1420, 790)),
+    ('garland_winter', 's2', (1295, 788, 1420, 836)),
+    # --- sheet 11: companions in outfits, camp scene, RV, camping props ---
+    ('kitty_o1', 's11', (38, 98, 118, 192), [(30, 95, 55, 115)]),
+    ('kitty_o2', 's11', (38, 230, 118, 318), [(25, 228, 55, 252)]),
+    ('kitty_o4', 's11', (433, 230, 512, 322), [(420, 228, 445, 252)]),
+    ('kitty_picnic', 's11', (252, 222, 398, 322), [(250, 225, 275, 250)]),
+    ('miffy_sweater', 's11', (583, 90, 662, 202), [(570, 90, 590, 112)]),
+    ('miffy_raincoat', 's11', (783, 90, 862, 217)),
+    ('miffy_boots', 's11', (983, 226, 1066, 352), [(970, 228, 992, 252)]),
+    ('camp_site', 's11', (572, 405, 856, 692), [(572, 408, 606, 434)]),
+    ('snoopy_o1', 's11', (848, 395, 948, 538), [(846, 408, 868, 432)]),
+    ('snoopy_o2', 's11', (968, 395, 1066, 542), [(966, 408, 990, 432)]),
+    ('snoopy_o3', 's11', (866, 545, 950, 678), [(864, 548, 888, 572)]),
+    ('snoopy_o4', 's11', (970, 548, 1066, 678), [(968, 548, 992, 572)]),
+    ('rv_a', 's11', (68, 385, 238, 528)),
+    ('rv_b', 's11', (278, 385, 452, 522)),
+    ('lantern_camp', 's11', (458, 745, 512, 815)),
+    ('lantern_soft', 's11', (533, 740, 592, 815)),
+    ('lantern_oil', 's11', (608, 745, 668, 815)),
+    ('sleeping_bag_a', 's11', (703, 753, 782, 812)),
+    ('sleeping_bag_b', 's11', (793, 753, 868, 812)),
+    ('sleeping_bag_pink', 's11', (443, 840, 522, 905)),
+    ('mugs_enamel', 's11', (533, 843, 610, 904)),
+    ('coffee_pot', 's11', (653, 840, 702, 902)),
+    ('camp_percolator', 's11', (723, 843, 788, 905)),
+    ('firewood', 's11', (798, 848, 868, 905)),
+    ('cooler', 's11', (903, 743, 982, 822)),
+    ('radio', 's11', (998, 743, 1062, 812)),
+    ('camp_stove', 's11', (916, 838, 988, 905)),
+    ('camp_pan', 's11', (988, 853, 1062, 905)),
+    # --- sheet 10: RV interior parts and cozy items ---
+    ('camp_chair_pink', 's10', (568, 780, 652, 872)),
+    ('camp_chair_blue', 's10', (646, 783, 730, 882)),
+    ('bedding_cozy', 's10', (178, 758, 328, 868)),
+    ('plant_rack', 's10', (473, 763, 552, 882)),
+    ('books_blanket', 's10', (818, 838, 890, 897)),
+    ('pet_bed', 's10', (908, 843, 978, 897)),
+    ('laundry_basket', 's10', (983, 843, 1062, 902)),
+    ('kitchenette', 's10', (30, 535, 178, 652)),
+    ('dinette_seating', 's10', (322, 528, 492, 648)),
+    ('cabinet_shelving', 's10', (643, 508, 748, 658)),
+    ('bathroom_module', 's10', (503, 498, 628, 652)),
     # --- avatars (static, from the overview sheet) ---
     ('rachel_front', 's1', (803, 58, 880, 200)),
     ('rachel_side', 's1', (878, 58, 950, 200)),
@@ -90,6 +157,19 @@ SPRITES = [
 
 # On-screen width in px at zoom 1 (one tile is 64 px wide). Sprites are stored at 2x this for crispness.
 DISPLAY_W = {
+    'lamp_floor': 34, 'bed_wood': 100, 'bookshelf_small': 50, 'plant_floor': 40, 'wreath_holiday': 34,
+    'string_lights': 56, 'print_palm': 22, 'print_coffee': 22, 'print_sunset': 24, 'shelf_plant': 34,
+    'shelf_books': 34, 'latte_gold': 28, 'pastry_trio': 34, 'wreath_xmas': 36, 'garland_stars': 56,
+    'wreath_spring': 34, 'garland_spring': 56, 'wreath_summer': 34, 'garland_summer': 56,
+    'wreath_autumn': 34, 'garland_autumn': 56, 'wreath_winter': 34, 'garland_winter': 56,
+    'kitty_o1': 32, 'kitty_o2': 32, 'kitty_o4': 32, 'kitty_picnic': 76, 'miffy_sweater': 30,
+    'miffy_raincoat': 30, 'miffy_boots': 30, 'camp_site': 140, 'snoopy_o1': 34, 'snoopy_o2': 34,
+    'snoopy_o3': 34, 'snoopy_o4': 32, 'rv_a': 120, 'rv_b': 120, 'lantern_camp': 20, 'lantern_soft': 20,
+    'lantern_oil': 20, 'sleeping_bag_a': 34, 'sleeping_bag_b': 34, 'sleeping_bag_pink': 34,
+    'mugs_enamel': 26, 'coffee_pot': 20, 'camp_percolator': 22, 'firewood': 28, 'cooler': 34, 'radio': 28,
+    'camp_stove': 28, 'camp_pan': 32, 'camp_chair_pink': 36, 'camp_chair_blue': 36, 'bedding_cozy': 70,
+    'plant_rack': 34, 'books_blanket': 28, 'pet_bed': 34, 'laundry_basket': 30, 'kitchenette': 70,
+    'dinette_seating': 80, 'cabinet_shelving': 56, 'bathroom_module': 56,
     'floor_wood': 66, 'wall_single': 36, 'wall_corner': 60, 'wall_window': 43, 'wall_door': 38,
     'bed_gingham': 100, 'nightstand': 44, 'chair_sage': 40, 'mug': 22, 'xmas_tree': 44,
     'blanket_red': 56, 'blanket_spring': 50, 'blanket_summer': 50, 'blanket_autumn': 50, 'blanket_winter': 50,
@@ -147,6 +227,16 @@ def cut(sheet, box, erase=()):
             if s >= biggest * 0.08:
                 keep |= comp == i
         alpha = keep.astype(float)
+    # Defringe: the sheet background (cream) bleeds into the outermost pixels. Recolor light edge
+    # pixels from the nearest solid interior pixel, so no pale halo shows on dark backgrounds.
+    mask = alpha > 0.5
+    core = ndimage.binary_erosion(mask, iterations=2)
+    if core.any():
+        _, idx = ndimage.distance_transform_edt(~core, return_indices=True)
+        bleed = arr[idx[0], idx[1]]
+        lighter = arr.mean(axis=2) > bleed.mean(axis=2) + 12  # only fix pixels paler than their neighbours
+        fix = mask & ~core & lighter
+        arr = np.where(fix[..., None], bleed, arr)
     alpha = ndimage.gaussian_filter(alpha, 0.6)
     out = np.dstack([arr.clip(0, 255).astype(np.uint8), (alpha * 255).astype(np.uint8)])
     img = Image.fromarray(out, 'RGBA')

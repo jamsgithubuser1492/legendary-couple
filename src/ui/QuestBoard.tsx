@@ -43,6 +43,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
   const [recurring, setRecurring] = useState(false);
   const [itemId, setItemId] = useState('');
   const [milestone, setMilestone] = useState(false);
+  const [boxes, setBoxes] = useState(0);
 
   const applyTemplate = (t: QuestTemplate) => {
     setTitle(t.title);
@@ -52,6 +53,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
     setGems(t.reward.gems);
     setRecurring(!!t.recurring);
     setMilestone(!!t.milestone);
+    setBoxes(t.reward.blindBoxes ?? 0);
     if (t.suggestedFor) setAssignedTo(t.suggestedFor);
   };
 
@@ -85,6 +87,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex items-center gap-3 text-sm text-cocoa">
           <label className="flex items-center gap-1">🪙<input type="number" min={0} className={`${field} w-20`} value={coins} onChange={(e) => setCoins(Math.max(0, +e.target.value))} /></label>
+          <label className="flex items-center gap-1">📦<input type="number" min={0} className={`${field} w-16`} value={boxes} onChange={(e) => setBoxes(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1">💎<input type="number" min={0} className={`${field} w-20`} value={gems} onChange={(e) => setGems(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeats</label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={milestone} onChange={(e) => setMilestone(e.target.checked)} /> Milestone</label>
@@ -102,7 +105,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
             className={primary}
             disabled={!title.trim()}
             onClick={() => {
-              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined }, recurring, milestone });
+              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined, blindBoxes: boxes || undefined }, recurring, milestone });
               onClose();
             }}
           >
@@ -191,7 +194,7 @@ function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onS
         <div className="min-w-0 flex-1">
           <div className="font-display font-bold text-cocoa">{quest.title}{quest.recurring && <span className="ml-1 text-xs font-normal text-cocoa/60">↻ repeats</span>}</div>
           {quest.description && <div className="text-sm text-cocoa/70">{quest.description}</div>}
-          <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}</div>
+          <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}{quest.reward.blindBoxes ? ` · 📦 ${quest.reward.blindBoxes} blind box` : ''}</div>
           {quest.status === 'REJECTED' && quest.reviewNote && <div className="mt-1 rounded-lg bg-peach px-2 py-1 text-xs text-cocoa">💬 {quest.reviewNote}</div>}
         </div>
         {quest.status === 'IN_PROGRESS' && <button onClick={() => deleteQuest(quest.id)} className="text-cocoa/30" aria-label="Delete quest">🗑</button>}

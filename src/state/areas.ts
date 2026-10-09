@@ -29,8 +29,8 @@ export interface QuestTemplate {
 export const TEMPLATES: QuestTemplate[] = [
   { title: 'In bed by 11 PM', area: 'body', description: 'Sleep schedule reset. Lights out on time.', reward: { coins: 20, gems: 0 }, recurring: true, suggestedFor: 'B' },
   { title: 'Plan this week\'s meals or date', area: 'romance', description: 'Take full ownership of 1 or 2 weekly decisions without being asked.', reward: { coins: 40, gems: 5 }, recurring: true, suggestedFor: 'B' },
-  { title: 'Zero agenda bum day', area: 'soul', description: 'A true day with no chores or errands.', reward: { coins: 50, gems: 10 } },
-  { title: 'Scratch card date', area: 'romance', description: 'One spontaneous, low pressure date.', reward: { coins: 40, gems: 10 } },
+  { title: 'Zero agenda bum day', area: 'soul', description: 'A true day with no chores or errands.', reward: { coins: 50, gems: 10, blindBoxes: 1 } },
+  { title: 'Scratch card date', area: 'romance', description: 'One spontaneous, low pressure date.', reward: { coins: 40, gems: 10, blindBoxes: 1 } },
   { title: 'Joint workout or walk', area: 'body', description: 'Exercise together, or sync up on a video call.', reward: { coins: 30, gems: 0 }, recurring: true },
   { title: 'Share an appreciation note', area: 'romance', description: 'Tell each other one thing you are grateful for.', reward: { coins: 15, gems: 0 }, recurring: true },
   { title: 'Review the life and finance timeline', area: 'money', description: 'Sit down in person and update the shared spreadsheet.', reward: { coins: 80, gems: 20 }, milestone: true },

@@ -1,7 +1,7 @@
 import type { Theme } from './season';
 
-export type Layer = 'floor' | 'wall' | 'object';
-export type ShopCategory = 'floor' | 'wall' | 'furniture' | 'cafe' | 'decor' | 'pets' | 'landmark' | 'seasonal';
+export type Layer = 'floor' | 'wall' | 'walldecor' | 'object';
+export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'decor' | 'pets' | 'landmark' | 'seasonal';
 export type Shape = 'box' | 'round' | 'tree';
 
 export interface CatalogItem {
@@ -23,6 +23,8 @@ export interface CatalogItem {
   sprite?: string;
   /** Extra vertical nudge for the sprite, in px (negative lifts it). */
   oy?: number;
+  /** Wall decor only: how high above the floor the piece hangs, in px. */
+  lift?: number;
   /** Limited-time items are only sold while one of these themes is active. */
   seasons?: Theme[];
 }
@@ -101,6 +103,64 @@ export const CATALOG: CatalogItem[] = [
   { id: 'blanket_winter', name: 'Winter Picnic Blanket', icon: '🧺', category: 'seasonal', layer: 'object', price: c(0, 10), w: 1, d: 1, h: 6, color: 0xa8c8f0, sprite: 'blanket_winter', seasons: WINTERISH },
   { id: 'xmas_tree', name: 'Christmas Tree', icon: '🎄', category: 'seasonal', layer: 'object', price: c(0, 30), w: 1, d: 1, h: 46, color: 0x4fa56b, color2: 0xffd84d, shape: 'tree', sprite: 'xmas_tree', seasons: ['holidays'] },
   { id: 'blanket_red', name: 'Holiday Blanket', icon: '🧣', category: 'seasonal', layer: 'object', price: c(0, 12), w: 1, d: 1, h: 6, color: 0xe85a6a, sprite: 'blanket_red', seasons: ['holidays'] },
+  // --- Build 6 art: starter furniture ---
+  { id: 'bed_wood', name: 'Wooden Bed', icon: '🛏️', category: 'furniture', layer: 'object', price: c(320), w: 1, d: 2, h: 14, color: 0xc9a070, sprite: 'bed_wood' },
+  { id: 'bookshelf_small', name: 'Small Bookshelf', icon: '📚', category: 'furniture', layer: 'object', price: c(140), w: 1, d: 1, h: 34, color: 0xcf9a5f, sprite: 'bookshelf_small' },
+  { id: 'bedding_cozy', name: 'Cozy Bedding', icon: '🛌', category: 'furniture', layer: 'object', price: c(160), w: 1, d: 2, h: 8, color: 0xf6d6e0, sprite: 'bedding_cozy' },
+  { id: 'kitchenette', name: 'Kitchenette', icon: '🍳', category: 'furniture', layer: 'object', price: c(380), w: 2, d: 1, h: 30, color: 0xc78e5c, sprite: 'kitchenette' },
+  { id: 'dinette_seating', name: 'Dinette Booth', icon: '🪑', category: 'furniture', layer: 'object', price: c(260), w: 2, d: 2, h: 14, color: 0x9ccfc0, sprite: 'dinette_seating' },
+  { id: 'cabinet_shelving', name: 'Cabinet Shelving', icon: '🗄️', category: 'furniture', layer: 'object', price: c(160), w: 1, d: 1, h: 34, color: 0xe0b080, sprite: 'cabinet_shelving' },
+  { id: 'bathroom_module', name: 'Bathroom Module', icon: '🚿', category: 'furniture', layer: 'object', price: c(220), w: 1, d: 1, h: 40, color: 0xeaf4f6, sprite: 'bathroom_module' },
+  { id: 'plant_rack', name: 'Plant Rack', icon: '🪴', category: 'furniture', layer: 'object', price: c(90), w: 1, d: 1, h: 34, color: 0xd9b078, sprite: 'plant_rack' },
+  // --- wall decor (hangs on a wall piece) ---
+  { id: 'print_palm', name: 'Palm Print', icon: '🖼️', category: 'walldecor', layer: 'walldecor', price: c(50), w: 1, d: 1, h: 0, color: 0xd9a86c, sprite: 'print_palm', lift: 36 },
+  { id: 'print_coffee', name: 'Coffee Print', icon: '🖼️', category: 'walldecor', layer: 'walldecor', price: c(50), w: 1, d: 1, h: 0, color: 0xd9a86c, sprite: 'print_coffee', lift: 36 },
+  { id: 'print_sunset', name: 'Sunset Print', icon: '🖼️', category: 'walldecor', layer: 'walldecor', price: c(60), w: 1, d: 1, h: 0, color: 0xd9a86c, sprite: 'print_sunset', lift: 36 },
+  { id: 'shelf_plant', name: 'Plant Shelf', icon: '🪴', category: 'walldecor', layer: 'walldecor', price: c(70), w: 1, d: 1, h: 0, color: 0xb87a4a, sprite: 'shelf_plant', lift: 30 },
+  { id: 'shelf_books', name: 'Book Shelf', icon: '📖', category: 'walldecor', layer: 'walldecor', price: c(70), w: 1, d: 1, h: 0, color: 0xb87a4a, sprite: 'shelf_books', lift: 30 },
+  { id: 'string_lights', name: 'String Lights', icon: '💡', category: 'walldecor', layer: 'walldecor', price: c(90), w: 1, d: 1, h: 0, color: 0xffe08a, sprite: 'string_lights', lift: 42 },
+  // --- camping ---
+  { id: 'camp_site', name: 'Campfire Site', icon: '🔥', category: 'camp', layer: 'object', price: c(0, 40), w: 3, d: 3, h: 40, color: 0xf08a3c, sprite: 'camp_site' },
+  { id: 'kitty_picnic', name: 'Picnic Table', icon: '🧺', category: 'camp', layer: 'object', price: c(220), w: 2, d: 2, h: 14, color: 0xc48b55, sprite: 'kitty_picnic' },
+  { id: 'camp_chair_pink', name: 'Camp Chair Pink', icon: '🪑', category: 'camp', layer: 'object', price: c(70), w: 1, d: 1, h: 12, color: 0xf0a0b4, sprite: 'camp_chair_pink' },
+  { id: 'camp_chair_blue', name: 'Camp Chair Blue', icon: '🪑', category: 'camp', layer: 'object', price: c(70), w: 1, d: 1, h: 12, color: 0x9cc8e0, sprite: 'camp_chair_blue' },
+  { id: 'lantern_camp', name: 'Camp Lantern', icon: '🏮', category: 'camp', layer: 'object', price: c(45), w: 1, d: 1, h: 14, color: 0x8a9a5a, sprite: 'lantern_camp' },
+  { id: 'lantern_soft', name: 'Soft Lantern', icon: '🏮', category: 'camp', layer: 'object', price: c(45), w: 1, d: 1, h: 14, color: 0xaab4c4, sprite: 'lantern_soft' },
+  { id: 'lantern_oil', name: 'Oil Lantern', icon: '🏮', category: 'camp', layer: 'object', price: c(45), w: 1, d: 1, h: 14, color: 0xe0a860, sprite: 'lantern_oil' },
+  { id: 'sleeping_bag_a', name: 'Sleeping Bag', icon: '🛌', category: 'camp', layer: 'object', price: c(60), w: 1, d: 1, h: 8, color: 0xe8a090, sprite: 'sleeping_bag_a' },
+  { id: 'sleeping_bag_b', name: 'Teal Sleeping Bag', icon: '🛌', category: 'camp', layer: 'object', price: c(60), w: 1, d: 1, h: 8, color: 0x8ac4b8, sprite: 'sleeping_bag_b' },
+  { id: 'sleeping_bag_pink', name: 'Pink Sleeping Bag', icon: '🛌', category: 'camp', layer: 'object', price: c(60), w: 1, d: 1, h: 8, color: 0xf0a0c0, sprite: 'sleeping_bag_pink' },
+  { id: 'mugs_enamel', name: 'Enamel Mugs', icon: '☕', category: 'camp', layer: 'object', price: c(30), w: 1, d: 1, h: 6, color: 0xe0b090, sprite: 'mugs_enamel' },
+  { id: 'coffee_pot', name: 'Camp Coffee Pot', icon: '☕', category: 'camp', layer: 'object', price: c(40), w: 1, d: 1, h: 10, color: 0xaab0b8, sprite: 'coffee_pot' },
+  { id: 'camp_percolator', name: 'Percolator', icon: '☕', category: 'camp', layer: 'object', price: c(40), w: 1, d: 1, h: 10, color: 0xaab0b8, sprite: 'camp_percolator' },
+  { id: 'firewood', name: 'Firewood', icon: '🪵', category: 'camp', layer: 'object', price: c(30), w: 1, d: 1, h: 8, color: 0xb87a4a, sprite: 'firewood' },
+  { id: 'cooler', name: 'Cooler', icon: '🧊', category: 'camp', layer: 'object', price: c(70), w: 1, d: 1, h: 12, color: 0xf0b0c0, sprite: 'cooler' },
+  { id: 'radio', name: 'Retro Radio', icon: '📻', category: 'camp', layer: 'object', price: c(60), w: 1, d: 1, h: 10, color: 0xc78e5c, sprite: 'radio' },
+  { id: 'camp_stove', name: 'Camp Stove', icon: '🍳', category: 'camp', layer: 'object', price: c(60), w: 1, d: 1, h: 10, color: 0x8ab090, sprite: 'camp_stove' },
+  { id: 'camp_pan', name: 'Frying Pan', icon: '🍳', category: 'camp', layer: 'object', price: c(35), w: 1, d: 1, h: 4, color: 0x555555, sprite: 'camp_pan' },
+  { id: 'pet_bed', name: 'Pet Bed', icon: '🐾', category: 'pets', layer: 'object', price: c(50), w: 1, d: 1, h: 6, color: 0xe8a0a8, sprite: 'pet_bed' },
+  // --- extra decor ---
+  { id: 'lamp_floor', name: 'Floor Lamp', icon: '💡', category: 'decor', layer: 'object', price: c(90), w: 1, d: 1, h: 30, color: 0xfff0b0, sprite: 'lamp_floor' },
+  { id: 'plant_floor', name: 'Fiddle Leaf Plant', icon: '🪴', category: 'decor', layer: 'object', price: c(80), w: 1, d: 1, h: 40, color: 0x7fc47a, sprite: 'plant_floor' },
+  { id: 'latte_gold', name: 'Golden Latte', icon: '☕', category: 'decor', layer: 'object', price: c(30), w: 1, d: 1, h: 6, color: 0xfff6ee, sprite: 'latte_gold' },
+  { id: 'pastry_trio', name: 'Pastry Trio', icon: '🥐', category: 'decor', layer: 'object', price: c(40), w: 1, d: 1, h: 6, color: 0xf0b0a0, sprite: 'pastry_trio' },
+  { id: 'books_blanket', name: 'Books and Blanket', icon: '📚', category: 'decor', layer: 'object', price: c(40), w: 1, d: 1, h: 8, color: 0xc0a0b8, sprite: 'books_blanket' },
+  { id: 'laundry_basket', name: 'Laundry Basket', icon: '🧺', category: 'decor', layer: 'object', price: c(40), w: 1, d: 1, h: 10, color: 0xe0b888, sprite: 'laundry_basket' },
+  // --- landmarks ---
+  { id: 'lm_rv', name: 'Camper Van', icon: '🚐', category: 'landmark', layer: 'object', price: c(0, 80), w: 2, d: 2, h: 40, color: 0x9ccfc0, sprite: 'rv_a' },
+  { id: 'lm_rv_awning', name: 'Camper with Awning', icon: '🚐', category: 'landmark', layer: 'object', price: c(0, 80), w: 2, d: 2, h: 40, color: 0x9ccfc0, sprite: 'rv_b' },
+  // --- seasonal wall decor ---
+  { id: 'wreath_spring', name: 'Blossom Wreath', icon: '🌸', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xffc4d6, sprite: 'wreath_spring', lift: 36, seasons: ['spring'] },
+  { id: 'garland_spring', name: 'Blossom Garland', icon: '🌸', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xffc4d6, sprite: 'garland_spring', lift: 44, seasons: ['spring'] },
+  { id: 'wreath_summer', name: 'Sunflower Wreath', icon: '🌻', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xf6d860, sprite: 'wreath_summer', lift: 36, seasons: ['summer'] },
+  { id: 'garland_summer', name: 'Sunflower Garland', icon: '🌻', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xf6d860, sprite: 'garland_summer', lift: 44, seasons: ['summer'] },
+  { id: 'wreath_autumn', name: 'Autumn Wreath', icon: '🍁', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xf08a3c, sprite: 'wreath_autumn', lift: 36, seasons: ['autumn'] },
+  { id: 'garland_autumn', name: 'Autumn Garland', icon: '🍁', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xf08a3c, sprite: 'garland_autumn', lift: 44, seasons: ['autumn'] },
+  { id: 'wreath_winter', name: 'Frost Wreath', icon: '❄️', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xbcd8f0, sprite: 'wreath_winter', lift: 36, seasons: WINTERISH },
+  { id: 'garland_winter', name: 'Frost Garland', icon: '❄️', category: 'seasonal', layer: 'walldecor', price: c(0, 8), w: 1, d: 1, h: 0, color: 0xbcd8f0, sprite: 'garland_winter', lift: 44, seasons: WINTERISH },
+  { id: 'wreath_xmas', name: 'Bunny Wreath', icon: '🎄', category: 'seasonal', layer: 'walldecor', price: c(0, 12), w: 1, d: 1, h: 0, color: 0x4fa56b, sprite: 'wreath_xmas', lift: 36, seasons: ['holidays'] },
+  { id: 'wreath_holiday', name: 'Evergreen Wreath', icon: '🎄', category: 'seasonal', layer: 'walldecor', price: c(0, 12), w: 1, d: 1, h: 0, color: 0x4fa56b, sprite: 'wreath_holiday', lift: 36, seasons: ['holidays'] },
+  { id: 'garland_stars', name: 'Star Lights', icon: '⭐', category: 'seasonal', layer: 'walldecor', price: c(0, 12), w: 1, d: 1, h: 0, color: 0xffd84d, sprite: 'garland_stars', lift: 44, seasons: ['holidays'] },
 ];
 
 export const itemOf = (id: string): CatalogItem | undefined => CATALOG.find((i) => i.id === id);
@@ -108,8 +168,10 @@ export const itemOf = (id: string): CatalogItem | undefined => CATALOG.find((i) 
 export const CATEGORIES: { id: ShopCategory; label: string }[] = [
   { id: 'floor', label: 'Floors' },
   { id: 'wall', label: 'Walls' },
+  { id: 'walldecor', label: 'Wall Decor' },
   { id: 'furniture', label: 'Furniture' },
   { id: 'cafe', label: 'Café' },
+  { id: 'camp', label: 'Camping' },
   { id: 'decor', label: 'Decor' },
   { id: 'pets', label: 'Pets' },
   { id: 'landmark', label: 'Landmarks' },

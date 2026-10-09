@@ -18,6 +18,7 @@ export interface QuestReward {
   coins: number;
   gems: number;
   itemId?: string;
+  blindBoxes?: number;
 }
 
 export interface Quest {
@@ -63,6 +64,36 @@ export interface Memory {
   tileY: number;
 }
 
+export type CompanionId = 'kitty' | 'miffy' | 'snoopy';
+
+export interface Wardrobe {
+  owned: string[]; // outfit ids
+  equipped: Record<CompanionId, string>;
+  invited: CompanionId[]; // companions currently on the island
+}
+
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export interface BlindReward {
+  kind: 'item' | 'outfit' | 'gems' | 'coins';
+  refId?: string;
+  amount?: number;
+  rarity: Rarity;
+  duplicate?: boolean;
+}
+
+export interface Reveal {
+  id: string;
+  reward: BlindReward;
+  ts: number;
+}
+
+export interface Checkin {
+  A?: string;
+  B?: string;
+  paid?: boolean;
+}
+
 export interface GameState {
   startingPath: StartingPath | null;
   coins: number;
@@ -74,4 +105,10 @@ export interface GameState {
   placed: PlacedObject[];
   memories: Memory[];
   avatars: Record<PlayerId, { x: number; y: number }>;
+  wardrobe: Wardrobe;
+  blindBoxes: number;
+  pendingBox: { by: PlayerId } | null; // one partner has asked to open a box together
+  lastReveal: Reveal | null;
+  checkins: Record<string, Checkin>; // keyed by local date, YYYY-MM-DD
+  approvedCount: number;
 }

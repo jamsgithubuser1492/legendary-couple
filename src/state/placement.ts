@@ -14,6 +14,25 @@ export function tilesOf(itemId: string, x: number, y: number, rotation: number):
   return out;
 }
 
+const hasWall = (s: GameState, x: number, y: number) =>
+  s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
+
+/**
+ * Which face of the wall piece at (x, y) a hanging decoration sits on:
+ * 'x' is the back right edge, 'y' is the back left edge. Null when there is no wall.
+ * Mirrors how the renderer picks a wall's direction, so decor always lands on the visible face.
+ */
+export function decorFace(s: GameState, x: number, y: number, rotation: number): 'x' | 'y' | null {
+  const piece = s.placed.find((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
+  if (!piece) return null;
+  const hasX = hasWall(s, x - 1, y) || hasWall(s, x + 1, y);
+  const hasY = hasWall(s, x, y - 1) || hasWall(s, x, y + 1);
+  if (hasX && hasY) return rotation % 180 === 0 ? 'x' : 'y'; // a corner has two faces, rotation picks one
+  if (hasX) return 'x';
+  if (hasY) return 'y';
+  return piece.rotation % 180 === 0 ? 'x' : 'y';
+}
+
 export type PlaceCheck = { ok: true } | { ok: false; reason: string };
 
 /** Validates a placement against bounds, the starting plot, and existing objects. */
@@ -28,6 +47,14 @@ export function canPlace(
   const item = itemOf(itemId);
   if (!item) return { ok: false, reason: 'Unknown item' };
   if ((s.inventory.find((i) => i.id === itemId)?.count ?? 0) < 1) return { ok: false, reason: 'None left in your bag' };
+  if (item.layer === 'walldecor') {
+    const face = decorFace(s, x, y, rotation);
+    if (!face) return { ok: false, reason: 'Hang this on a wall' };
+    const taken = s.placed.some(
+      (o) => itemOf(o.itemId)?.layer === 'walldecor' && o.tileX === x && o.tileY === y && decorFace(s, x, y, o.rotation) === face,
+    );
+    return taken ? { ok: false, reason: 'That wall spot is taken' } : { ok: true };
+  }
   const tiles = tilesOf(itemId, x, y, rotation);
   for (const t of tiles) {
     if (t.x < 0 || t.y < 0 || t.x >= GRID || t.y >= GRID) return { ok: false, reason: 'Off the island' };
@@ -41,7 +68,7 @@ export function canPlace(
   }
   for (const o of s.placed) {
     const oi = itemOf(o.itemId);
-    if (!oi) continue;
+    if (!oi || oi.layer === 'walldecor') continue;
     const occupied = tilesOf(o.itemId, o.tileX, o.tileY, o.rotation);
     const sameLayer = (oi.layer === 'floor') === (item.layer === 'floor');
     if (!sameLayer) continue;
@@ -56,7 +83,7 @@ export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
   if (hasStarter) set.add(`${PLOT.x},${PLOT.y}`);
   for (const o of s.placed) {
     const it = itemOf(o.itemId);
-    if (!it || it.layer === 'floor') continue;
+    if (!it || it.layer === 'floor' || it.layer === 'walldecor') continue;
     for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) set.add(`${t.x},${t.y}`);
   }
   for (const m of s.memories) set.add(`${m.tileX},${m.tileY}`);

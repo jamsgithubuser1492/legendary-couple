@@ -20,9 +20,10 @@ Hand this file to whoever (or whatever) makes new sprites so everything matches 
 
 ## Sprites we still need
 Priority first.
-1. **RV** (starter path): front view plus campfire and awning, matching the café exterior style.
+1. ~~RV~~ Done (sheet 11).
 2. **Rachel walk cycle**: 4 directions x 4 frames, same layout as James in `art/source/sheet2_modular_seasonal.webp`. Today she uses 3 still poses and a hop.
 3. **Idle and sit poses** for both of you (sitting on a couch or chair, holding a drink).
+   * **Outfit variants of both of you** (front, back, side, walk), so the Wardrobe can dress you, not just Hello Kitty, Miffy and Snoopy.
 4. **Memory plaque** sprite (a little wooden sign with a heart), plus a frame style for photos.
 5. **Floor variants**: pink tile, café checker, pastel rug, grass with flowers.
 6. **Wall variants**: pastel pink, sage, brick, plus half walls and a fence.
@@ -32,6 +33,9 @@ Priority first.
 10. **Companions** that walk behind you (golden retriever, corgi, bunny), 4 directions.
 11. **Hello Kitty and Miffy walk cycles** (4 directions) for wandering NPCs on the island.
 12. **Day and night or sunset tint** reference so we can add a light overlay.
+
+## Wall decor orientation
+Hanging pieces (prints, shelves, wreaths, garlands) are drawn for the back left wall, the one that rises to the right. The game mirrors them for the back right wall. Draw them flat against the wall, not floating.
 
 ## A note on characters
 Hello Kitty, Miffy, Snoopy, Disney and Miniso are trademarks of their owners. That is fine for a private game for the two of you. If it is ever shared publicly, swap those for original characters.

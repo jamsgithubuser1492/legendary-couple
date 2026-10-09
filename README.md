@@ -45,6 +45,15 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * Both partners now appear on the island, and walking is saved in shared state
 * Sprites are cut from `art/source/` by `tools/slice_sprites.py`. See `art/ART_GUIDE.md` for style rules and the list of sprites still needed
 
+## Build 6 status: Blind boxes, Wardrobe, Daily question
+
+* **Blind boxes** are opened together: one partner taps start, the other taps open, and both phones show the same reveal. Earned from scratch card dates, zero agenda days, every 5th approved quest and 7 day check-in streaks, or bought with gems. Rarities: common, rare, epic, legendary
+* **Wardrobe** dresses Hello Kitty, Miffy and Snoopy in outfits you buy or win. Invite them to the island and they trot after you
+* **Daily question** from a bank of 56 prompts. Answers stay hidden until you both answer, then you earn coins and gems and keep a streak. A reminder to talk it through offline
+* **Wall decor** (prints, shelves, wreaths, string lights) snaps onto wall pieces, always rendered just above its wall, and comes down with it
+* New art: your starter furniture, RV, camping set, wall decor and companion outfits
+* Sprite edges are now defringed in `tools/slice_sprites.py`, so no pale halos
+
 ## Run it
 
 ```bash
@@ -53,9 +62,9 @@ npm run dev      # local dev server
 npm run build    # typecheck and production build
 ```
 
-## Deploy
+## Host and play
 
-In the GitHub repo, go to Settings, Pages, and set Source to "GitHub Actions". Pushing to `main` then deploys automatically.
+See [docs/HOSTING.md](docs/HOSTING.md) for putting it online, linking both phones and installing it on your home screens.
 
 ## Layout
 
