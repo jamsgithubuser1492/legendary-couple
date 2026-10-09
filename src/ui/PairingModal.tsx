@@ -11,7 +11,7 @@ const STATUS: Record<string, string> = {
   error: 'Sync problem, will retry',
 };
 
-export default function PairingModal({ onClose, onChangePath }: { onClose: () => void; onChangePath?: () => void }) {
+export default function PairingModal({ onClose, onChangePath, onCheats }: { onClose: () => void; onChangePath?: () => void; onCheats?: () => void }) {
   const s = useGameState();
   const me = useMe();
   const status = useSyncStatus();
@@ -60,6 +60,7 @@ export default function PairingModal({ onClose, onChangePath }: { onClose: () =>
         </div>
         <p className="mt-3 text-xs text-cocoa/60">Status: {STATUS[status]}</p>
         {onChangePath && <button className="mt-3 w-full rounded-full bg-peach py-2 font-display font-bold text-cocoa" onClick={() => { onClose(); onChangePath(); }}>🗺️ Change starting path</button>}
+        {onCheats && <button className="mt-3 w-full rounded-full bg-white py-2 font-display font-bold text-cocoa/70" onClick={() => { onClose(); onCheats(); }}>🧪 Cheats</button>}
         <button className="mt-3 w-full rounded-full bg-blush py-2 font-display font-bold text-cocoa" onClick={onClose}>Done</button>
       </div>
     </div>
