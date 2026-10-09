@@ -76,6 +76,14 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * Smooth gradient sea with drifting swell lines and twinkling sparkles, gentle ripple rings around the home island, and tuned sizes for trees, palms and townsfolk
 * `npx esbuild tools/checkPresets.ts --bundle --platform=node --outfile=/tmp/c.cjs && node /tmp/c.cjs` checks that every room design fits
 
+### Build 9 status: WASD walking and animated characters
+
+* **WASD or arrow keys** walk in eight directions: W, A, S, D go north, west, south and east on screen, and two keys together go diagonally. You still slide along walls and furniture, and typing in a text box never moves you
+* **James:** his 4 direction walk plus a new 7 frame side cycle for east and west. **Rachel:** a real 5 frame side cycle for east and west
+* **Golden retriever:** a new companion with a real 6 frame walk cycle that sits when you stop. Invite it from the Wardrobe
+* **Placeholders until more art exists:** Rachel's front and back walk uses her standing poses with a bounce, and Hello Kitty, Miffy and Snoopy bounce, sway and mirror toward the way they move. Everyone gets a gentle idle breath
+* `python3 tools/slice_walks.py` cuts the walk strips from the walk sheets automatically
+
 ## Run it
 
 ```bash

@@ -13,12 +13,15 @@ export interface Outfit {
   sprite: string;
   price: { coins: number; gems: number };
   isDefault?: boolean;
+  /** A spritesheet with a real walking cycle. Others use a placeholder bounce. */
+  walkSheet?: string;
 }
 
 export const COMPANIONS: Companion[] = [
   { id: 'kitty', name: 'Hello Kitty', icon: '🎀' },
   { id: 'miffy', name: 'Miffy', icon: '🐰' },
   { id: 'snoopy', name: 'Snoopy', icon: '🐶' },
+  { id: 'dog', name: 'Golden Retriever', icon: '🐕' },
 ];
 
 const c = (coins: number, gems = 0) => ({ coins, gems });
@@ -34,6 +37,7 @@ export const OUTFITS: Outfit[] = [
   { id: 'snoopy_o2', companion: 'snoopy', name: 'Red Scarf Hiker', sprite: 'snoopy_o2', price: c(150) },
   { id: 'snoopy_o3', companion: 'snoopy', name: 'Cooler Break', sprite: 'snoopy_o3', price: c(0, 15) },
   { id: 'snoopy_o4', companion: 'snoopy', name: 'Backpacker', sprite: 'snoopy_o4', price: c(200) },
+  { id: 'dog_default', companion: 'dog', name: 'Golden Coat', sprite: 'pet_golden', price: c(0), isDefault: true, walkSheet: 'dog_walk_side' },
 ];
 
 export const outfitOf = (id: string) => OUTFITS.find((o) => o.id === id);
@@ -41,6 +45,6 @@ export const outfitsFor = (cid: CompanionId) => OUTFITS.filter((o) => o.companio
 
 export const defaultWardrobe = () => ({
   owned: OUTFITS.filter((o) => o.isDefault).map((o) => o.id),
-  equipped: { kitty: 'kitty_o1', miffy: 'miffy_sweater', snoopy: 'snoopy_o1' } as Record<CompanionId, string>,
+  equipped: { kitty: 'kitty_o1', miffy: 'miffy_sweater', snoopy: 'snoopy_o1', dog: 'dog_default' } as Record<CompanionId, string>,
   invited: [] as CompanionId[],
 });

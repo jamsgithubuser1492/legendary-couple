@@ -36,7 +36,7 @@ const initial = (): GameState => ({
 function load(): GameState {
   try {
     const raw = localStorage.getItem(STATE_KEY);
-    if (raw) return { ...initial(), ...JSON.parse(raw) };
+    if (raw) return withDefaults(JSON.parse(raw));
     // migrate the Build 1 starting path key
     const legacy = localStorage.getItem('olw:startingPath');
     if (legacy === 'rv' || legacy === 'shop' || legacy === 'home') return { ...initial(), startingPath: legacy };
@@ -44,6 +44,21 @@ function load(): GameState {
     /* ignore */
   }
   return initial();
+}
+
+function withDefaults(saved: Partial<GameState>): GameState {
+  const base = initial();
+  const w = saved.wardrobe;
+  return {
+    ...base,
+    ...saved,
+    wardrobe: {
+      ...base.wardrobe,
+      ...w,
+      owned: [...new Set([...base.wardrobe.owned, ...(w?.owned ?? [])])],
+      equipped: { ...base.wardrobe.equipped, ...(w?.equipped ?? {}) },
+    },
+  };
 }
 
 let state: GameState = load();
@@ -75,7 +90,7 @@ function commit(next: GameState) {
 
 /** Used by the sync layer to apply a remote snapshot without echoing it back. */
 export function applyRemote(next: GameState) {
-  state = { ...initial(), ...next };
+  state = withDefaults(next);
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   } catch {

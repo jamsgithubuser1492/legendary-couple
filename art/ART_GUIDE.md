@@ -34,6 +34,14 @@ Priority first.
 11. **Hello Kitty and Miffy walk cycles** (4 directions) for wandering NPCs on the island.
 12. **Day and night or sunset tint** reference so we can add a light overlay.
 
+## Walk animation gaps (most useful next)
+The walk sheets you sent were messy (frames overlapping, rows merged), so I only cut the clean ones. For a fully animated cast, the best fix is one **clean sprite sheet per character**: a strict grid, one figure per cell, same size every cell, transparent or plain background.
+1. **Rachel, front and back walk**, 4 frames each (she only has side today)
+2. **James and Rachel, north east, north west, south east, south west**, 4 frames each (they use the nearest side view today)
+3. **Hello Kitty, Miffy and Snoopy, 4 directions, 4 frames, every outfit**. They bounce and mirror today, so a proper cycle would be a big upgrade
+4. **Golden retriever, front and back walk**, and a few idle poses (sit, wag, sleep)
+5. **Matching outfit sets for the two of you**, so the Wardrobe can dress James and Rachel in your concert outfit, lounge wear and holiday sweater
+
 ## Gaps that would make the Town come alive (priority order)
 The Town is painted by code, so it reads clean and cohesive, but it cannot match your top down poster's hand painted detail. These assets would close the gap. Draw them 2:1 isometric, transparent PNG, soft upper left light, warm brown outline, and tell me the footprint in tiles.
 1. **Generic houses, 6 to 8 styles** (2 x 2 tiles, about 128 px wide at 2x): terracotta roof, blue door, pink cottage, balcony with flowers, red barn, windmill. Today these are simple drawn boxes and are the weakest part of the view.

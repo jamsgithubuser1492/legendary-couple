@@ -10,7 +10,7 @@ import { presetOf } from '../../state/presets';
 import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
 import { drawPlaced, box, diamond as isoDiamond } from '../draw';
 import { SPRITES, WALK_SHEET } from '../spriteList';
-import { Avatar, createWalkAnims } from '../Avatar';
+import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
 import { drawWall } from '../walls';
 import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
 import { Companion } from '../Companion';
@@ -42,6 +42,7 @@ export class MainScene extends Phaser.Scene {
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
   private companions = new Map<CompanionId, Companion>();
+  private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private stateOverride?: GameState; // lets a ghost preview see its own walls
 
   constructor() {
@@ -55,6 +56,7 @@ export class MainScene extends Phaser.Scene {
       frameWidth: WALK_SHEET.frameWidth,
       frameHeight: WALK_SHEET.frameHeight,
     });
+    preloadWalkStrips(this);
   }
 
   create(): void {
@@ -71,6 +73,9 @@ export class MainScene extends Phaser.Scene {
     this.syncCompanions();
 
     this.centerCamera();
+    // WASD and the arrow keys. Capture is off so typing in text boxes still works.
+    this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
+    this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.input.addPointer(1); // second pointer for pinch zoom
     this.input.on('pointerdown', this.onPointerDown, this);
     this.input.on('pointermove', this.onPointerMove, this);
@@ -110,12 +115,44 @@ export class MainScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offState();
       offTheme();
+      this.events.off(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
       gameBus.off(BUS.edit, onEdit);
       gameBus.off(BUS.startingPath, onPath);
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
       gameBus.off(BUS.focus, onFocus);
       gameBus.off(BUS.view, onView);
+    });
+  }
+
+  // ---------- WASD walking ----------
+
+  /**
+   * W, A, S, D (or the arrows) walk in the four screen directions, and two keys together walk diagonally,
+   * which gives all eight directions. On this isometric grid, up on screen is one tile in x and y together.
+   */
+  private keyboardWalk(): void {
+    const k = this.keys;
+    if (!k || !this.scene.isActive() || this.edit.active) return;
+    const tag = (document.activeElement as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const me = getMe();
+    const av = this.avatars[me];
+    if (av.moving) return;
+    const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
+    const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
+    const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    const ty = Math.sign((left ? 1 : 0) - (right ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    if (!tx && !ty) return;
+    const blocked = this.pathingBlocked(me);
+    const free = (x: number, y: number) => inBounds(x, y) && !blocked.has(`${x},${y}`);
+    const { x, y } = av.tile;
+    const options = [{ x: x + tx, y: y + ty }, { x: x + tx, y }, { x, y: y + ty }]; // then slide along a wall
+    const target = options.find((t, i) => (t.x !== x || t.y !== y) && free(t.x, t.y) && (i > 0 || !(tx && ty) || (free(x + tx, y) && free(x, y + ty))));
+    if (!target) return;
+    av.walk([target], () => {
+      setAvatarPos(me, av.tile.x, av.tile.y);
+      this.followLocal();
     });
   }
 
@@ -200,7 +237,8 @@ export class MainScene extends Phaser.Scene {
     }
     let added = false;
     for (const id of w.invited) {
-      const sprite = outfitOf(w.equipped[id])?.sprite;
+      const outfit = outfitOf(w.equipped[id]);
+      const sprite = outfit?.sprite;
       if (!sprite || !this.textures.exists(sprite)) continue;
       const existing = this.companions.get(id);
       if (existing) {
@@ -208,7 +246,7 @@ export class MainScene extends Phaser.Scene {
         continue;
       }
       const spot = this.nearbyFreeTiles()[this.companions.size] ?? this.avatars[getMe()].tile;
-      this.companions.set(id, new Companion(this, sprite, spot));
+      this.companions.set(id, new Companion(this, sprite, spot, outfit?.walkSheet));
       added = true;
     }
     if (added) this.followLocal();
