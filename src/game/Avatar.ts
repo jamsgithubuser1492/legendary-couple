@@ -63,7 +63,7 @@ export class Avatar {
     const pre = PREFIX[this.player];
     s.setFlipX(false);
     if (dir === 'left' || dir === 'right') {
-      s.setTexture(STRIP[this.player], STAND_SIDE).setScale(0.5).setFlipX(dir === 'right'); // the art walks west
+      s.setTexture(STRIP[this.player], STAND_SIDE).setScale(0.5).setFlipX(dir === 'left'); // the art faces east, so mirror it for west
       if (walking) s.play(`${pre}_side`, true);
       else s.stop();
     } else if (dir === 'front') {
