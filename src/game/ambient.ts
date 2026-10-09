@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GRID_SIZE, TILE_H_HALF, TILE_W_HALF, cartesianToIso, tileCenter } from './iso';
-import { diamond } from './draw';
+import { GRID_SIZE, TILE_W_HALF, tileCenter } from './iso';
+import { drawIsland, islandOutline } from './island';
+import { cartesianToIso } from './iso';
 import { PALETTES, type Theme } from '../state/season';
 
 type Kind = 'petal' | 'leaf' | 'snow' | 'spark';
@@ -60,7 +61,11 @@ function makeTextures(scene: Phaser.Scene) {
 /** Seasonal look: island palette, water, and drifting particles. */
 export class Ambient {
   private scene: Phaser.Scene;
-  private world: Phaser.GameObjects.Graphics[] = [];
+  private world: Phaser.GameObjects.GameObject[] = [];
+  private grid?: Phaser.GameObjects.Graphics;
+  private gridOn = false;
+  private ripples?: Phaser.GameObjects.Graphics;
+  private lastRipple = 0;
   private particles: Particle[] = [];
   private theme: Theme = 'spring';
 
@@ -79,7 +84,10 @@ export class Ambient {
     this.world = [];
     if (this.opts.island) {
       this.drawWater(pal.waterRing);
-      this.drawIsland(pal);
+      const layers = drawIsland(this.scene, pal);
+      this.world.push(...layers.objects);
+      this.grid = layers.grid;
+      this.grid.setVisible(this.gridOn);
     }
     this.spawn(KIND[theme]);
   }
@@ -87,39 +95,22 @@ export class Ambient {
   private drawWater(color: number) {
     const g = this.scene.add.graphics().setDepth(-100);
     const c = tileCenter(GRID_SIZE / 2 - 0.5, GRID_SIZE / 2 - 0.5);
-    for (let i = 3; i >= 0; i--) {
-      g.fillStyle(color, 0.25 + i * 0.1);
-      const r = (GRID_SIZE / 2 + 1.5 + i * 1.2) * TILE_W_HALF * 1.45;
+    const N = 14;
+    for (let i = N; i >= 0; i--) {
+      g.fillStyle(color, 0.05 + (1 - i / N) * 0.16);
+      const r = (GRID_SIZE / 2 + 1.2 + i * 0.5) * TILE_W_HALF * 1.45;
       g.fillEllipse(c.x, c.y, r * 2, r);
     }
     this.world.push(g);
+    this.ripples?.destroy();
+    this.ripples = this.scene.add.graphics().setDepth(-65);
+    this.world.push(this.ripples);
   }
 
-  private drawIsland(pal: (typeof PALETTES)[Theme]) {
-    const sand = this.scene.add.graphics().setDepth(-50);
-    sand.fillStyle(pal.sandEdge, 1);
-    for (let x = 0; x < GRID_SIZE; x++)
-      for (let y = 0; y < GRID_SIZE; y++) {
-        const p = cartesianToIso(x, y);
-        sand.fillRect(p.x - TILE_W_HALF, p.y + TILE_H_HALF, TILE_W_HALF * 2, 10);
-      }
-    sand.fillStyle(pal.sand, 1);
-    for (let x = 0; x < GRID_SIZE; x++)
-      for (let y = 0; y < GRID_SIZE; y++) {
-        diamond(sand, x - 0.06, y - 0.06, 1.12, 1.12);
-        sand.fillPath();
-      }
-    const g = this.scene.add.graphics().setDepth(-40);
-    for (let x = 0; x < GRID_SIZE; x++)
-      for (let y = 0; y < GRID_SIZE; y++) {
-        g.fillStyle((x + y) % 2 === 0 ? pal.grassA : pal.grassB, 1);
-        diamond(g, x, y);
-        g.fillPath();
-        g.lineStyle(1.5, 0xffffff, 0.55);
-        diamond(g, x, y);
-        g.strokePath();
-      }
-    this.world.push(sand, g);
+  /** Shows the faint tile grid while decorating. */
+  setGrid(on: boolean) {
+    this.gridOn = on;
+    this.grid?.setVisible(on);
   }
 
   private spawn(kind: Kind) {
@@ -155,7 +146,36 @@ export class Ambient {
     p.phase = Math.random() * Math.PI * 2;
   }
 
+  /** Soft rings that drift out from the island's shore and fade, plus twinkling sparkles. */
+  private drawRipples(time: number) {
+    const g = this.ripples;
+    if (!g || !g.active) return;
+    g.clear();
+    for (let i = 0; i < 4; i++) {
+      const ph = (time / 6000 + i / 4) % 1;
+      const pts = islandOutline(1.02 + ph * 0.55).map((p) => cartesianToIso(p.x, p.y));
+      g.lineStyle(3 - ph * 1.8, 0xffffff, Math.sin(Math.PI * ph) * 0.42);
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y + 10);
+      for (let k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y + 10);
+      g.closePath();
+      g.strokePath();
+    }
+    for (let i = 0; i < 22; i++) {
+      const a = Math.max(0, Math.sin(time / 700 + i * 2.3));
+      if (a < 0.25) continue;
+      const ang = i * 2.399, r = 1.15 + ((i * 37) % 10) / 14;
+      const p = cartesianToIso(GRID_SIZE / 2 + Math.cos(ang) * 5.6 * r, GRID_SIZE / 2 + Math.sin(ang) * 5.6 * r);
+      g.fillStyle(0xffffff, a * 0.6);
+      g.fillEllipse(p.x, p.y + 10, 10, 2.6);
+    }
+  }
+
   private update(time: number, delta: number) {
+    if (this.opts.island && time - this.lastRipple > 66) {
+      this.lastRipple = time;
+      this.drawRipples(time);
+    }
     const cam = this.scene.cameras.main;
     const v = cam.worldView;
     const dt = delta / 1000;

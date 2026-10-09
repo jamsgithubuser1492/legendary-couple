@@ -1,10 +1,12 @@
 import { itemOf } from '../state/catalog';
 import { useGameState } from '../state/store';
 import ItemIcon from './ItemIcon';
+import { presetOf } from '../state/presets';
 
 export interface EditState {
   mode: 'place' | 'remove';
   itemId: string | null;
+  presetId?: string | null;
   rotation: 0 | 90 | 180 | 270;
 }
 
@@ -20,9 +22,19 @@ const chip = 'pointer-events-auto rounded-full px-3 py-2 font-display font-bold 
 export default function EditBar({ edit, onChange, onShop, onDone }: Props) {
   const s = useGameState();
   const bag = s.inventory.filter((i) => i.count > 0 && itemOf(i.id));
+  const preset = edit.presetId ? presetOf(edit.presetId) : undefined;
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 rounded-t-3xl bg-cream/95 p-3 shadow-2xl">
-      <div className="flex items-center gap-2">
+      {preset && (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3">
+          <div>
+            <div className="font-display font-bold text-cocoa">{preset.icon} Placing {preset.name}</div>
+            <div className="text-xs text-cocoa/70">Move over the island, green means it fits. Tap to buy and place the whole room. 🪙 {preset.price.coins} {preset.price.gems > 0 && `💎 ${preset.price.gems}`}</div>
+          </div>
+          <button className={`${chip} bg-white text-cocoa`} onClick={() => onChange({ ...edit, presetId: null })}>Cancel</button>
+        </div>
+      )}
+      <div className={`flex items-center gap-2 ${preset ? 'hidden' : ''}`}>
         <div className="flex flex-1 gap-2 overflow-x-auto pb-1">
           {bag.length === 0 && <span className="py-2 text-sm text-cocoa/60">Your bag is empty. Visit the shop or complete quests!</span>}
           {bag.map((i) => {
@@ -31,7 +43,7 @@ export default function EditBar({ edit, onChange, onShop, onDone }: Props) {
             return (
               <button
                 key={i.id}
-                onClick={() => onChange({ ...edit, mode: 'place', itemId: i.id })}
+                onClick={() => onChange({ ...edit, mode: 'place', itemId: i.id, presetId: null })}
                 className={`relative flex h-14 min-w-14 shrink-0 items-center justify-center rounded-2xl px-2 ${sel ? 'bg-pink-200 ring-4 ring-pink-400' : 'bg-white'}`}
                 title={it.name}
               >

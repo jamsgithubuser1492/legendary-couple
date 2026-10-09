@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { cartesianToIso, isoToCartesian, tileCenter } from '../iso';
-import { diamond } from '../draw';
 import { Ambient } from '../ambient';
 import { gameBus, BUS } from '../events';
 import { getState, onStateChange } from '../../state/store';
@@ -11,7 +10,8 @@ import {
 } from '../../state/town';
 import { SPRITES } from '../spriteList';
 import { drawBarn, drawHouse, drawPine, drawTower, drawTree } from '../town/buildings';
-import { Backdrop, EXT, drawTerrain, isLand, regionAt } from '../town/world';
+import { Backdrop, REGION_RECTS, drawTerrain, regionAt } from '../town/world';
+import { feather } from '../town/nature';
 
 const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 const NPCS = ['npc_grandma', 'npc_photographer', 'npc_woman', 'npc_hat'];
@@ -31,6 +31,7 @@ export class TownScene extends Phaser.Scene {
   private backdrop!: Backdrop;
   private terrain: Phaser.GameObjects.GameObject[] = [];
   private scenery: Phaser.GameObjects.GameObject[] = [];
+  private waterTick: (t: number) => void = () => {};
   private solid = new Map<string, boolean>();
   private fog: Phaser.GameObjects.GameObject[] = [];
   private lotObjs = new Map<string, Phaser.GameObjects.GameObject[]>();
@@ -83,6 +84,7 @@ export class TownScene extends Phaser.Scene {
     gameBus.on(BUS.view, onView);
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.refresh(true));
     this.time.addEvent({ delay: 1700, loop: true, callback: () => this.wander() });
+    this.events.on(Phaser.Scenes.Events.UPDATE, (time: number) => this.waterTick(time));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offs.forEach((o) => o());
       gameBus.off(BUS.center, onCenter);
@@ -98,7 +100,9 @@ export class TownScene extends Phaser.Scene {
     this.terrain.forEach((o) => o.destroy());
     this.scenery.forEach((o) => o.destroy());
     this.scenery = [];
-    this.terrain = drawTerrain(this, getTheme()).objects;
+    const t = drawTerrain(this, getTheme());
+    this.terrain = t.objects;
+    this.waterTick = t.tick;
     if (this.textures.exists('lighthouse')) {
       const front = cartesianToIso(-1, -1);
       const im = this.add.image(front.x, front.y - 4, 'lighthouse').setOrigin(0.5, 1).setDepth(-2);
@@ -209,14 +213,11 @@ export class TownScene extends Phaser.Scene {
     this.fog = [];
     const g = this.add.graphics().setDepth(9000);
     this.fog.push(g);
-    for (let s = EXT.x0 + EXT.y0; s <= EXT.x1 + EXT.y1; s++)
-      for (let x = EXT.x0; x <= EXT.x1; x++) {
-        const y = s - x;
-        if (y < EXT.y0 || y > EXT.y1 || !isLand(x, y) || open.has(regionAt(x, y))) continue;
-        g.fillStyle(0xeee8f6, 0.36);
-        diamond(g, x, y); // exact tiles, so neighbours never overlap and no grid shows through
-        g.fillPath();
-      }
+    for (const r of REGIONS) {
+      const rect = REGION_RECTS[r.id];
+      if (!rect || open.has(r.id)) continue;
+      feather(g, rect.x0, rect.y0, rect.x1, rect.y1, 4, 0xeee8f6, 0.24, 2.8); // soft mist that feathers into the open world
+    }
     for (const r of REGIONS) {
       if (open.has(r.id)) continue;
       const c = tileCenter(r.center.x, r.center.y);
@@ -263,8 +264,8 @@ export class TownScene extends Phaser.Scene {
       let spot = { x: 8 + (i % 4) * 2, y: 17 };
       for (let tries = 0; tries < 40 && !this.walkable(spot.x, spot.y, open); tries++) spot = { x: 5 + Math.floor(Math.random() * 12), y: 14 + Math.floor(Math.random() * 12) };
       const im = this.add.image(0, 0, key).setOrigin(0.5, 1);
-      im.setScale((DW.get(key) ?? im.width) / im.width * 1.0);
-      const shadow = this.add.ellipse(0, -1, 20, 8, 0x000000, 0.16);
+      im.setScale(((DW.get(key) ?? im.width) / im.width) * 0.62); // townsfolk are small next to buildings
+      const shadow = this.add.ellipse(0, -1, 14, 6, 0x000000, 0.16);
       const c = this.add.container(0, 0, [shadow, im]);
       const p = tileCenter(spot.x, spot.y);
       c.setPosition(p.x, p.y + 4).setDepth(spot.x + spot.y + 0.2);

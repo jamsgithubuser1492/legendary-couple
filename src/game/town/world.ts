@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
-import { cartesianToIso, tileCenter } from '../iso';
-import { diamond, shade } from '../draw';
+import { tileCenter } from '../iso';
+import { shade } from '../draw';
 import { LOTS, TOWN, regionOf, type RegionId } from '../../state/town';
-import { PALETTES, type Palette, type Theme } from '../../state/season';
-import { SPRITES } from '../spriteList';
-import { drawPalm, drawPeak, drawPine, drawTree } from './buildings';
+import { PALETTES, type Theme } from '../../state/season';
+import { drawCanopy, drawMountain, drawPalmTree, drawPier, fbm, feather, fillPoly, hash2, mixColor, proj, roundedRect, splinePts, strokePoly, TREE_COLORS, type Pt } from './nature';
 
 type Obj = Phaser.GameObjects.GameObject;
 
@@ -12,25 +11,19 @@ type Obj = Phaser.GameObjects.GameObject;
 export const EXT = { x0: -9, x1: 41, y0: -9, y1: 41 };
 const R0 = -18, R1 = 50; // working range for distance maps
 const SIZE = R1 - R0 + 1;
-const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 
-export const hash = (x: number, y: number) => {
-  const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-  return h - Math.floor(h);
-};
+export const hash = hash2;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-const lerpC = (a: number, b: number, t: number) => {
-  const f = (s: number) => Math.round(((a >> s) & 255) + (((b >> s) & 255) - ((a >> s) & 255)) * t);
-  return (f(16) << 16) | (f(8) << 8) | f(0);
-};
 
 // ---------- the coastline ----------
-const coastX = (y: number) => Math.min(-1.2, -3.8 + 2.4 * Math.sin(y * 0.27 + 0.8) + 1.6 * Math.sin(y * 0.71 + 2.2) - (y > 19 && y < 29 ? 1.4 : 0));
+const baseCoastX = (y: number) => Math.min(-1.2, -3.8 + 2.4 * Math.sin(y * 0.27 + 0.8) + 1.6 * Math.sin(y * 0.71 + 2.2) - (y > 19 && y < 29 ? 1.4 : 0));
+// the lighthouse headland juts out as a rounded bulge at the top of the west coast
+const bulge = (y: number) => (Math.abs(y + 3) < 5.6 ? -3 - Math.sqrt(5.6 * 5.6 - (y + 3) ** 2) : 99);
+export const coastX = (y: number) => Math.min(baseCoastX(y), bulge(y));
 const coastY = (x: number) => Math.max(TOWN + 0.5, 35.6 + 2.2 * Math.sin(x * 0.31 + 1.3) + 1.5 * Math.sin(x * 0.77));
 
 export function isLand(x: number, y: number): boolean {
   if (x >= 0 && y >= 0 && x < TOWN && y < TOWN) return true;
-  if (Math.hypot(x + 3, y + 3) < 5.6) return true; // the lighthouse headland
   return x >= coastX(y) && y <= coastY(x);
 }
 
@@ -71,7 +64,6 @@ function buildDistances() {
   }
 }
 const dLand = (x: number, y: number) => (x < R0 || y < R0 || x > R1 || y > R1 ? 99 : landDist![idx(x, y)]);
-const dWater = (x: number, y: number) => (x < R0 || y < R0 || x > R1 || y > R1 ? 99 : waterDist![idx(x, y)]);
 
 /** Region for any tile in the painted world; the edges borrow the nearest region. */
 export const regionAt = (x: number, y: number): RegionId => regionOf(clamp(x, 0, TOWN - 1), clamp(y, 0, TOWN - 1));
@@ -85,47 +77,7 @@ const SKY: Record<Theme, [number, string][]> = {
   holidays: [[0, '#b8c0e8'], [0.25, '#d0d4f0'], [0.38, '#eceaf8'], [0.4, '#b4d0ea'], [0.7, '#84acd4'], [1, '#5c88b8']],
 };
 const HAZE = 0xe6ecf4;
-const SHALLOW = 0xa4e4dc, MID = 0x6cc0dc, DEEP = 0x4c9ccc;
-
-export function terrainColor(x: number, y: number, pal: Palette, theme: Theme): number {
-  const region = regionAt(x, y);
-  const inCore = x >= 0 && y >= 0 && x < TOWN && y < TOWN;
-  const checker = (x + y) % 2 === 0;
-  const n = 0.97 + hash(x, y) * 0.06;
-  const d = dLand(x, y);
-  let c: number;
-  if (Math.hypot(x + 3, y + 3) < 5.6 && !inCore) c = checker ? 0xa9a39c : 0x9c9690; // headland rock
-  else if ((x < 3 || y > 26 || !inCore) && d <= (inCore ? 3 : 3.5) && region === 'coast') c = d <= 1 ? 0xe2c98f : checker ? pal.sand : shade(pal.sand, 0.96);
-  else if (!inCore && d <= 3.5) c = d <= 1 ? 0xe2c98f : pal.sand;
-  else {
-    switch (region) {
-      case 'coast':
-        c = inCore && (x % 6 === 0 || y % 6 === 0) ? (checker ? 0xd8d0c8 : 0xcfc7bf) : checker ? pal.grassA : pal.grassB;
-        break;
-      case 'country': {
-        if (!inCore) {
-          c = checker ? 0x9ccf7c : 0x92c672; // rolling green hills
-          break;
-        }
-        const band = (((x >> 1) + (y >> 1)) % 3 + 3) % 3;
-        const base = [0xb8d880, 0xe8d27a, 0xc89a68][band];
-        c = checker ? base : shade(base, 0.94);
-        break;
-      }
-      case 'mountain':
-        c = lerpC(checker ? 0xb4aca4 : 0xa89f98, 0x7a9a68, clamp(1 - (30 - x + y) / 18, 0, 0.55));
-        break;
-      case 'downtown':
-        c = (x - 18) % 3 === 2 || (y - 22) % 3 === 2 ? 0x9a9aa4 : checker ? 0xd2d0cc : 0xc8c6c2;
-        break;
-      default:
-        c = checker ? 0xcfe8b8 : 0xc4e0ac;
-    }
-  }
-  if (theme === 'winter' || theme === 'holidays') c = lerpC(c, 0xf4f8fc, region === 'coast' && d <= 2 ? 0.15 : 0.5);
-  else if (theme === 'autumn' && (region === 'country' || region === 'mountain')) c = lerpC(c, 0xe0a860, 0.25);
-  return shade(c, n);
-}
+const SHALLOW = 0xa4e4dc, DEEP = 0x4c9ccc;
 
 // ---------- the backdrop: sky, sun, clouds and soft lighting ----------
 function canvasTex(scene: Phaser.Scene, key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void) {
@@ -222,167 +174,304 @@ export class Backdrop {
 // ---------- the land and sea ----------
 export interface TerrainResult {
   objects: Obj[];
+  /** Call every frame with the scene time (ms). Animates ripples and sparkles on the water. */
+  tick: (time: number) => void;
 }
+
+/** Where each locked region's mist sits, in tile coordinates (extended past the edges of the map). */
+export const REGION_RECTS: Partial<Record<RegionId, { x0: number; y0: number; x1: number; y1: number }>> = {
+  country: { x0: -2, y0: -11, x1: 17.6, y1: 13.6 },
+  mountain: { x0: 15.8, y0: -13, x1: 46, y1: 11.8 },
+  campus: { x0: 17.8, y0: 11.8, x1: 46, y1: 21.8 },
+  downtown: { x0: 17.8, y0: 21.8, x1: 46, y1: 36.5 },
+};
+
+const sub = (a: Pt, b: Pt): Pt => ({ x: a.x - b.x, y: a.y - b.y });
 
 export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
   buildDistances();
   const pal = PALETTES[theme];
   const objects: Obj[] = [];
   const winter = theme === 'winter' || theme === 'holidays';
-
-  // --- shallow water close to the shore, fading into the open sea ---
-  const sea = scene.add.graphics().setDepth(-70);
-  objects.push(sea);
-  for (let s = R0 * 2; s <= R1 * 2; s++)
-    for (let x = R0; x <= R1; x++) {
-      const y = s - x;
-      if (y < R0 || y > R1 || isLand(x, y)) continue;
-      const d = dWater(x, y);
-      if (d > 8) continue;
-      const t = clamp((d - 1) / 7, 0, 1);
-      const c = t < 0.4 ? lerpC(SHALLOW, MID, t / 0.4) : lerpC(MID, DEEP, (t - 0.4) / 0.6);
-      sea.fillStyle(winter ? lerpC(c, 0xcfe0f0, 0.3) : c, 0.97 - t * 0.85);
-      diamond(sea, x, y);
-      sea.fillPath();
-    }
-  // sparkles on the water
-  const glints = scene.add.graphics().setDepth(-69);
-  objects.push(glints);
-  glints.fillStyle(0xffffff, 0.55);
-  for (let x = R0; x <= R1; x++)
-    for (let y = R0; y <= R1; y++) {
-      if (isLand(x, y) || dWater(x, y) > 7 || hash(x + 7, y + 3) > 0.12) continue;
-      const c = tileCenter(x, y);
-      glints.fillEllipse(c.x + (hash(y, x) - 0.5) * 30, c.y + (hash(x, y + 9) - 0.5) * 12, 9, 2.5);
-    }
-
-  // --- land: sand cliffs along the sea edge, then every tile ---
-  const rim = scene.add.graphics().setDepth(-60);
-  const land = scene.add.graphics().setDepth(-50);
-  const foam = scene.add.graphics().setDepth(-49);
-  objects.push(rim, land, foam);
-  const slab = (x: number, y: number, side: 'S' | 'E', color: number) => {
-    const a = side === 'S' ? cartesianToIso(x, y + 1) : cartesianToIso(x + 1, y + 1);
-    const b = side === 'S' ? cartesianToIso(x + 1, y + 1) : cartesianToIso(x + 1, y);
-    rim.fillStyle(side === 'S' ? shade(color, 0.82) : shade(color, 0.68), 1);
-    rim.beginPath();
-    rim.moveTo(a.x, a.y);
-    rim.lineTo(b.x, b.y);
-    rim.lineTo(b.x, b.y + 10);
-    rim.lineTo(a.x, a.y + 10);
-    rim.closePath();
-    rim.fillPath();
+  const tint = (c: number, k = 0.5) => (winter ? mixColor(c, 0xf4f8fc, k) : c);
+  const gfx = (depth: number) => {
+    const g = scene.add.graphics().setDepth(depth);
+    objects.push(g);
+    return g;
   };
-  for (let s = EXT.x0 + EXT.y0; s <= EXT.x1 + EXT.y1; s++)
-    for (let x = EXT.x0; x <= EXT.x1; x++) {
-      const y = s - x;
-      if (y < EXT.y0 || y > EXT.y1 || !isLand(x, y)) continue;
-      // far edges fade into haze, like distance
-      const f = clamp((EXT.x1 - x) / 7, 0, 1) * clamp((y - EXT.y0) / 7, 0, 1);
-      let c = terrainColor(x, y, pal, theme);
-      if (f < 1) c = lerpC(c, HAZE, (1 - f) * 0.85);
-      const edgeSand = lerpC(0xe2c98f, HAZE, (1 - f) * 0.85);
-      if (!isLand(x, y + 1)) slab(x, y, 'S', edgeSand);
-      if (!isLand(x + 1, y)) slab(x, y, 'E', edgeSand);
-      land.fillStyle(c, 0.35 + 0.65 * f);
-      diamond(land, x, y);
-      land.fillPath();
-      // crop rows on the farm fields
-      if (x >= 0 && y >= 0 && x < TOWN && y < TOWN && regionAt(x, y) === 'country' && x < 15) {
-        land.lineStyle(1, shade(c, 0.82), 0.7);
-        for (let k = 1; k <= 3; k++) {
-          const p = cartesianToIso(x, y + k / 4), q = cartesianToIso(x + 1, y + k / 4);
-          land.beginPath();
-          land.moveTo(p.x, p.y);
-          land.lineTo(q.x, q.y);
-          land.strokePath();
+
+  // ----- the coastline, as one smooth curve -----
+  const west: Pt[] = [];
+  for (let y = -12; y <= 35; y += 1.1) west.push({ x: coastX(y), y });
+  const south: Pt[] = [];
+  for (let x = -2.5; x <= EXT.x1 + 3; x += 1.3) south.push({ x, y: coastY(x) });
+  const coast = splinePts([...west, ...south], 380);
+  const normals: Pt[] = coast.map((p, i) => {
+    const a = coast[Math.max(0, i - 9)], b = coast[Math.min(coast.length - 1, i + 9)];
+    const t = sub(b, a);
+    const len = Math.hypot(t.x, t.y) || 1;
+    let n = { x: -t.y / len, y: t.x / len };
+    if (!isLand(p.x + n.x * 0.9, p.y + n.y * 0.9)) n = { x: -n.x, y: -n.y }; // always point toward the land
+    return n;
+  });
+  const offset = (d: number): Pt[] => coast.map((p, i) => ({ x: p.x + normals[i].x * d, y: p.y + normals[i].y * d }));
+  const band = (d: number): Pt[] => [...coast.map(proj), ...offset(d).map(proj).reverse()];
+
+  const screenCoast = coast.map(proj);
+
+  // ----- the sea: one smooth gradient painted from the distance to the shore -----
+  const waterKey = `town_water_${theme}`;
+  const K = 0.5, RES = 5, SPAN = R1 - R0 + 1;
+  if (!scene.textures.exists(waterKey)) {
+    const pts = coast.filter((_, i) => i % 4 === 0);
+    const src = document.createElement('canvas');
+    src.width = src.height = SPAN * RES;
+    const sc = src.getContext('2d')!;
+    const img = sc.createImageData(src.width, src.height);
+    const stops: [number, number, number][] = [[0, SHALLOW, 0.96], [2.2, 0x78d2dc, 0.94], [5, 0x62b8de, 0.88], [10, DEEP, 0.78]];
+    for (let py = 0; py < src.height; py++)
+      for (let px = 0; px < src.width; px++) {
+        const x = R0 + (px + 0.5) / RES, y = R0 + (py + 0.5) / RES;
+        let d = 99;
+        for (const c of pts) {
+          const dd = Math.hypot(c.x - x, c.y - y);
+          if (dd < d) d = dd;
         }
+        let k = 1;
+        while (k < stops.length - 1 && d > stops[k][0]) k++;
+        const [d0, c0, a0] = stops[k - 1], [d1, c1, a1] = stops[k];
+        const t = clamp((d - d0) / (d1 - d0), 0, 1);
+        let col = mixColor(c0, c1, t);
+        if (winter) col = mixColor(col, 0xcfe0f0, 0.3);
+        const i = (py * src.width + px) * 4;
+        img.data[i] = (col >> 16) & 255;
+        img.data[i + 1] = (col >> 8) & 255;
+        img.data[i + 2] = col & 255;
+        const edge = Math.min(x - R0, R1 - x, y - R0, R1 - y); // melt into the horizon at the outer edge
+        const fade = clamp(edge / 9, 0, 1);
+        img.data[i + 3] = Math.round((a0 + (a1 - a0) * t) * 255 * fade * fade * (3 - 2 * fade));
       }
-      // tufts of grass for a little texture
-      if (hash(x + 3, y + 5) > 0.82 && dLand(x, y) > 4) {
-        const p = tileCenter(x, y);
-        land.fillStyle(shade(c, 0.78), 0.8);
-        land.fillTriangle(p.x - 2, p.y + 1, p.x, p.y - 5, p.x + 2, p.y + 1);
-        land.fillTriangle(p.x + 3, p.y + 3, p.x + 5, p.y - 2, p.x + 7, p.y + 3);
-      }
-      // foam where the sea meets the sand
-      foam.lineStyle(2.5, 0xffffff, 0.8);
-      const edges: [boolean, [number, number], [number, number]][] = [
-        [!isLand(x, y - 1), [x, y], [x + 1, y]],
-        [!isLand(x - 1, y), [x, y], [x, y + 1]],
-        [!isLand(x, y + 1), [x, y + 1], [x + 1, y + 1]],
-        [!isLand(x + 1, y), [x + 1, y], [x + 1, y + 1]],
-      ];
-      for (const [wet, a, b] of edges) {
-        if (!wet) continue;
-        const pa = cartesianToIso(a[0], a[1]), pb = cartesianToIso(b[0], b[1]);
-        foam.beginPath();
-        foam.moveTo(pa.x, pa.y);
-        foam.lineTo(pb.x, pb.y);
-        foam.strokePath();
-      }
+    sc.putImageData(img, 0, 0);
+    const W = Math.ceil(SPAN * 64 * K), H = Math.ceil(SPAN * 32 * K);
+    const tex = scene.textures.createCanvas(waterKey, W, H);
+    if (tex) {
+      const c = tex.getContext();
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+      // tile space (x, y) -> isometric pixels, so the gradient follows the world's perspective
+      c.setTransform(32 * K, 16 * K, -32 * K, 16 * K, SPAN * 32 * K, -R0 * 32 * K);
+      c.drawImage(src, R0, R0, SPAN, SPAN);
+      tex.refresh();
     }
+  }
+  // canvas pixel (0, 0) sits at world (-SPAN * 32, R0 * 32)
+  const waterImg = scene.add.image(-SPAN * 32, R0 * 32, waterKey).setOrigin(0, 0).setScale(1 / K).setDepth(-70);
+  objects.push(waterImg);
 
-  // --- piers into the sea (your boardwalk planks) ---
-  const pier = (x: number, y: number, dx: number, dy: number) => {
-    let water = 0;
-    for (let i = 0; i < 24 && water < 6; i++) {
-      for (const off of [0, 1]) {
-        const px = x + dx * i + (dy !== 0 ? off : 0), py = y + dy * i + (dx !== 0 ? off : 0);
-        const key = i === 0 || water >= 5 ? 'bw_light' : 'bw_dark';
-        if (!scene.textures.exists(key)) continue;
-        const c = tileCenter(px, py);
-        const im = scene.add.image(c.x, c.y, key).setOrigin(0.5, 0.39).setDepth(-30);
-        im.setScale((DW.get(key) ?? im.width) / im.width);
-        objects.push(im);
+  // ----- the land -----
+  const landPoly: Pt[] = [{ x: EXT.x1 + 3, y: -12 }, ...coast, { x: EXT.x1 + 3, y: coastY(EXT.x1 + 3) }];
+  // sandy cliff where the land meets the sea on the viewer's side
+  const slab = gfx(-62);
+  for (let i = 0; i < coast.length - 1; i++) {
+    const out = { x: -normals[i].x, y: -normals[i].y };
+    if (out.x + out.y < 0.3) continue;
+    const a = proj(coast[i]), b = proj(coast[i + 1]);
+    slab.fillStyle(shade(pal.sandEdge, out.x > out.y ? 0.78 : 0.9), 1);
+    slab.beginPath();
+    slab.moveTo(a.x, a.y);
+    slab.lineTo(b.x, b.y);
+    slab.lineTo(b.x, b.y + 15);
+    slab.lineTo(a.x, a.y + 15);
+    slab.closePath();
+    slab.fillPath();
+  }
+  const land = gfx(-60);
+  fillPoly(land, landPoly.map(proj), tint(pal.grassA, 0.55));
+
+  // wide soft colour areas for each part of the world
+  const zones = gfx(-58);
+  feather(zones, -2.5, -12, 17.8, 13.8, 3, tint(theme === 'autumn' ? 0xcbc476 : 0xb9d87e, 0.4), 0.95, 2.4); // farmland
+  feather(zones, 15.5, -14, 46, 12, 4, tint(theme === 'autumn' ? 0xa8977a : 0xa6a584, 0.45), 0.9, 2.6); // mountain slopes
+  feather(zones, 17.8, 11.8, 46, 22, 3, tint(0xd3ecc0, 0.5), 0.95, 2.2); // campus lawns
+  feather(zones, 17.8, 21.8, 46, 46, 2, tint(0xd5d3cf, 0.5), 0.95, 1.6); // downtown paving
+  // gentle shading so the land is not flat
+  const shadeG = gfx(-57);
+  for (let i = 0; i < 26; i++) {
+    const cx = -2 + hash2(i, 5) * 42, cy = -8 + hash2(7, i) * 40;
+    if (!isLand(cx, cy)) continue;
+    const r = 2 + hash2(i, i) * 3.5;
+    const ring: Pt[] = [];
+    for (let k = 0; k < 20; k++) ring.push({ x: cx + Math.cos((k / 20) * Math.PI * 2) * r, y: cy + Math.sin((k / 20) * Math.PI * 2) * r * 0.9 });
+    fillPoly(shadeG, ring.map(proj), i % 2 ? 0xffffff : 0x4a6a40, i % 2 ? 0.09 : 0.06);
+  }
+
+  // ----- beaches and the headland -----
+  const beach = gfx(-56);
+  fillPoly(beach, band(3.6), mixColor(pal.sand, pal.grassA, 0.6), 0.5);
+  fillPoly(beach, band(2.4), tint(pal.sand, 0.4));
+  fillPoly(beach, band(0.9), tint(shade(pal.sand, 0.9), 0.3));
+  // the lighthouse headland, a rounded rocky outcrop
+  const rock: Pt[] = [];
+  for (let k = 0; k < 30; k++) {
+    const a = (k / 30) * Math.PI * 2;
+    const r = 4.1 + Math.sin(a * 3 + 1) * 0.35 + Math.sin(a * 5) * 0.2;
+    rock.push({ x: -3 + Math.cos(a) * r, y: -3 + Math.sin(a) * r });
+  }
+  const cliff = gfx(-55);
+  fillPoly(cliff, rock.map((p) => ({ ...proj(p), y: proj(p).y + 13 })), 0x7e746c);
+  fillPoly(cliff, rock.map(proj), tint(0xa9a096, 0.4));
+  fillPoly(cliff, rock.map((p) => proj({ x: -3 + (p.x + 3) * 0.78, y: -3 + (p.y + 3) * 0.78 })), tint(0xb8b0a4, 0.4));
+  fillPoly(cliff, rock.map((p) => proj({ x: -3.4 + (p.x + 3) * 0.5, y: -3.4 + (p.y + 3) * 0.5 })), tint(0x9bb084, 0.4), 0.85);
+
+  // ----- farm fields: patches of crops with rows -----
+  const fields = gfx(-54);
+  const crops = [0xbcd982, 0xe9d37c, 0xc99d6b, 0xa8cf7c];
+  const patches: [number, number, number, number][] = [
+    [8, 0.5, 3, 2.6], [11.4, 0.5, 3.2, 3], [8, 3.8, 3, 2.8], [12, 4.2, 3, 2.4], [0.4, 7.2, 3.6, 2.6], [4.5, 7.4, 3, 3],
+    [8, 7.2, 3, 2.2], [11.2, 7.2, 4, 3], [1, 10.8, 4, 2.4], [6, 10.6, 4, 2.6], [11, 10.8, 4.4, 2.4],
+  ];
+  patches.forEach(([x, y, w, d], i) => {
+    const color = tint(theme === 'autumn' ? mixColor(crops[i % 4], 0xe0a860, 0.3) : crops[i % 4], 0.35);
+    fillPoly(fields, roundedRect(x, y, x + w, y + d, 0.5, 5).map(proj), shade(color, 0.9));
+    fillPoly(fields, roundedRect(x + 0.08, y + 0.08, x + w - 0.08, y + d - 0.08, 0.45, 5).map(proj), color);
+    fields.lineStyle(1.2, shade(color, 0.8), 0.7);
+    for (let t = 0.3; t < d - 0.2; t += 0.26) {
+      const a = proj({ x: x + 0.3, y: y + t }), b = proj({ x: x + w - 0.3, y: y + t });
+      fields.beginPath();
+      fields.moveTo(a.x, a.y);
+      fields.lineTo(b.x, b.y);
+      fields.strokePath();
+    }
+  });
+
+  // ----- roads: smooth ribbons with soft edges -----
+  const roads = gfx(-52);
+  const road = (pts: Pt[], width: number, main = false) => {
+    const sp = splinePts(pts, Math.max(24, pts.length * 14)).map(proj);
+    strokePoly(roads, sp, width + 6, tint(0xaaa49e, 0.2), 0.8);
+    strokePoly(roads, sp, width, tint(0xd8d3cd, 0.2), 1);
+    if (main) {
+      roads.lineStyle(1.4, 0xffffff, 0.55);
+      for (let i = 0; i + 1 < sp.length; i += 2) {
+        roads.beginPath();
+        roads.moveTo(sp[i].x, sp[i].y);
+        roads.lineTo(sp[i + 1].x, sp[i + 1].y);
+        roads.strokePath();
       }
-      if (!isLand(x + dx * i, y + dy * i)) water++;
     }
   };
-  pier(0, 21, -1, 0);
-  pier(21, 31, 0, 1);
+  road([{ x: 3.4, y: 13 }, { x: 4.6, y: 18 }, { x: 4.2, y: 23 }, { x: 5.4, y: 27 }], 15, true); // seaside promenade
+  for (const y of [18, 24]) road([{ x: 3.5, y }, { x: 9, y: y + 0.2 }, { x: 15, y: y - 0.2 }, { x: 18, y }], 12);
+  for (const x of [6, 12]) road([{ x, y: 14 }, { x: x + 0.2, y: 20 }, { x, y: 27 }], 12);
+  road([{ x: 18, y: 17.5 }, { x: 24, y: 17.2 }, { x: 31, y: 17.8 }], 12, true); // campus avenue
+  for (const x of [21, 24, 27, 30]) road([{ x, y: 22 }, { x: x + 0.1, y: 27 }, { x, y: 33 }], 11);
+  for (const y of [24, 27, 30]) road([{ x: 18, y }, { x: 25, y: y + 0.1 }, { x: 33, y }], 11);
+  road([{ x: 8, y: -0.5 }, { x: 8.6, y: 7 }, { x: 9, y: 14 }], 10); // country lane
 
-  // --- mountain peaks, with the snow line lower in winter ---
-  const peaks = scene.add.graphics().setDepth(-44);
-  objects.push(peaks);
-  const snow = winter ? 0xffffff : 0xf4f6fa;
-  const PEAKS: [number, number, number, number][] = [
-    [34, -4, 5, 250], [28, -7, 6, 300], [22, -6, 5, 220], [38, 3, 5, 230], [18, -3, 4, 170], [34, 9, 4, 140], [26, -4, 4, 190],
+  // ----- surf, ripples and sparkles: redrawn gently every few frames -----
+  const foam = gfx(-49);
+  const anim = gfx(-48);
+  const glintSpots = Array.from({ length: 70 }, (_, i) => {
+    const k = Math.floor(hash2(i, 4) * coast.length);
+    const d = 1.5 + hash2(i, 8) * 9;
+    return { p: proj({ x: coast[k].x - normals[k].x * d, y: coast[k].y - normals[k].y * d }), w: 8 + hash2(i, 2) * 9, ph: hash2(i, 6) * 6.28 };
+  });
+  let lastTick = -999;
+  const tick = (time: number) => {
+    if (time - lastTick < 70) return;
+    lastTick = time;
+    foam.clear();
+    anim.clear();
+    const breathe = 0.4 + 0.15 * Math.sin(time / 900);
+    strokePoly(foam, screenCoast, 4.5, 0xffffff, 0.8);
+    // swells: thin lines that drift from the shore out to sea, fading as they go
+    for (let i = 0; i < 4; i++) {
+      const ph = (time / 5200 + i / 4) % 1;
+      const d = 0.7 + ph * 7;
+      const pts = coast.map((p, j) => {
+        const wob = Math.sin(j * 0.33 + time / 800 + i) * 0.14;
+        return proj({ x: p.x - normals[j].x * (d + wob), y: p.y - normals[j].y * (d + wob) });
+      });
+      strokePoly(anim, pts, 2.6 - ph * 1.4, 0xffffff, Math.sin(Math.PI * ph) * breathe * 1.1);
+    }
+    // sparkles that twinkle
+    for (const g of glintSpots) {
+      const a = Math.max(0, Math.sin(time / 650 + g.ph));
+      if (a < 0.2) continue;
+      anim.fillStyle(0xffffff, a * 0.7);
+      anim.fillEllipse(g.p.x, g.p.y, g.w * (0.6 + a * 0.4), 2.6);
+    }
+  };
+  tick(0);
+
+  // ----- piers out into the sea -----
+  const piers = gfx(-46);
+  drawPier(piers, 1.5, 21.6, -9.5, 21.6, 1.7);
+  drawPier(piers, 21.6, 31, 21.6, 41, 1.7);
+
+  // ----- mountains: a rolling chain at the back of the map -----
+  const peaks: [number, number, number, number][] = [
+    [20, -8, 460, 230], [27, -8, 560, 330], [35, -5, 640, 380], [41, 2, 560, 330], [23, -4, 420, 210], [31, -1, 500, 250], [38, 9, 420, 190], [17, -2, 380, 170],
   ];
-  PEAKS.sort((a, b) => a[0] + a[1] - (b[0] + b[1]));
-  for (const [px, py, size, h] of PEAKS) drawPeak(peaks, px, py, size, h, 0x8f8680, snow);
+  peaks.sort((a, b) => a[0] + a[1] - (b[0] + b[1]));
+  for (const [px, py, w, h] of peaks) {
+    const g = scene.add.graphics().setDepth(px + py + 0.2);
+    objects.push(g);
+    const base = proj({ x: px, y: py });
+    drawMountain(g, base.x, base.y, w, h, theme, Math.min(0.55, Math.max(0, (24 - (px + py)) / 60)), px * 3 + py);
+  }
 
-  // --- trees: forests on the hills and mountains, palms on the beaches (one graphics per row) ---
+  // ----- forests and palms: soft clumps by noise, never on buildings or roads -----
   const lotTiles = new Set<string>();
   for (const l of LOTS) for (let i = -1; i <= l.w; i++) for (let j = -1; j <= l.d; j++) lotTiles.add(`${l.x + i},${l.y + j}`);
+  const laneNear = (x: number, y: number) => {
+    if (x < 0 || y < 0) return false;
+    const m = (v: number, k: number) => Math.abs(v - k) < 0.8;
+    return [6, 12].some((k) => m(x, k) && y > 13 && y < 28) || [18, 24].some((k) => m(y, k) && x > 3 && x < 19) || [21, 24, 27, 30].some((k) => m(x, k) && y > 21) || [24, 27, 30].some((k) => m(y, k) && x > 17) || (m(y, 17.5) && x > 17);
+  };
   const rows = new Map<number, Phaser.GameObjects.Graphics>();
-  const rowGfx = (s: number) => {
-    let g = rows.get(s);
+  const rowGfx = (key: number) => {
+    let g = rows.get(key);
     if (!g) {
-      g = scene.add.graphics().setDepth(s + 0.3);
-      rows.set(s, g);
+      g = scene.add.graphics().setDepth(key + 0.3);
+      rows.set(key, g);
       objects.push(g);
     }
     return g;
   };
-  for (let x = EXT.x0; x <= EXT.x1; x++)
-    for (let y = EXT.y0; y <= EXT.y1; y++) {
-      if (!isLand(x, y) || lotTiles.has(`${x},${y}`)) continue;
-      const r = hash(x * 1.7, y * 2.3);
-      const region = regionAt(x, y);
-      const inCore = x >= 0 && y >= 0 && x < TOWN && y < TOWN;
-      const f = clamp((EXT.x1 - x) / 7, 0, 1) * clamp((y - EXT.y0) / 7, 0, 1);
-      if (f < 0.25) continue;
-      const beach = dLand(x, y) <= 3.5 && (!inCore || x < 3 || y > 26);
-      const onPeak = PEAKS.some(([px, py, size]) => Math.abs(px - x) < size / 2 + 0.5 && Math.abs(py - y) < size / 2 + 0.5);
-      if (onPeak) continue;
-      if (beach && dLand(x, y) > 1.5 && r < 0.07 && region === 'coast') drawPalm(rowGfx(x + y), x + 0.5, y + 0.5, Math.floor(r * 100));
-      else if (!beach && !inCore && r < (region === 'mountain' ? 0.34 : 0.3)) region === 'mountain' || r < 0.12 ? drawPine(rowGfx(x + y), x + 0.5, y + 0.5) : drawTree(rowGfx(x + y), x + 0.5, y + 0.5, Math.floor(r * 30));
-      else if (inCore && region === 'country' && x >= 15 && r < 0.22) drawTree(rowGfx(x + y), x + 0.5, y + 0.5, Math.floor(r * 30));
-      else if (inCore && region === 'mountain' && r < 0.3) drawPine(rowGfx(x + y), x + 0.5, y + 0.5);
-      else if (inCore && region === 'campus' && r < 0.08) drawTree(rowGfx(x + y), x + 0.5, y + 0.5, Math.floor(r * 30));
+  const palette = TREE_COLORS[theme];
+  for (let x = EXT.x0; x <= EXT.x1; x += 0.85)
+    for (let y = EXT.y0; y <= EXT.y1; y += 0.85) {
+      const jx = x + (hash2(x * 3, y) - 0.5) * 0.8, jy = y + (hash2(x, y * 3) - 0.5) * 0.8;
+      if (!isLand(jx, jy) || lotTiles.has(`${Math.floor(jx)},${Math.floor(jy)}`) || laneNear(jx, jy)) continue;
+      const inCore = jx >= 0 && jy >= 0 && jx < TOWN && jy < TOWN;
+      const region = regionAt(jx, jy);
+      const d = Math.min(1, fbm(jx * 0.2, jy * 0.2) ** 1.6 * 2.1); // clumps, with clearings between
+      const nearSea = dLand(Math.floor(jx), Math.floor(jy)) <= 3.5 && (!inCore || jx < 3 || jy > 26);
+      let p = 0;
+      if (nearSea) p = region === 'coast' || !inCore ? 0.05 : 0;
+      else if (!inCore) p = (region === 'mountain' ? 0.9 : 0.8) * d;
+      else if (region === 'mountain') p = 0.8 * d;
+      else if (region === 'country') p = jx > 15 ? 0.3 * d : jy < 1 || jy > 12.4 ? 0.28 * d : 0;
+      else if (region === 'campus') p = 0.1 * d;
+      else if (region === 'coast') p = jx > 15 || jy < 15.5 ? 0.12 * d : 0.025;
+      if (hash2(jx * 7.7, jy * 3.1) > p) continue;
+      const s = proj({ x: jx, y: jy });
+      const g = rowGfx(Math.floor(jx + jy));
+      if (nearSea) drawPalmTree(g, s.x, s.y, hash2(jx, jy) > 0.5 ? 8 : -8);
+      else {
+        const c = palette[Math.floor(hash2(jy, jx) * palette.length) % palette.length];
+        drawCanopy(g, s.x, s.y, 6.5 + hash2(jx, jy * 2) * 3.5, c);
+      }
     }
-  return { objects };
+
+  // ----- far edges melt into haze -----
+  const haze = gfx(8000);
+  for (let k = 1; k <= 9; k++) {
+    fillPoly(haze, [{ x: -14, y: -14 }, { x: EXT.x1 + 8, y: -14 }, { x: EXT.x1 + 8, y: -14 + k * 1.4 }, { x: -14, y: -14 + k * 1.4 }].map(proj), HAZE, 0.09);
+    fillPoly(haze, [{ x: EXT.x1 + 8 - k * 1.4, y: -14 }, { x: EXT.x1 + 8, y: -14 }, { x: EXT.x1 + 8, y: 46 }, { x: EXT.x1 + 8 - k * 1.4, y: 46 }].map(proj), HAZE, 0.09);
+  }
+  return { objects, tick };
 }
 
 /** Whole painted world, as a camera target. */

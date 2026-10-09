@@ -3,12 +3,13 @@ import { availableIn, CATALOG, CATEGORIES, type ShopCategory } from '../state/ca
 import { THEMES, useTheme } from '../state/season';
 import { buyItem, useGameState } from '../state/store';
 import ItemIcon from './ItemIcon';
+import { PRESETS } from '../state/presets';
 
-export default function ShopModal({ onClose }: { onClose: () => void }) {
+export default function ShopModal({ onClose, onPickPreset }: { onClose: () => void; onPickPreset?: (id: string) => void }) {
   const s = useGameState();
   const theme = useTheme();
-  const [cat, setCat] = useState<ShopCategory>('furniture');
-  const items = CATALOG.filter((i) => i.category === cat);
+  const [cat, setCat] = useState<ShopCategory | 'rooms'>(onPickPreset ? 'rooms' : 'furniture');
+  const items = cat === 'rooms' ? [] : CATALOG.filter((i) => i.category === cat);
   const owned = (id: string) => s.inventory.find((i) => i.id === id)?.count ?? 0;
   const placedCount = (id: string) => s.placed.filter((p) => p.itemId === id).length;
   const info = THEMES.find((t) => t.id === theme)!;
@@ -25,6 +26,9 @@ export default function ShopModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="mt-3 flex shrink-0 gap-2 overflow-x-auto pb-1">
+          {onPickPreset && (
+            <button onClick={() => setCat('rooms')} className={`shrink-0 rounded-full px-4 py-1.5 font-display font-bold ${cat === 'rooms' ? 'bg-pink-400 text-white' : 'bg-peach text-cocoa'}`}>🏠 Room Designs</button>
+          )}
           {CATEGORIES.map((c) => (
             <button key={c.id} onClick={() => setCat(c.id)} className={`shrink-0 rounded-full px-4 py-1.5 font-display font-bold ${cat === c.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
               {c.label}
@@ -36,7 +40,32 @@ export default function ShopModal({ onClose }: { onClose: () => void }) {
             {info.icon} It is {info.label} on your island. Limited time items are sold only in season. Anything you own stays yours.
           </p>
         )}
-        <div className="mt-3 grid grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
+        {cat === 'rooms' && (
+          <div className="mt-3 grid grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2">
+            {PRESETS.map((p) => {
+              const inSeason = !p.seasons || p.seasons.includes(theme);
+              const afford = s.coins >= p.price.coins && s.gems >= p.price.gems;
+              return (
+                <div key={p.id} className={`flex flex-col rounded-2xl bg-white p-3 shadow ${inSeason ? '' : 'opacity-60'}`}>
+                  <div className="flex items-end justify-center gap-1 rounded-xl bg-gradient-to-br from-pink-50 to-amber-50 p-2">
+                    {p.hero.map((id) => <ItemIcon key={id} id={id} size={46} />)}
+                  </div>
+                  <div className="mt-2 font-display font-bold text-cocoa">{p.icon} {p.name}</div>
+                  <div className="text-xs text-cocoa/70">{p.blurb}</div>
+                  <div className="mt-1 text-xs text-cocoa/50">{p.w} x {p.d} tiles, fully furnished</div>
+                  <button
+                    disabled={!afford || !inSeason}
+                    onClick={() => onPickPreset?.(p.id)}
+                    className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40"
+                  >
+                    {!inSeason ? 'Back in winter' : <>{p.price.coins > 0 && `🪙 ${p.price.coins}`} {p.price.gems > 0 && `💎 ${p.price.gems}`} · Place it</>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className={`mt-3 grid grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 ${cat === 'rooms' ? 'hidden' : ''}`}>
           {items.map((it) => {
             const inSeason = availableIn(it, theme);
             const afford = s.coins >= it.price.coins && s.gems >= it.price.gems;
