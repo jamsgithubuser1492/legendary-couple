@@ -10,6 +10,8 @@ import Journal, { MemoryViewer } from './ui/Journal';
 import WardrobeModal from './ui/WardrobeModal';
 import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
+import { DreamMap, TownPanel, TownToast } from './ui/TownUI';
+import { growthOf, useGrowthPreview } from './state/town';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import { startSync } from './lib/sync';
@@ -25,6 +27,10 @@ export default function App() {
   const [viewing, setViewing] = useState<string | null>(null);
   const [panel, setPanel] = useState<'checkin' | 'boxes' | 'wardrobe' | null>(null);
   const [reveal, setReveal] = useState(false);
+  const [view, setView] = useState<'island' | 'town'>('island');
+  const [townPanel, setTownPanel] = useState(false);
+  const [dream, setDream] = useState(false);
+  useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0 });
@@ -34,9 +40,11 @@ export default function App() {
     startSync();
     gameBus.on(BUS.hover, setHover);
     gameBus.on(BUS.memoryOpen, setViewing);
+    gameBus.on(BUS.viewSync, setView);
     return () => {
       gameBus.off(BUS.hover, setHover);
       gameBus.off(BUS.memoryOpen, setViewing);
+      gameBus.off(BUS.viewSync, setView);
     };
   }, []);
 
@@ -77,6 +85,13 @@ export default function App() {
     setReveal(false);
   };
 
+  const changeView = (v: 'island' | 'town') => {
+    if (v === view) return;
+    setEditing(false);
+    setView(v);
+    gameBus.emit(BUS.view, v);
+  };
+
   const pick = (p: StartingPath) => {
     setStartingPath(p);
     setModalOpen(false);
@@ -98,6 +113,11 @@ export default function App() {
         onBoxes={() => setPanel('boxes')}
         onWardrobe={() => setPanel('wardrobe')}
         editing={editing}
+        view={view}
+        growth={growthOf(state)}
+        onView={changeView}
+        onTownPanel={() => setTownPanel(true)}
+        onDream={() => setDream(true)}
       />
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
       {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
@@ -108,12 +128,15 @@ export default function App() {
         />
       )}
       {journal.open && <Journal prefill={journal.prefill} onClose={() => setJournal({ open: false })} onView={setViewing} />}
+      <TownToast />
+      {townPanel && <TownPanel onClose={() => setTownPanel(false)} onDream={() => { setTownPanel(false); setDream(true); }} />}
+      {dream && <DreamMap onClose={() => setDream(false)} />}
       {panel === 'checkin' && <CheckinModal onClose={() => setPanel(null)} />}
       {panel === 'boxes' && <BlindBoxModal onClose={() => setPanel(null)} />}
       {panel === 'wardrobe' && <WardrobeModal onClose={() => setPanel(null)} />}
       {reveal && last && <RevealModal reward={last.reward} openedBy={`${state.names.A} and ${state.names.B}`} onClose={closeReveal} />}
       {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
-      {usOpen && <PairingModal onClose={() => setUsOpen(false)} />}
+      {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}
     </div>
   );

@@ -12,6 +12,9 @@ export const BUS = {
   edit: 'edit',                 // React -> Phaser: EditPayload
   focus: 'focus',               // React -> Phaser: {x, y} pan the camera to a tile
   memoryOpen: 'memoryOpen',     // Phaser -> React: memory id
+  view: 'view',                 // React -> Phaser: 'island' | 'town'
+  townToast: 'townToast',       // Phaser -> React: { text }
+  viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null
 } as const;
 

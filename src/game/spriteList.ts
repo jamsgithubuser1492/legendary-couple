@@ -855,6 +855,426 @@ export const SPRITES = [
     "dw": 56
   },
   {
+    "key": "shop_bookstore",
+    "file": "shop_bookstore.png",
+    "w": 181,
+    "h": 197,
+    "dw": 110
+  },
+  {
+    "key": "shop_bistro",
+    "file": "shop_bistro.png",
+    "w": 208,
+    "h": 198,
+    "dw": 110
+  },
+  {
+    "key": "shop_florist",
+    "file": "shop_florist.png",
+    "w": 178,
+    "h": 182,
+    "dw": 100
+  },
+  {
+    "key": "shop_toy",
+    "file": "shop_toy.png",
+    "w": 191,
+    "h": 202,
+    "dw": 110
+  },
+  {
+    "key": "stand_news",
+    "file": "stand_news.png",
+    "w": 96,
+    "h": 134,
+    "dw": 56
+  },
+  {
+    "key": "stand_hotdog",
+    "file": "stand_hotdog.png",
+    "w": 125,
+    "h": 141,
+    "dw": 64
+  },
+  {
+    "key": "stand_art",
+    "file": "stand_art.png",
+    "w": 134,
+    "h": 137,
+    "dw": 70
+  },
+  {
+    "key": "board_message",
+    "file": "board_message.png",
+    "w": 107,
+    "h": 146,
+    "dw": 64
+  },
+  {
+    "key": "street_lamp_a",
+    "file": "street_lamp_a.png",
+    "w": 40,
+    "h": 147,
+    "dw": 20
+  },
+  {
+    "key": "street_lamp_b",
+    "file": "street_lamp_b.png",
+    "w": 48,
+    "h": 134,
+    "dw": 24
+  },
+  {
+    "key": "street_lamp_c",
+    "file": "street_lamp_c.png",
+    "w": 40,
+    "h": 155,
+    "dw": 20
+  },
+  {
+    "key": "street_lamp_d",
+    "file": "street_lamp_d.png",
+    "w": 48,
+    "h": 146,
+    "dw": 24
+  },
+  {
+    "key": "bench_a",
+    "file": "bench_a.png",
+    "w": 92,
+    "h": 88,
+    "dw": 46
+  },
+  {
+    "key": "bench_b",
+    "file": "bench_b.png",
+    "w": 92,
+    "h": 92,
+    "dw": 46
+  },
+  {
+    "key": "bench_c",
+    "file": "bench_c.png",
+    "w": 92,
+    "h": 90,
+    "dw": 46
+  },
+  {
+    "key": "bench_d",
+    "file": "bench_d.png",
+    "w": 92,
+    "h": 96,
+    "dw": 46
+  },
+  {
+    "key": "planter_pot",
+    "file": "planter_pot.png",
+    "w": 56,
+    "h": 67,
+    "dw": 28
+  },
+  {
+    "key": "planter_box_a",
+    "file": "planter_box_a.png",
+    "w": 88,
+    "h": 99,
+    "dw": 44
+  },
+  {
+    "key": "plant_tall",
+    "file": "plant_tall.png",
+    "w": 68,
+    "h": 117,
+    "dw": 34
+  },
+  {
+    "key": "planter_box_b",
+    "file": "planter_box_b.png",
+    "w": 88,
+    "h": 100,
+    "dw": 44
+  },
+  {
+    "key": "phone_booth",
+    "file": "phone_booth.png",
+    "w": 80,
+    "h": 172,
+    "dw": 40
+  },
+  {
+    "key": "bus_sign",
+    "file": "bus_sign.png",
+    "w": 40,
+    "h": 145,
+    "dw": 20
+  },
+  {
+    "key": "clock_post",
+    "file": "clock_post.png",
+    "w": 56,
+    "h": 162,
+    "dw": 28
+  },
+  {
+    "key": "wall_clock",
+    "file": "wall_clock.png",
+    "w": 72,
+    "h": 81,
+    "dw": 36
+  },
+  {
+    "key": "bin_a",
+    "file": "bin_a.png",
+    "w": 44,
+    "h": 61,
+    "dw": 22
+  },
+  {
+    "key": "bin_b",
+    "file": "bin_b.png",
+    "w": 44,
+    "h": 58,
+    "dw": 22
+  },
+  {
+    "key": "npc_grandma",
+    "file": "npc_grandma.png",
+    "w": 60,
+    "h": 116,
+    "dw": 30
+  },
+  {
+    "key": "npc_photographer",
+    "file": "npc_photographer.png",
+    "w": 60,
+    "h": 142,
+    "dw": 30
+  },
+  {
+    "key": "npc_woman",
+    "file": "npc_woman.png",
+    "w": 56,
+    "h": 153,
+    "dw": 28
+  },
+  {
+    "key": "npc_hat",
+    "file": "npc_hat.png",
+    "w": 56,
+    "h": 147,
+    "dw": 28
+  },
+  {
+    "key": "bw_light",
+    "file": "bw_light.png",
+    "w": 132,
+    "h": 64,
+    "dw": 66
+  },
+  {
+    "key": "bw_light2",
+    "file": "bw_light2.png",
+    "w": 132,
+    "h": 63,
+    "dw": 66
+  },
+  {
+    "key": "bw_coral",
+    "file": "bw_coral.png",
+    "w": 132,
+    "h": 63,
+    "dw": 66
+  },
+  {
+    "key": "bw_dark",
+    "file": "bw_dark.png",
+    "w": 132,
+    "h": 74,
+    "dw": 66
+  },
+  {
+    "key": "bw_brown",
+    "file": "bw_brown.png",
+    "w": 132,
+    "h": 72,
+    "dw": 66
+  },
+  {
+    "key": "bw_green",
+    "file": "bw_green.png",
+    "w": 132,
+    "h": 78,
+    "dw": 66
+  },
+  {
+    "key": "bw_coral2",
+    "file": "bw_coral2.png",
+    "w": 132,
+    "h": 76,
+    "dw": 66
+  },
+  {
+    "key": "bw_sand",
+    "file": "bw_sand.png",
+    "w": 132,
+    "h": 79,
+    "dw": 66
+  },
+  {
+    "key": "shop_surf",
+    "file": "shop_surf.png",
+    "w": 170,
+    "h": 157,
+    "dw": 90
+  },
+  {
+    "key": "shop_icecream",
+    "file": "shop_icecream.png",
+    "w": 148,
+    "h": 143,
+    "dw": 74
+  },
+  {
+    "key": "stand_coffee",
+    "file": "stand_coffee.png",
+    "w": 123,
+    "h": 152,
+    "dw": 64
+  },
+  {
+    "key": "shop_souvenir",
+    "file": "shop_souvenir.png",
+    "w": 185,
+    "h": 156,
+    "dw": 100
+  },
+  {
+    "key": "lifeguard_red",
+    "file": "lifeguard_red.png",
+    "w": 115,
+    "h": 192,
+    "dw": 60
+  },
+  {
+    "key": "surfboard_rack",
+    "file": "surfboard_rack.png",
+    "w": 88,
+    "h": 106,
+    "dw": 44
+  },
+  {
+    "key": "surfboard_stack",
+    "file": "surfboard_stack.png",
+    "w": 100,
+    "h": 168,
+    "dw": 50
+  },
+  {
+    "key": "volleyball_net",
+    "file": "volleyball_net.png",
+    "w": 220,
+    "h": 190,
+    "dw": 110
+  },
+  {
+    "key": "beach_set",
+    "file": "beach_set.png",
+    "w": 152,
+    "h": 138,
+    "dw": 76
+  },
+  {
+    "key": "souvenir_display",
+    "file": "souvenir_display.png",
+    "w": 80,
+    "h": 105,
+    "dw": 40
+  },
+  {
+    "key": "seating_cluster",
+    "file": "seating_cluster.png",
+    "w": 180,
+    "h": 125,
+    "dw": 90
+  },
+  {
+    "key": "region_farm",
+    "file": "region_farm.png",
+    "w": 492,
+    "h": 326,
+    "dw": 300
+  },
+  {
+    "key": "region_mountain",
+    "file": "region_mountain.png",
+    "w": 382,
+    "h": 362,
+    "dw": 260
+  },
+  {
+    "key": "campus_buildings",
+    "file": "campus_buildings.png",
+    "w": 406,
+    "h": 216,
+    "dw": 220
+  },
+  {
+    "key": "greenhouse_domes",
+    "file": "greenhouse_domes.png",
+    "w": 274,
+    "h": 204,
+    "dw": 170
+  },
+  {
+    "key": "farm_tools",
+    "file": "farm_tools.png",
+    "w": 80,
+    "h": 45,
+    "dw": 40
+  },
+  {
+    "key": "crate_veg",
+    "file": "crate_veg.png",
+    "w": 60,
+    "h": 28,
+    "dw": 30
+  },
+  {
+    "key": "orange_tree",
+    "file": "orange_tree.png",
+    "w": 49,
+    "h": 80,
+    "dw": 28
+  },
+  {
+    "key": "telescope",
+    "file": "telescope.png",
+    "w": 52,
+    "h": 78,
+    "dw": 26
+  },
+  {
+    "key": "hiking_poles",
+    "file": "hiking_poles.png",
+    "w": 28,
+    "h": 67,
+    "dw": 14
+  },
+  {
+    "key": "golf_cart",
+    "file": "golf_cart.png",
+    "w": 80,
+    "h": 74,
+    "dw": 40
+  },
+  {
+    "key": "vertical_farm",
+    "file": "vertical_farm.png",
+    "w": 72,
+    "h": 98,
+    "dw": 36
+  },
+  {
     "key": "rachel_front",
     "file": "rachel_front.png",
     "w": 62,

@@ -21,6 +21,11 @@ const DOT: Record<string, string> = {
 interface Props {
   hover: HoverPayload;
   editing: boolean;
+  view: 'island' | 'town';
+  growth: number;
+  onView: (v: 'island' | 'town') => void;
+  onTownPanel: () => void;
+  onDream: () => void;
   onCenter: () => void;
   onZoom: (d: number) => void;
   onChangePath: () => void;
@@ -67,21 +72,33 @@ export default function Hud(p: Props) {
         </div>
       </div>
 
-      {!p.editing && (
+      {!p.editing && p.view === 'town' && (
         <div className="absolute right-3 top-20 flex flex-col gap-2">
+          <button className={side} onClick={() => p.onView('island')} aria-label="Home island">🏝️</button>
+          <button className={side} onClick={p.onTownPanel} aria-label="Town growth">🌱</button>
+          <button className={side} onClick={p.onDream} aria-label="Dream map">🖼️</button>
+          <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
+        </div>
+      )}
+      {!p.editing && p.view === 'island' && (
+        <div className="absolute right-3 top-20 flex flex-col gap-2">
+          <button className={side} onClick={() => p.onView('town')} aria-label="Town map">🌍</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
           <button className={side} onClick={p.onBoxes} aria-label="Blind boxes">🎁{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
           <button className={side} onClick={p.onWardrobe} aria-label="Wardrobe">👗</button>
           <button className={side} onClick={p.onJournal} aria-label="Memory Journal">📔</button>
           <button className={side} onClick={p.onDecorate} aria-label="Decorate">🎨</button>
-          <button className={side} onClick={p.onChangePath} aria-label="Starting path">🗺️</button>
         </div>
       )}
 
       <div className={`flex items-end justify-between gap-2 ${p.editing ? 'invisible' : ''}`}>
-        <div className="rounded-full bg-cream/90 px-3 py-1.5 text-xs text-cocoa shadow">
-          {p.hover ? `Tile (${p.hover.x}, ${p.hover.y})` : 'Tap a tile to walk'}
-        </div>
+        {p.view === 'town' ? (
+          <button onClick={p.onTownPanel} className="pointer-events-auto rounded-full bg-cream/90 px-3 py-1.5 text-xs font-bold text-cocoa shadow">🌱 Town growth {p.growth}</button>
+        ) : (
+          <div className="rounded-full bg-cream/90 px-3 py-1.5 text-xs text-cocoa shadow">
+            {p.hover ? `Tile (${p.hover.x}, ${p.hover.y})` : 'Tap a tile to walk'}
+          </div>
+        )}
         <div className="flex flex-wrap justify-end gap-2">
           <button className={btn} onClick={() => p.onZoom(-0.2)} aria-label="Zoom out">−</button>
           <button className={btn} onClick={() => p.onZoom(0.2)} aria-label="Zoom in">+</button>

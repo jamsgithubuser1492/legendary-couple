@@ -1,7 +1,7 @@
 import type { Theme } from './season';
 
 export type Layer = 'floor' | 'wall' | 'walldecor' | 'object';
-export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'decor' | 'pets' | 'landmark' | 'seasonal';
+export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'decor' | 'pets' | 'landmark' | 'seasonal';
 export type Shape = 'box' | 'round' | 'tree';
 
 export interface CatalogItem {
@@ -172,6 +172,7 @@ export const CATEGORIES: { id: ShopCategory; label: string }[] = [
   { id: 'furniture', label: 'Furniture' },
   { id: 'cafe', label: 'Café' },
   { id: 'camp', label: 'Camping' },
+  { id: 'street', label: 'Street & Beach' },
   { id: 'decor', label: 'Decor' },
   { id: 'pets', label: 'Pets' },
   { id: 'landmark', label: 'Landmarks' },
@@ -185,3 +186,66 @@ export function footprint(item: CatalogItem, rotation: number): { w: number; d: 
 
 /** Limited-time items can only be bought while their theme is active. */
 export const availableIn = (item: CatalogItem, theme: Theme): boolean => !item.seasons || item.seasons.includes(theme);
+
+// ---- Downtown, boardwalk and region art (Build 7) ----
+const add = (
+  id: string, name: string, icon: string, category: ShopCategory, layer: Layer,
+  coins: number, gems: number, w: number, d: number, sprite: string, o: Partial<CatalogItem> = {},
+) => CATALOG.push({ id, name, icon, category, layer, price: c(coins, gems), w, d, h: 20, color: 0xd9a86c, sprite, ...o });
+
+add('bw_light', 'Boardwalk Light', '🟫', 'floor', 'floor', 50, 0, 1, 1, 'bw_light');
+add('bw_light2', 'Boardwalk Sand', '🟫', 'floor', 'floor', 50, 0, 1, 1, 'bw_light2');
+add('bw_coral', 'Boardwalk Coral', '🟧', 'floor', 'floor', 60, 0, 1, 1, 'bw_coral');
+add('bw_dark', 'Boardwalk Dark', '🟫', 'floor', 'floor', 60, 0, 1, 1, 'bw_dark');
+add('bw_brown', 'Boardwalk Walnut', '🟫', 'floor', 'floor', 60, 0, 1, 1, 'bw_brown');
+add('bw_green', 'Boardwalk Seafoam', '🟩', 'floor', 'floor', 70, 0, 1, 1, 'bw_green');
+add('bw_coral2', 'Boardwalk Sunset', '🟧', 'floor', 'floor', 70, 0, 1, 1, 'bw_coral2');
+add('bw_sand', 'Sandy Edge', '🏖️', 'floor', 'floor', 70, 0, 1, 1, 'bw_sand');
+
+for (const [k, n] of [['a', 'Classic'], ['b', 'Triple'], ['c', 'Glow'], ['d', 'Curved']] as const) {
+  add(`street_lamp_${k}`, `${n} Street Lamp`, '🏮', 'street', 'object', 60, 0, 1, 1, `street_lamp_${k}`);
+}
+for (const [k, n] of [['a', 'Slat'], ['b', 'Walnut'], ['c', 'Scroll'], ['d', 'Weathered']] as const) {
+  add(`bench_${k}`, `${n} Bench`, '🪑', 'street', 'object', 70, 0, 1, 1, `bench_${k}`);
+}
+add('planter_pot', 'Terracotta Pot', '🪴', 'street', 'object', 40, 0, 1, 1, 'planter_pot');
+add('planter_box_a', 'Planter Box', '🌿', 'street', 'object', 70, 0, 1, 1, 'planter_box_a');
+add('planter_box_b', 'Garden Box', '🌿', 'street', 'object', 70, 0, 1, 1, 'planter_box_b');
+add('plant_tall', 'Tall Plant Box', '🌿', 'street', 'object', 80, 0, 1, 1, 'plant_tall');
+add('phone_booth', 'Phone Booth', '☎️', 'street', 'object', 150, 0, 1, 1, 'phone_booth');
+add('bus_sign', 'Bus Stop Sign', '🚏', 'street', 'object', 50, 0, 1, 1, 'bus_sign');
+add('clock_post', 'Street Clock', '🕰️', 'street', 'object', 110, 0, 1, 1, 'clock_post');
+add('bin_a', 'Recycling Bin', '♻️', 'street', 'object', 30, 0, 1, 1, 'bin_a');
+add('bin_b', 'Trash Bin', '🗑️', 'street', 'object', 30, 0, 1, 1, 'bin_b');
+add('wall_clock', 'Big Wall Clock', '🕰️', 'walldecor', 'walldecor', 90, 0, 1, 1, 'wall_clock', { lift: 36 });
+add('stand_news', 'Newspaper Stand', '📰', 'street', 'object', 180, 0, 1, 1, 'stand_news');
+add('stand_hotdog', 'Hot Dog Stand', '🌭', 'street', 'object', 220, 0, 2, 1, 'stand_hotdog');
+add('stand_art', 'Art Vendor Table', '🖼️', 'street', 'object', 200, 0, 2, 1, 'stand_art');
+add('board_message', 'Community Board', '📌', 'street', 'object', 160, 0, 2, 1, 'board_message');
+add('volleyball_net', 'Volleyball Net', '🏐', 'street', 'object', 220, 0, 3, 2, 'volleyball_net');
+add('beach_set', 'Umbrella & Lounger', '⛱️', 'street', 'object', 200, 0, 2, 2, 'beach_set');
+add('souvenir_display', 'Souvenir Rack', '🗺️', 'street', 'object', 90, 0, 1, 1, 'souvenir_display');
+add('seating_cluster', 'Outdoor Seating', '🪑', 'street', 'object', 260, 0, 2, 2, 'seating_cluster');
+add('surfboard_rack', 'Surfboard Stand', '🏄', 'street', 'object', 90, 0, 1, 1, 'surfboard_rack');
+add('surfboard_stack', 'Surfboard Rack', '🏄', 'street', 'object', 110, 0, 1, 1, 'surfboard_stack');
+add('lifeguard_red', 'Red Lifeguard Tower', '🛟', 'landmark', 'object', 0, 35, 2, 2, 'lifeguard_red');
+add('shop_bookstore', 'Vintage Bookstore', '📚', 'landmark', 'object', 0, 60, 3, 3, 'shop_bookstore');
+add('shop_bistro', 'Bistro & Patisserie', '🥐', 'landmark', 'object', 0, 60, 3, 3, 'shop_bistro');
+add('shop_florist', 'Blooms Florist', '💐', 'landmark', 'object', 0, 55, 3, 3, 'shop_florist');
+add('shop_toy', 'Play Toy Store', '🎮', 'landmark', 'object', 0, 60, 3, 3, 'shop_toy');
+add('shop_surf', 'Surf Shack', '🏄', 'landmark', 'object', 0, 55, 3, 3, 'shop_surf');
+add('shop_icecream', 'Ice Cream Stand', '🍦', 'landmark', 'object', 0, 50, 2, 2, 'shop_icecream');
+add('stand_coffee', 'Coffee Stand', '☕', 'landmark', 'object', 0, 45, 2, 2, 'stand_coffee');
+add('shop_souvenir', 'Souvenir Shop', '🎁', 'landmark', 'object', 0, 55, 3, 3, 'shop_souvenir');
+add('campus_buildings', 'Campus Buildings', '🏫', 'landmark', 'object', 0, 140, 4, 4, 'campus_buildings');
+add('greenhouse_domes', 'Greenhouse Domes', '🌱', 'landmark', 'object', 0, 120, 4, 4, 'greenhouse_domes');
+add('farm_tools', 'Farm Tools', '🧑‍🌾', 'camp', 'object', 50, 0, 1, 1, 'farm_tools');
+add('crate_veg', 'Veggie Crates', '🥕', 'camp', 'object', 40, 0, 1, 1, 'crate_veg');
+add('orange_tree', 'Orange Tree', '🍊', 'camp', 'object', 90, 0, 1, 1, 'orange_tree');
+add('telescope', 'Telescope', '🔭', 'camp', 'object', 120, 0, 1, 1, 'telescope');
+add('hiking_poles', 'Hiking Poles', '🥾', 'camp', 'object', 40, 0, 1, 1, 'hiking_poles');
+add('golf_cart', 'Campus Cart', '🛺', 'camp', 'object', 160, 0, 1, 1, 'golf_cart');
+add('vertical_farm', 'Vertical Farm', '🥬', 'camp', 'object', 140, 0, 1, 1, 'vertical_farm');
+for (const [k, n] of [['grandma', 'Grandma Reading'], ['photographer', 'Photographer'], ['woman', 'Coffee Walker'], ['hat', 'Sun Hat Visitor']] as const) {
+  add(`npc_${k}`, n, '🧑', 'pets', 'object', 0, 20, 1, 1, `npc_${k}`);
+}
