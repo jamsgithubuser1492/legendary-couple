@@ -36,6 +36,9 @@ export function canPlace(
       if (extraBlocked.some((b) => b.x === t.x && b.y === t.y)) return { ok: false, reason: 'Someone is standing there' };
     }
   }
+  if (item.layer !== 'floor' && s.memories.some((m) => tiles.some((t) => t.x === m.tileX && t.y === m.tileY))) {
+    return { ok: false, reason: 'A memory plaque is there' };
+  }
   for (const o of s.placed) {
     const oi = itemOf(o.itemId);
     if (!oi) continue;
@@ -56,5 +59,18 @@ export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
     if (!it || it.layer === 'floor') continue;
     for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) set.add(`${t.x},${t.y}`);
   }
+  for (const m of s.memories) set.add(`${m.tileX},${m.tileY}`);
   return set;
+}
+
+/** Finds an open tile for a new memory plaque, preferring the island's shoreline. */
+export function freeShoreTile(s: GameState): { x: number; y: number } | null {
+  const taken = blockedTiles(s, true);
+  for (const a of Object.values(s.avatars)) taken.add(`${a.x},${a.y}`);
+  const ring: { x: number; y: number }[] = [];
+  for (let layer = 0; layer < GRID / 2; layer++) {
+    const lo = layer, hi = GRID - 1 - layer;
+    for (let i = lo; i <= hi; i++) ring.push({ x: i, y: lo }, { x: hi, y: i }, { x: GRID - 1 - i, y: hi }, { x: lo, y: GRID - 1 - i });
+  }
+  return ring.find((t) => !taken.has(`${t.x},${t.y}`)) ?? null;
 }

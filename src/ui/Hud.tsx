@@ -25,13 +25,14 @@ interface Props {
   onQuests: () => void;
   onUs: () => void;
   onDecorate: () => void;
+  onJournal: () => void;
   editing: boolean;
 }
 
 const btn =
   'pointer-events-auto relative rounded-full bg-cream/90 px-4 py-2 font-display text-base font-bold text-cocoa shadow active:scale-95';
 
-export default function Hud({ hover, onCenter, onZoom, onChangePath, onQuests, onUs, onDecorate, editing }: Props) {
+export default function Hud({ hover, onCenter, onZoom, onChangePath, onQuests, onUs, onDecorate, onJournal, editing }: Props) {
   const s = useGameState();
   const me = useMe();
   const sync = useSyncStatus();
@@ -67,7 +68,8 @@ export default function Hud({ hover, onCenter, onZoom, onChangePath, onQuests, o
           <button className={btn} onClick={() => onZoom(0.2)} aria-label="Zoom in">+</button>
           <button className={btn} onClick={onCenter}>🎯</button>
           <button className={btn} onClick={onChangePath}>🗺️</button>
-          <button className={btn} onClick={onDecorate}>🎨 Decorate</button>
+          <button className={btn} onClick={onDecorate} aria-label="Decorate">🎨</button>
+          <button className={btn} onClick={onJournal} aria-label="Memory Journal">📔</button>
           <button className={`${btn} bg-pink-400 text-white`} onClick={onQuests}>
             📋 Quests
             {pending > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">{pending}</span>}

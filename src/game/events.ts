@@ -10,6 +10,8 @@ export const BUS = {
   center: 'center',             // React -> Phaser
   zoom: 'zoom',                 // React -> Phaser: delta number
   edit: 'edit',                 // React -> Phaser: EditPayload
+  focus: 'focus',               // React -> Phaser: {x, y} pan the camera to a tile
+  memoryOpen: 'memoryOpen',     // Phaser -> React: memory id
   hover: 'hover',               // Phaser -> React: {x, y} | null
 } as const;
 

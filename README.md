@@ -31,6 +31,20 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * Wall auto-tiling: walls join into straight runs, corners and T shapes, and windows and doors fit into any run
 * Avatars walk around furniture and walls, and everything is saved in shared state, so your partner sees it live
 
+## Build 4 status: Memory Journal (energy bar and buffs postponed)
+
+* Memory Journal with title, note and photo, saved in shared state
+* Every memory plants a heart plaque on the island shoreline. Tap a plaque to open the photo
+* Quests can be flagged as milestones. When one is approved the board offers "Capture memory"
+
+## Build 5 status: Seasons and the art pass
+
+* The island follows the real calendar (Spring, Summer, Autumn, Winter, Holidays from Dec 1 to Jan 6), with a palette change and drifting petals, sparkles, leaves or snow
+* Limited time shop items and seasonal event quests for every season. Preview a season from the "Us" panel on this device
+* Your art is live: James's 4 direction walk cycle, Rachel, the café, walls, windows and doors, furniture, food, pets, landmarks and seasonal trees
+* Both partners now appear on the island, and walking is saved in shared state
+* Sprites are cut from `art/source/` by `tools/slice_sprites.py`. See `art/ART_GUIDE.md` for style rules and the list of sprites still needed
+
 ## Run it
 
 ```bash

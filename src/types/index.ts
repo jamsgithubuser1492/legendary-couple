@@ -29,6 +29,7 @@ export interface Quest {
   status: QuestStatus;
   reward: QuestReward;
   recurring?: boolean;
+  milestone?: boolean; // approved milestones can be captured in the Memory Journal
   createdAt: number;
   completedAt?: number;
   evidenceNote?: string;
@@ -50,6 +51,18 @@ export interface PlacedObject {
   rotation: 0 | 90 | 180 | 270;
 }
 
+export interface Memory {
+  id: string;
+  title: string;
+  note?: string;
+  photo?: string; // small data URL
+  date: number;
+  author: PlayerId;
+  questId?: string;
+  tileX: number; // where the plaque stands on the island
+  tileY: number;
+}
+
 export interface GameState {
   startingPath: StartingPath | null;
   coins: number;
@@ -59,4 +72,6 @@ export interface GameState {
   quests: Quest[];
   inventory: InventoryItem[];
   placed: PlacedObject[];
+  memories: Memory[];
+  avatars: Record<PlayerId, { x: number; y: number }>;
 }

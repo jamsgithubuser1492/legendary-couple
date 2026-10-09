@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { LifeArea, PlayerId, Quest } from '../types';
-import { AREAS, areaOf, TEMPLATES, type QuestTemplate } from '../state/areas';
+import { AREAS, areaOf, SEASON_EVENTS, TEMPLATES, type QuestTemplate } from '../state/areas';
+import { THEMES, useTheme } from '../state/season';
 import { approveQuest, createQuest, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
 import { CATALOG, itemOf } from '../state/catalog';
@@ -41,6 +42,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
   const [gems, setGems] = useState(0);
   const [recurring, setRecurring] = useState(false);
   const [itemId, setItemId] = useState('');
+  const [milestone, setMilestone] = useState(false);
 
   const applyTemplate = (t: QuestTemplate) => {
     setTitle(t.title);
@@ -49,6 +51,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
     setCoins(t.reward.coins);
     setGems(t.reward.gems);
     setRecurring(!!t.recurring);
+    setMilestone(!!t.milestone);
     if (t.suggestedFor) setAssignedTo(t.suggestedFor);
   };
 
@@ -84,6 +87,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
           <label className="flex items-center gap-1">🪙<input type="number" min={0} className={`${field} w-20`} value={coins} onChange={(e) => setCoins(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1">💎<input type="number" min={0} className={`${field} w-20`} value={gems} onChange={(e) => setGems(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeats</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={milestone} onChange={(e) => setMilestone(e.target.checked)} /> Milestone</label>
         </div>
         <label className="flex items-center gap-2 text-sm text-cocoa">
           🎁 Bonus item
@@ -98,7 +102,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
             className={primary}
             disabled={!title.trim()}
             onClick={() => {
-              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined }, recurring });
+              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined }, recurring, milestone });
               onClose();
             }}
           >
@@ -173,8 +177,9 @@ function ApprovalModal({ quest, onClose }: { quest: Quest; onClose: () => void }
 
 // ---------- card ----------
 
-function QuestCard({ quest, onSubmit, onReview }: { quest: Quest; onSubmit: () => void; onReview: () => void }) {
+function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onSubmit: () => void; onReview: () => void; onCapture: () => void }) {
   const s = useGameState();
+  const captured = s.memories.some((m) => m.questId === quest.id);
   const me = useMe();
   const a = areaOf(quest.area);
   const mine = quest.assignedTo === me;
@@ -196,7 +201,13 @@ function QuestCard({ quest, onSubmit, onReview }: { quest: Quest; onSubmit: () =
           (mine ? <button className={primary} onClick={onSubmit}>{quest.status === 'REJECTED' ? 'Resubmit' : 'Mark done'}</button> : <span className="text-xs text-cocoa/60">Waiting on {who}</span>)}
         {quest.status === 'PENDING_VERIFICATION' &&
           (mine ? <span className="text-xs text-cocoa/60">⏳ Waiting for {s.names[otherPlayer(me)]} to approve</span> : <button className={primary} onClick={onReview}>Review ✓</button>)}
-        {quest.status === 'APPROVED' && <span className="text-xs font-bold text-green-600">✓ Approved</span>}
+        {quest.status === 'APPROVED' && (
+          <span className="flex items-center gap-2">
+            <span className="text-xs font-bold text-green-600">✓ Approved</span>
+            {quest.milestone && !captured && <button className={soft} onClick={onCapture}>📔 Capture memory</button>}
+            {quest.milestone && captured && <span className="text-xs text-cocoa/60">📔 In your journal</span>}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -204,7 +215,40 @@ function QuestCard({ quest, onSubmit, onReview }: { quest: Quest; onSubmit: () =
 
 // ---------- board ----------
 
-export default function QuestBoard({ onClose }: { onClose: () => void }) {
+function SeasonalStrip() {
+  const theme = useTheme();
+  const me = useMe();
+  const [open, setOpen] = useState(true);
+  const info = THEMES.find((t) => t.id === theme)!;
+  return (
+    <div className="mb-3 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3">
+      <button className="flex w-full items-center justify-between font-display font-bold text-cocoa" onClick={() => setOpen(!open)}>
+        <span>{info.icon} {info.label} events</span>
+        <span className="text-xs font-normal text-cocoa/60">{open ? 'hide' : 'show'}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {SEASON_EVENTS[theme].map((t) => (
+            <div key={t.title} className="flex items-center gap-2 rounded-xl bg-white/80 p-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-cocoa">{t.title}{t.milestone && ' 📔'}</div>
+                <div className="text-xs text-cocoa/60">🪙 {t.reward.coins} · 💎 {t.reward.gems}{t.reward.itemId && ` · 🎁 ${itemOf(t.reward.itemId)?.name}`}</div>
+              </div>
+              <button
+                className={soft}
+                onClick={() => createQuest({ title: t.title, area: t.area, description: t.description, assignedTo: me, reward: t.reward, milestone: t.milestone })}
+              >
+                ＋ Add
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function QuestBoard({ onClose, onCaptureMemory }: { onClose: () => void; onCaptureMemory: (q: Quest) => void }) {
   const s = useGameState();
   const me = useMe();
   const [tab, setTab] = useState<Tab>('active');
@@ -243,7 +287,7 @@ export default function QuestBoard({ onClose }: { onClose: () => void }) {
           {tabBtn('verify', 'Verify', toVerify)}
           {tabBtn('done', 'Done')}
         </div>
-        <div className="flex gap-2 overflow-x-auto px-4 py-3">
+        <div className="flex shrink-0 gap-2 overflow-x-auto px-4 py-3">
           <button onClick={() => setArea('all')} className={`shrink-0 rounded-full px-3 py-1 text-sm text-cocoa ${area === 'all' ? 'bg-cocoa text-cream' : 'bg-white'}`}>All</button>
           {AREAS.map((a) => (
             <button key={a.id} onClick={() => setArea(a.id)} className={`shrink-0 rounded-full px-3 py-1 text-sm text-cocoa ${a.color} ${area === a.id ? 'ring-4 ring-pink-300' : 'opacity-70'}`}>
@@ -252,13 +296,14 @@ export default function QuestBoard({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+          {tab === 'active' && <SeasonalStrip />}
           {list.length === 0 && (
             <p className="py-10 text-center text-cocoa/60">
               {tab === 'active' ? 'No active quests. Add one and go live your life! 🌸' : tab === 'verify' ? 'Nothing waiting for approval.' : 'Nothing completed yet.'}
             </p>
           )}
           {list.map((q) => (
-            <QuestCard key={q.id} quest={q} onSubmit={() => setSubmitting(q.id)} onReview={() => setReviewing(q.id)} />
+            <QuestCard key={q.id} quest={q} onSubmit={() => setSubmitting(q.id)} onReview={() => setReviewing(q.id)} onCapture={() => onCaptureMemory(q)} />
           ))}
         </div>
         <div className="p-4 pt-0">

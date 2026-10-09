@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
-import type { GameState, PlayerId, Quest, StartingPath } from '../types';
-import { itemOf } from './catalog';
-import { canPlace } from './placement';
+import type { GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
+import { availableIn, itemOf } from './catalog';
+import { canPlace, freeShoreTile } from './placement';
+import { getTheme } from './season';
 
 const STATE_KEY = 'olw:state:v1';
 const ME_KEY = 'olw:me';
@@ -18,6 +19,8 @@ const initial = (): GameState => ({
     { id: 'wall_cream', count: 4 },
   ],
   placed: [],
+  memories: [],
+  avatars: { A: { x: 1, y: 1 }, B: { x: 2, y: 1 } },
 });
 
 function load(): GameState {
@@ -42,6 +45,7 @@ let me: PlayerId = (() => {
   }
 })();
 const listeners = new Set<() => void>();
+const meListeners = new Set<() => void>();
 const stateListeners = new Set<(s: GameState, local: boolean) => void>();
 
 function emit() {
@@ -89,8 +93,17 @@ const subscribe = (l: () => void) => {
 export const useGameState = () => useSyncExternalStore(subscribe, () => state);
 export const useMe = () => useSyncExternalStore(subscribe, () => me);
 
+export const getMe = () => me;
+export const onMeChange = (l: () => void) => {
+  meListeners.add(l);
+  return () => {
+    meListeners.delete(l);
+  };
+};
+
 export function setMe(p: PlayerId) {
   me = p;
+  meListeners.forEach((l) => l());
   try {
     localStorage.setItem(ME_KEY, p);
   } catch {
@@ -189,6 +202,7 @@ function addToInventory(inv: GameState['inventory'], id: string, n: number) {
 export function buyItem(itemId: string): boolean {
   const item = itemOf(itemId);
   if (!item || state.coins < item.price.coins || state.gems < item.price.gems) return false;
+  if (!availableIn(item, getTheme())) return false; // limited-time items only sell in season
   commit({
     ...state,
     coins: state.coins - item.price.coins,
@@ -217,6 +231,36 @@ export function removeObject(id: string) {
     placed: state.placed.filter((p) => p.id !== id),
     inventory: addToInventory(state.inventory, o.itemId, 1),
   });
+}
+
+// ---------- avatars and memories ----------
+
+export function setAvatarPos(p: PlayerId, x: number, y: number) {
+  const cur = state.avatars[p];
+  if (cur.x === x && cur.y === y) return;
+  commit({ ...state, avatars: { ...state.avatars, [p]: { x, y } } });
+}
+
+export function createMemory(input: { title: string; note?: string; photo?: string; author: PlayerId; questId?: string }): Memory | null {
+  const tile = freeShoreTile(state);
+  if (!tile) return null;
+  const memory: Memory = {
+    id: uid(),
+    title: input.title.trim(),
+    note: input.note?.trim() || undefined,
+    photo: input.photo,
+    date: Date.now(),
+    author: input.author,
+    questId: input.questId,
+    tileX: tile.x,
+    tileY: tile.y,
+  };
+  commit({ ...state, memories: [memory, ...state.memories] });
+  return memory;
+}
+
+export function deleteMemory(id: string) {
+  commit({ ...state, memories: state.memories.filter((m) => m.id !== id) });
 }
 
 // ---------- selectors ----------

@@ -1,5 +1,6 @@
 import { itemOf } from '../state/catalog';
 import { useGameState } from '../state/store';
+import ItemIcon from './ItemIcon';
 
 export interface EditState {
   mode: 'place' | 'remove';
@@ -31,10 +32,10 @@ export default function EditBar({ edit, onChange, onShop, onDone }: Props) {
               <button
                 key={i.id}
                 onClick={() => onChange({ ...edit, mode: 'place', itemId: i.id })}
-                className={`relative shrink-0 rounded-2xl px-3 py-2 text-2xl ${sel ? 'bg-pink-200 ring-4 ring-pink-400' : 'bg-white'}`}
+                className={`relative flex h-14 min-w-14 shrink-0 items-center justify-center rounded-2xl px-2 ${sel ? 'bg-pink-200 ring-4 ring-pink-400' : 'bg-white'}`}
                 title={it.name}
               >
-                {it.icon}
+                <ItemIcon id={i.id} size={38} />
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-cocoa px-1 text-xs text-cream">{i.count}</span>
               </button>
             );

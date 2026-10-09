@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { generateRoomCode, getRoom, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
 import { setNames, setMe, useGameState, useMe } from '../state/store';
+import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
 
 const STATUS: Record<string, string> = {
   local: 'Offline mode (saved on this device)',
@@ -14,6 +15,8 @@ export default function PairingModal({ onClose }: { onClose: () => void }) {
   const s = useGameState();
   const me = useMe();
   const status = useSyncStatus();
+  const choice = useSeasonChoice();
+  const theme = useTheme();
   const [code, setCode] = useState(getRoom() ?? '');
   const field = 'w-full rounded-xl border-2 border-blush bg-white px-3 py-2 text-cocoa outline-none focus:border-pink-400';
   return (
@@ -46,6 +49,15 @@ export default function PairingModal({ onClose }: { onClose: () => void }) {
             Real time sync is not configured yet. Add your Supabase URL and key (see <code>.env.example</code>) to link both phones. Until then everything saves on this device.
           </p>
         )}
+        <p className="mt-4 text-sm font-bold text-cocoa">Season</p>
+        <p className="text-xs text-cocoa/60">Your island follows the calendar ({THEMES.find((t) => t.id === theme)?.label} now). Preview another on this device.</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {(['auto', ...THEMES.map((t) => t.id)] as const).map((c) => (
+            <button key={c} onClick={() => setSeasonChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${choice === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
+              {c === 'auto' ? 'Auto' : `${THEMES.find((t) => t.id === c)!.icon} ${THEMES.find((t) => t.id === c)!.label}`}
+            </button>
+          ))}
+        </div>
         <p className="mt-3 text-xs text-cocoa/60">Status: {STATUS[status]}</p>
         <button className="mt-3 w-full rounded-full bg-blush py-2 font-display font-bold text-cocoa" onClick={onClose}>Done</button>
       </div>

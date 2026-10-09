@@ -1,33 +1,39 @@
 import Phaser from 'phaser';
 import {
-  GRID_SIZE, TILE_W, TILE_W_HALF, TILE_H_HALF, TILE_H,
+  GRID_SIZE, TILE_H, TILE_W_HALF,
   cartesianToIso, isoToCartesian, tileCenter, inBounds, findPath,
 } from '../iso';
 import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
-import { getState, onStateChange, placeObject, removeObject } from '../../state/store';
-import { blockedTiles, canPlace, tilesOf } from '../../state/placement';
-import { itemOf } from '../../state/catalog';
-import { PLOT } from '../../state/placement';
+import { getMe, getState, onStateChange, placeObject, removeObject, setAvatarPos } from '../../state/store';
+import { blockedTiles, canPlace, tilesOf, PLOT } from '../../state/placement';
+import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
 import { drawPlaced, box, diamond as isoDiamond } from '../draw';
-
+import { SPRITES, WALK_SHEET } from '../spriteList';
+import { Avatar, createWalkAnims } from '../Avatar';
+import { Ambient } from '../ambient';
+import { getTheme, onThemeChange } from '../../state/season';
+import type { PlacedObject, PlayerId } from '../../types';
 
 const CENTER_TILE = { x: GRID_SIZE / 2, y: GRID_SIZE / 2 };
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
 const DRAG_THRESHOLD = 8;
+const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
+/** Which way each art wall piece runs as drawn: 'y' rises to the right, 'x' falls to the right. */
+const WALL_NATIVE: Record<string, 'x' | 'y'> = { wall_single: 'y', wall_window: 'x', wall_door: 'x' };
 
 export class MainScene extends Phaser.Scene {
   private highlight!: Phaser.GameObjects.Graphics;
-  private avatar!: Phaser.GameObjects.Container;
-  private avatarTile = { x: 1, y: 1 };
-  private structure?: Phaser.GameObjects.Graphics;
+  private ghostObjs: Phaser.GameObjects.GameObject[] = [];
+  private ambient!: Ambient;
+  private avatars!: Record<PlayerId, Avatar>;
+  private structure: Phaser.GameObjects.GameObject[] = [];
+  private placedObjs: Phaser.GameObjects.GameObject[] = [];
   private blocked = new Set<string>();
-  private moveToken = 0;
+  private hasStarter = false;
   private dragStart?: { x: number; y: number; camX: number; camY: number };
   private dragging = false;
   private pinchDist = 0;
-  private placedGfx: Phaser.GameObjects.Graphics[] = [];
-  private ghost!: Phaser.GameObjects.Graphics;
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
 
@@ -35,15 +41,25 @@ export class MainScene extends Phaser.Scene {
     super('MainScene');
   }
 
-  create(): void {
-    this.cameras.main.setBackgroundColor('#bfe6f2');
-    this.drawWater();
-    this.drawIsland();
+  preload(): void {
+    this.load.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
+    for (const s of SPRITES) this.load.image(s.key, s.file);
+    this.load.spritesheet(WALK_SHEET.key, WALK_SHEET.file, {
+      frameWidth: WALK_SHEET.frameWidth,
+      frameHeight: WALK_SHEET.frameHeight,
+    });
+  }
 
+  create(): void {
+    this.ambient = new Ambient(this);
+    this.ambient.apply(getTheme());
     this.highlight = this.add.graphics().setDepth(1000);
-    this.ghost = this.add.graphics().setDepth(1001);
-    this.createAvatar();
+
+    createWalkAnims(this);
+    const st = getState();
+    this.avatars = { A: new Avatar(this, 'A', st.avatars.A), B: new Avatar(this, 'B', st.avatars.B) };
     this.setStartingPath(loadStartingPath());
+    this.renderPlaced();
 
     this.centerCamera();
     this.input.addPointer(1); // second pointer for pinch zoom
@@ -61,203 +77,188 @@ export class MainScene extends Phaser.Scene {
       this.edit = e;
       this.refreshHover();
     };
-    const offState = onStateChange(() => this.renderPlaced());
-    this.renderPlaced();
+    const onFocus = (t: { x: number; y: number }) => {
+      const c = tileCenter(t.x, t.y);
+      this.cameras.main.pan(c.x, c.y, 600, 'Sine.easeInOut');
+    };
+    const offState = onStateChange(() => {
+      this.renderPlaced();
+      this.syncPartner();
+    });
+    const offTheme = onThemeChange(() => this.ambient.apply(getTheme()));
     gameBus.on(BUS.edit, onEdit);
     gameBus.on(BUS.startingPath, onPath);
     gameBus.on(BUS.center, onCenter);
     gameBus.on(BUS.zoom, onZoom);
+    gameBus.on(BUS.focus, onFocus);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offState();
+      offTheme();
       gameBus.off(BUS.edit, onEdit);
       gameBus.off(BUS.startingPath, onPath);
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
+      gameBus.off(BUS.focus, onFocus);
     });
   }
 
-  // ---------- world drawing ----------
+  // ---------- avatars ----------
 
-  private diamond(g: Phaser.GameObjects.Graphics, x: number, y: number, scale = 1): void {
-    const p = cartesianToIso(x, y);
-    const w = TILE_W_HALF * scale;
-    const h = TILE_H_HALF * scale;
-    g.beginPath();
-    g.moveTo(p.x, p.y);
-    g.lineTo(p.x + w, p.y + h);
-    g.lineTo(p.x, p.y + 2 * h);
-    g.lineTo(p.x - w, p.y + h);
-    g.closePath();
+  private otherPlayer(p: PlayerId): PlayerId {
+    return p === 'A' ? 'B' : 'A';
   }
 
-  private drawWater(): void {
-    const g = this.add.graphics().setDepth(-100);
-    const c = tileCenter(CENTER_TILE.x - 0.5, CENTER_TILE.y - 0.5);
-    for (let i = 3; i >= 0; i--) {
-      g.fillStyle(0xaedcec, 0.25 + i * 0.1);
-      const r = (GRID_SIZE / 2 + 1.5 + i * 1.2) * TILE_W_HALF * 1.45;
-      g.fillEllipse(c.x, c.y, r * 2, r);
-    }
-  }
-
-  private drawIsland(): void {
-    const sand = this.add.graphics().setDepth(-50);
-    sand.fillStyle(0xf6e3b8, 1);
-    // sand rim: draw each tile slightly enlarged, then thicker underlay for depth
-    sand.fillStyle(0xe7cf9c, 1);
-    for (let x = 0; x < GRID_SIZE; x++) {
-      for (let y = 0; y < GRID_SIZE; y++) {
-        const p = cartesianToIso(x, y);
-        sand.fillRect(p.x - TILE_W_HALF, p.y + TILE_H_HALF, TILE_W, 10);
-      }
-    }
-    sand.fillStyle(0xf6e3b8, 1);
-    for (let x = 0; x < GRID_SIZE; x++) {
-      for (let y = 0; y < GRID_SIZE; y++) {
-        this.diamond(sand, x, y, 1.12);
-        sand.fillPath();
-      }
-    }
-
-    const g = this.add.graphics().setDepth(-40);
-    for (let x = 0; x < GRID_SIZE; x++) {
-      for (let y = 0; y < GRID_SIZE; y++) {
-        const shade = (x + y) % 2 === 0 ? 0xbfe8b0 : 0xb4e0a4;
-        g.fillStyle(shade, 1);
-        this.diamond(g, x, y);
-        g.fillPath();
-        g.lineStyle(1.5, 0xffffff, 0.55);
-        this.diamond(g, x, y);
-        g.strokePath();
-      }
-    }
-  }
-
-  // ---------- avatar ----------
-
-  private createAvatar(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.18);
-    g.fillEllipse(0, 0, 26, 12); // shadow
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(-9, -36, 18, 34, 9); // capsule body
-    g.fillStyle(0xf4a6b8, 1);
-    g.fillRoundedRect(-9, -36, 18, 34, 9);
-    g.fillStyle(0xfff0e0, 1);
-    g.fillCircle(0, -34, 9); // head
-    g.fillStyle(0x3b2a2a, 1);
-    g.fillCircle(-3, -34, 1.4);
-    g.fillCircle(3, -34, 1.4);
-    this.avatar = this.add.container(0, 0, [g]);
-    this.placeAvatar(this.avatarTile.x, this.avatarTile.y);
-  }
-
-  private placeAvatar(x: number, y: number): void {
-    const c = tileCenter(x, y);
-    this.avatar.setPosition(c.x, c.y);
-    this.avatar.setDepth(x + y);
+  private pathingBlocked(forPlayer: PlayerId): Set<string> {
+    const set = new Set(this.blocked);
+    const o = this.avatars[this.otherPlayer(forPlayer)].tile;
+    set.add(`${o.x},${o.y}`);
+    return set;
   }
 
   private moveAvatarTo(tx: number, ty: number): void {
-    const path = findPath(this.avatarTile, { x: tx, y: ty }, this.blocked);
+    const me = getMe();
+    const av = this.avatars[me];
+    const path = findPath(av.tile, { x: tx, y: ty }, this.pathingBlocked(me));
     if (!path.length) return;
-    const token = ++this.moveToken;
-    let i = 0;
-    const step = () => {
-      if (token !== this.moveToken || i >= path.length) return;
-      const next = path[i++];
-      const from = { x: this.avatarTile.x, y: this.avatarTile.y };
-      const start = tileCenter(from.x, from.y);
-      const dest = tileCenter(next.x, next.y);
-      this.tweens.addCounter({
-        from: 0,
-        to: 1,
-        duration: 220,
-        onUpdate: (tw) => {
-          if (token !== this.moveToken) return;
-          const t = tw.getValue() ?? 0;
-          this.avatar.setPosition(
-            start.x + (dest.x - start.x) * t,
-            start.y + (dest.y - start.y) * t - Math.sin(t * Math.PI) * 4, // little hop
-          );
-          // continuous depth sort while walking
-          this.avatar.setDepth(from.x + (next.x - from.x) * t + from.y + (next.y - from.y) * t);
-        },
-        onComplete: () => {
-          this.avatarTile = next;
-          this.placeAvatar(next.x, next.y);
-          step();
-        },
-      });
-    };
-    step();
+    av.walk(path, () => setAvatarPos(me, av.tile.x, av.tile.y));
+  }
+
+  /** Walks the other partner's avatar to where the shared state says they are. */
+  private syncPartner(): void {
+    const me = getMe();
+    for (const p of ['A', 'B'] as PlayerId[]) {
+      if (p === me) continue;
+      const av = this.avatars[p];
+      const t = getState().avatars[p];
+      if (av.moving || (av.tile.x === t.x && av.tile.y === t.y)) continue;
+      const path = findPath(av.tile, t, this.pathingBlocked(p));
+      if (path.length) av.walk(path);
+      else av.snap(t.x, t.y);
+    }
   }
 
   // ---------- starting structure ----------
 
-  private hasStarter = false;
+  private img(key: string, x: number, y: number, ox: number, oy: number, flip = false, alpha = 1): Phaser.GameObjects.Image {
+    const im = this.add.image(x, y, key).setOrigin(ox, oy);
+    im.setScale((DW.get(key) ?? im.width) / im.width);
+    im.setFlipX(flip);
+    im.setAlpha(alpha);
+    return im;
+  }
 
   private setStartingPath(p: PathPayload): void {
-    this.structure?.destroy();
-    this.structure = undefined;
+    this.structure.forEach((o) => o.destroy());
+    this.structure = [];
     this.hasStarter = !!p;
     this.blocked = blockedTiles(getState(), this.hasStarter);
     if (!p) return;
-    // if the avatar happens to be standing on the plot, nudge it off
-    if (this.avatarTile.x === PLOT.x && this.avatarTile.y === PLOT.y) {
-      this.avatarTile = { x: PLOT.x - 1, y: PLOT.y };
-      this.placeAvatar(this.avatarTile.x, this.avatarTile.y);
+    for (const pl of ['A', 'B'] as PlayerId[]) {
+      const av = this.avatars[pl];
+      if (av.tile.x === PLOT.x && av.tile.y === PLOT.y) {
+        av.snap(PLOT.x - 1, PLOT.y);
+        setAvatarPos(pl, PLOT.x - 1, PLOT.y);
+      }
     }
-    const g = this.add.graphics();
-    g.setDepth(PLOT.x + PLOT.y + 0.5);
-    if (p === 'rv') this.drawRV(g);
-    if (p === 'shop') this.drawShop(g);
-    if (p === 'home') this.drawFoundation(g);
-    this.structure = g;
-  }
-
-  private drawRV(g: Phaser.GameObjects.Graphics): void {
-    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
-    box(g, cx, cy, 0.9, 0.9, 30, 0, 0xffd3de);
-    box(g, cx, cy, 0.92, 0.92, 5, 14, 0xbfe6f2);
-  }
-
-  private drawShop(g: Phaser.GameObjects.Graphics): void {
-    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
-    box(g, cx, cy, 0.95, 0.95, 44, 0, 0xffe8cf);
-    box(g, cx, cy, 1, 1, 7, 28, 0xffb3c6);
-  }
-
-  private drawFoundation(g: Phaser.GameObjects.Graphics): void {
-    const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
-    box(g, cx, cy, 1, 1, 6, 0, 0xe6c79c);
-    box(g, cx - 0.44, cy, 0.12, 1, 22, 6, 0xf4e6d0);
-    box(g, cx, cy - 0.44, 1, 0.12, 22, 6, 0xf4e6d0);
+    const depth = PLOT.x + PLOT.y + 0.5;
+    const front = cartesianToIso(PLOT.x + 1, PLOT.y + 1);
+    if (p === 'shop' && this.textures.exists('cafe_exterior')) {
+      this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));
+    } else if (p === 'home' && this.textures.exists('floor_wood')) {
+      const c = tileCenter(PLOT.x, PLOT.y);
+      this.structure.push(this.img('floor_wood', c.x, c.y, 0.5, 0.39).setDepth(-29));
+      const back = cartesianToIso(PLOT.x, PLOT.y + 1);
+      this.structure.push(this.img('wall_corner', cartesianToIso(PLOT.x, PLOT.y).x, back.y + 2, 0.5, 1).setDepth(depth));
+    } else {
+      const g = this.add.graphics().setDepth(depth);
+      const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
+      box(g, cx, cy, 0.9, 0.9, 30, 0, 0xffd3de); // RV body (no RV art in the sheets yet)
+      box(g, cx, cy, 0.92, 0.92, 5, 14, 0xbfe6f2);
+      this.structure.push(g);
+    }
   }
 
   // ---------- placed objects ----------
 
+  private wallAtFn() {
+    const s = getState();
+    return (x: number, y: number) =>
+      s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
+  }
+
   private renderPlaced(): void {
     const s = getState();
-    this.placedGfx.forEach((g) => g.destroy());
-    this.placedGfx = [];
-    const wallAt = (x: number, y: number) =>
-      s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
-    for (const o of s.placed) {
-      const g = this.add.graphics();
-      g.setDepth(drawPlaced(g, o, { wallAt }));
-      this.placedGfx.push(g);
-    }
+    this.placedObjs.forEach((o) => o.destroy());
+    this.placedObjs = [];
+    const wallAt = this.wallAtFn();
+    for (const o of s.placed) this.placedObjs.push(...this.spawn(o, wallAt));
+    for (const m of s.memories) this.placedObjs.push(this.plaque(m.tileX, m.tileY));
     this.blocked = blockedTiles(s, this.hasStarter);
     this.refreshHover();
   }
 
-  private ghostObj(t: { x: number; y: number }) {
-    return { id: 'ghost', itemId: this.edit.itemId!, tileX: t.x, tileY: t.y, rotation: this.edit.rotation };
+  private plaque(x: number, y: number): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics();
+    const c = tileCenter(x, y);
+    g.setDepth(x + y + 0.4);
+    g.fillStyle(0x000000, 0.15);
+    g.fillEllipse(c.x, c.y + 4, 22, 8);
+    g.fillStyle(0xa8765a, 1);
+    g.fillRect(c.x - 2, c.y - 14, 4, 18); // post
+    g.fillStyle(0xfff4ee, 1);
+    g.lineStyle(2, 0xff9db6, 1);
+    g.fillRoundedRect(c.x - 13, c.y - 32, 26, 20, 5);
+    g.strokeRoundedRect(c.x - 13, c.y - 32, 26, 20, 5);
+    g.fillStyle(0xff7fa1, 1); // little heart
+    g.fillCircle(c.x - 3, c.y - 23, 3.2);
+    g.fillCircle(c.x + 3, c.y - 23, 3.2);
+    g.fillTriangle(c.x - 6.2, c.y - 21.6, c.x + 6.2, c.y - 21.6, c.x, c.y - 14.5);
+    return g;
   }
 
-  private refreshHover(): void {
-    this.setHover(this.lastHover);
+  /** Builds the visuals for one placed object: art sprites when available, procedural shapes otherwise. */
+  private spawn(o: PlacedObject, wallAt: (x: number, y: number) => boolean, alpha = 1, tint?: number): Phaser.GameObjects.GameObject[] {
+    const item = itemOf(o.itemId);
+    if (!item) return [];
+    if (item.sprite && this.textures.exists(item.sprite)) return this.spawnSprite(item, o, wallAt, alpha, tint);
+    const g = this.add.graphics();
+    g.setDepth(drawPlaced(g, o, { wallAt, alpha }));
+    return [g];
+  }
+
+  private spawnSprite(item: CatalogItem, o: PlacedObject, wallAt: (x: number, y: number) => boolean, alpha: number, tint?: number) {
+    const key = item.sprite!;
+    const mk = (k: string, x: number, y: number, ox: number, oy: number, flip = false) => {
+      const im = this.img(k, x, y, ox, oy, flip, alpha);
+      if (tint !== undefined) im.setTint(tint);
+      return im;
+    };
+    if (item.layer === 'floor') {
+      const c = tileCenter(o.tileX, o.tileY);
+      return [mk(key, c.x, c.y, 0.5, 0.39).setDepth(-30)];
+    }
+    if (item.layer === 'wall') {
+      const { tileX: x, tileY: y } = o;
+      const hasX = wallAt(x - 1, y) || wallAt(x + 1, y);
+      const hasY = wallAt(x, y - 1) || wallAt(x, y + 1);
+      const depth = x + y + 0.1;
+      if (hasX && hasY && this.textures.exists('wall_corner')) {
+        const back = cartesianToIso(x, y), left = cartesianToIso(x, y + 1);
+        return [mk('wall_corner', back.x, left.y + 2, 0.5, 1).setDepth(depth)];
+      }
+      const run: 'x' | 'y' = hasX ? 'x' : hasY ? 'y' : o.rotation % 180 === 0 ? 'x' : 'y';
+      const flip = WALL_NATIVE[key] !== run;
+      if (run === 'y') {
+        const left = cartesianToIso(x, y + 1); // west edge, left vertex
+        return [mk(key, left.x, left.y + 2, 0, 1, flip).setDepth(depth)];
+      }
+      const right = cartesianToIso(x + 1, y); // north edge, right vertex
+      return [mk(key, right.x, right.y + 2, 1, 1, flip).setDepth(depth)];
+    }
+    const fp = footprint(item, o.rotation);
+    const front = cartesianToIso(o.tileX + fp.w, o.tileY + fp.d);
+    const depth = o.tileX + fp.w - 1 + (o.tileY + fp.d - 1) + 0.4;
+    return [mk(key, front.x, front.y - 8 + (item.oy ?? 0), 0.5, 1, o.rotation % 180 === 90).setDepth(depth)];
   }
 
   // ---------- input & camera ----------
@@ -270,46 +271,47 @@ export class MainScene extends Phaser.Scene {
     return inBounds(tx, ty) ? { x: tx, y: ty } : null;
   }
 
-  private setHover(t: { x: number; y: number } | null): void {
-    this.lastHover = t;
-    this.highlight.clear();
-    this.ghost.clear();
-    if (t && this.edit.active && this.edit.mode === 'place' && this.edit.itemId) {
-      const check = canPlace(getState(), this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatarTile]);
-      const tint = check.ok ? 0x6fd48b : 0xff6b6b;
-      for (const c of tilesOf(this.edit.itemId, t.x, t.y, this.edit.rotation)) {
-        this.ghost.fillStyle(tint, 0.35);
-        isoDiamond(this.ghost, c.x, c.y);
-        this.ghost.fillPath();
-      }
-      const s = getState();
-      const wallAt = (x: number, y: number) =>
-        itemOf(this.edit.itemId!)?.layer === 'wall' && (s.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall') || (x === t.x && y === t.y));
-      drawPlaced(this.ghost, this.ghostObj(t) as never, { wallAt, alpha: check.ok ? 0.65 : 0.35 });
-    } else if (t && this.edit.active && this.edit.mode === 'remove') {
-      const hit = this.objectAt(t.x, t.y);
-      if (hit) {
-        for (const c of tilesOf(hit.itemId, hit.tileX, hit.tileY, hit.rotation)) {
-          this.ghost.fillStyle(0xff6b6b, 0.4);
-          isoDiamond(this.ghost, c.x, c.y);
-          this.ghost.fillPath();
-        }
-      }
-    } else if (t) {
-      this.highlight.lineStyle(3, 0xff7fa1, 1);
-      this.highlight.fillStyle(0xff7fa1, 0.22);
-      this.diamond(this.highlight, t.x, t.y);
-      this.highlight.fillPath();
-      this.diamond(this.highlight, t.x, t.y);
-      this.highlight.strokePath();
-    }
-    gameBus.emit(BUS.hover, t);
+  private refreshHover(): void {
+    this.setHover(this.lastHover);
   }
 
   /** Topmost placed object covering a tile (objects and walls win over floors). */
   private objectAt(x: number, y: number) {
     const hits = getState().placed.filter((o) => tilesOf(o.itemId, o.tileX, o.tileY, o.rotation).some((t) => t.x === x && t.y === y));
     return hits.find((o) => itemOf(o.itemId)?.layer !== 'floor') ?? hits[0];
+  }
+
+  private setHover(t: { x: number; y: number } | null): void {
+    this.lastHover = t;
+    this.highlight.clear();
+    this.ghostObjs.forEach((g) => g.destroy());
+    this.ghostObjs = [];
+    const tint = (color: number, alpha: number, x: number, y: number) => {
+      this.highlight.fillStyle(color, alpha);
+      isoDiamond(this.highlight, x, y);
+      this.highlight.fillPath();
+    };
+    if (t && this.edit.active && this.edit.mode === 'place' && this.edit.itemId) {
+      const s = getState();
+      const avatarTiles = [this.avatars.A.tile, this.avatars.B.tile];
+      const check = canPlace(s, this.edit.itemId, t.x, t.y, this.edit.rotation, avatarTiles);
+      for (const c of tilesOf(this.edit.itemId, t.x, t.y, this.edit.rotation)) tint(check.ok ? 0x6fd48b : 0xff6b6b, 0.35, c.x, c.y);
+      const isWall = itemOf(this.edit.itemId)?.layer === 'wall';
+      const baseWall = this.wallAtFn();
+      const wallAt = (x: number, y: number) => baseWall(x, y) || (isWall && x === t.x && y === t.y);
+      const ghost = { id: 'ghost', itemId: this.edit.itemId, tileX: t.x, tileY: t.y, rotation: this.edit.rotation } as PlacedObject;
+      this.ghostObjs = this.spawn(ghost, wallAt, check.ok ? 0.7 : 0.4, check.ok ? undefined : 0xff9a9a);
+      this.ghostObjs.forEach((g) => (g as Phaser.GameObjects.Image).setDepth?.(1001));
+    } else if (t && this.edit.active && this.edit.mode === 'remove') {
+      const hit = this.objectAt(t.x, t.y);
+      if (hit) for (const c of tilesOf(hit.itemId, hit.tileX, hit.tileY, hit.rotation)) tint(0xff6b6b, 0.4, c.x, c.y);
+    } else if (t) {
+      this.highlight.lineStyle(3, 0xff7fa1, 1);
+      tint(0xff7fa1, 0.22, t.x, t.y);
+      isoDiamond(this.highlight, t.x, t.y);
+      this.highlight.strokePath();
+    }
+    gameBus.emit(BUS.hover, t);
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
@@ -350,14 +352,18 @@ export class MainScene extends Phaser.Scene {
     const t = this.pointerTile(p);
     if (t && this.edit.active) {
       if (this.edit.mode === 'place' && this.edit.itemId) {
-        placeObject(this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatarTile]);
+        placeObject(this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatars.A.tile, this.avatars.B.tile]);
       } else if (this.edit.mode === 'remove') {
         const hit = this.objectAt(t.x, t.y);
         if (hit) removeObject(hit.id);
       }
       return;
     }
-    if (t) this.moveAvatarTo(t.x, t.y);
+    if (t) {
+      const memory = getState().memories.find((m) => m.tileX === t.x && m.tileY === t.y);
+      if (memory) gameBus.emit(BUS.memoryOpen, memory.id);
+      else this.moveAvatarTo(t.x, t.y);
+    }
     if (p.wasTouch) this.setHover(null);
   }
 

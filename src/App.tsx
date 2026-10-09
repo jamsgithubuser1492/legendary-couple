@@ -6,10 +6,11 @@ import QuestBoard from './ui/QuestBoard';
 import PairingModal from './ui/PairingModal';
 import ShopModal from './ui/ShopModal';
 import EditBar, { type EditState } from './ui/EditBar';
+import Journal, { MemoryViewer } from './ui/Journal';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import { startSync } from './lib/sync';
-import type { StartingPath } from './types';
+import type { Quest, StartingPath } from './types';
 
 export default function App() {
   const state = useGameState();
@@ -17,6 +18,8 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(() => path === null);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [usOpen, setUsOpen] = useState(false);
+  const [journal, setJournal] = useState<{ open: boolean; prefill?: Quest }>({ open: false });
+  const [viewing, setViewing] = useState<string | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0 });
@@ -25,8 +28,10 @@ export default function App() {
   useEffect(() => {
     startSync();
     gameBus.on(BUS.hover, setHover);
+    gameBus.on(BUS.memoryOpen, setViewing);
     return () => {
       gameBus.off(BUS.hover, setHover);
+      gameBus.off(BUS.memoryOpen, setViewing);
     };
   }, []);
 
@@ -61,11 +66,19 @@ export default function App() {
         onQuests={() => setQuestsOpen(true)}
         onUs={() => setUsOpen(true)}
         onDecorate={startDecorating}
+        onJournal={() => setJournal({ open: true })}
         editing={editing}
       />
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
       {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
-      {questsOpen && <QuestBoard onClose={() => setQuestsOpen(false)} />}
+      {questsOpen && (
+        <QuestBoard
+          onClose={() => setQuestsOpen(false)}
+          onCaptureMemory={(q) => { setQuestsOpen(false); setJournal({ open: true, prefill: q }); }}
+        />
+      )}
+      {journal.open && <Journal prefill={journal.prefill} onClose={() => setJournal({ open: false })} onView={setViewing} />}
+      {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}
     </div>
