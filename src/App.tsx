@@ -11,6 +11,7 @@ import WardrobeModal from './ui/WardrobeModal';
 import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
 import ExpandModal from './ui/ExpandModal';
+import CheatsModal from './ui/CheatsModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
 import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
@@ -30,6 +31,7 @@ export default function App() {
   const [panel, setPanel] = useState<'checkin' | 'boxes' | 'wardrobe' | null>(null);
   const [reveal, setReveal] = useState(false);
   const [expandOpen, setExpandOpen] = useState(false);
+  const [cheats, setCheats] = useState(false);
   const [interact, setInteract] = useState<string | null>(null);
   const [shopCat, setShopCat] = useState<ShopCategory | undefined>();
   const [view, setView] = useState<'island' | 'town'>('island');
@@ -148,7 +150,8 @@ export default function App() {
       {panel === 'wardrobe' && <WardrobeModal onClose={() => setPanel(null)} />}
       {reveal && last && <RevealModal reward={last.reward} openedBy={`${state.names.A} and ${state.names.B}`} onClose={closeReveal} />}
       {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
-      {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} />}
+      {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} onCheats={() => setCheats(true)} />}
+      {cheats && <CheatsModal onClose={() => setCheats(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}
     </div>
   );

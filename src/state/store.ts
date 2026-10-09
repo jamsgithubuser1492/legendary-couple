@@ -160,6 +160,20 @@ export function setStartingPath(p: StartingPath) {
   commit({ ...state, startingPath: p, starterRemoved: false });
 }
 
+/**
+ * Puts the game back to its original starting state. If you are linked to your partner, the reset syncs to them too.
+ * Your names, room code and who you are playing as are kept so you stay connected.
+ */
+export function resetEverything() {
+  const fresh = initial();
+  commit({ ...fresh, names: state.names });
+  try {
+    for (const k of ['olw:seasonChoice', 'olw:growthPreview', 'olw:seenReveal', 'olw:startingPath']) localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Picks the starter structure back up into the bag, leaving a blank build area. */
 export function removeStarter() {
   if (!state.startingPath || state.starterRemoved) return;
