@@ -5,6 +5,8 @@ import { PRESET_ORDER, type Preset } from './presets';
 export const ISLAND_STEPS: { size: number; coins: number }[] = [{ size: 12, coins: 500 }, { size: 14, coins: 1200 }, { size: 16, coins: 2500 }];
 /** Tile occupied by the starting RV, shop or foundation. */
 export const PLOT = { x: 4, y: 4 };
+/** Where the Gratitude Tree grows. */
+export const TREE = { x: 8, y: 1 };
 
 export function tilesOf(itemId: string, x: number, y: number, rotation: number): { x: number; y: number }[] {
   const item = itemOf(itemId);
@@ -61,6 +63,7 @@ export function canPlace(
   for (const t of tiles) {
     if (t.x < 0 || t.y < 0 || t.x >= s.islandSize || t.y >= s.islandSize) return { ok: false, reason: 'Off the island' };
     if (item.layer !== 'floor') {
+      if (t.x === TREE.x && t.y === TREE.y) return { ok: false, reason: 'The Gratitude Tree is there' };
       if (!s.starterRemoved && t.x === PLOT.x && t.y === PLOT.y) return { ok: false, reason: 'Your starter spot is in the way' };
       if (extraBlocked.some((b) => b.x === t.x && b.y === t.y)) return { ok: false, reason: 'Someone is standing there' };
     }
@@ -83,6 +86,7 @@ export function canPlace(
 export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
   const set = new Set<string>();
   if (hasStarter && !s.starterRemoved) set.add(`${PLOT.x},${PLOT.y}`);
+  set.add(`${TREE.x},${TREE.y}`);
   for (const o of s.placed) {
     const it = itemOf(o.itemId);
     if (!it || it.layer === 'floor' || it.layer === 'walldecor') continue;

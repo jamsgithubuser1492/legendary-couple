@@ -16,6 +16,8 @@ import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../
 import { Companion } from '../Companion';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
+import { IslandEffects } from '../effects';
+import { TREE } from '../../state/placement';
 import { getTheme, onThemeChange } from '../../state/season';
 import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
@@ -69,6 +71,7 @@ export class MainScene extends Phaser.Scene {
     const st = getState();
     this.avatars = { A: new Avatar(this, 'A', st.avatars.A, 1, st.looks.A), B: new Avatar(this, 'B', st.avatars.B, 1, st.looks.B) };
     this.setStartingPath(loadStartingPath());
+    new IslandEffects(this, () => this.avatars);
     this.renderPlaced();
     this.syncCompanions();
 
@@ -569,6 +572,10 @@ export class MainScene extends Phaser.Scene {
           gameBus.emit(BUS.townToast, { text: 'Starter picked up and added to your bag. Your build area is blank!' });
         }
       }
+      return;
+    }
+    if (t && t.x === TREE.x && t.y === TREE.y) {
+      gameBus.emit(BUS.together, 'gratitude');
       return;
     }
     if (t) {

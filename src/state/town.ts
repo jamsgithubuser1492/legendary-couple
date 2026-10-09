@@ -146,6 +146,7 @@ add('campus', 30, 16, 1, 1, 'tree', 200, 'Tree', { variant: 2 });
 export type Activity =
   | { kind: 'brew' }
   | { kind: 'shop'; cat: string; line: string }
+  | { kind: 'together'; tab: string; title: string; line: string }
   | { kind: 'tip'; title: string; ideas: string[] };
 
 const tip = (title: string, ...ideas: string[]): Activity => ({ kind: 'tip', title, ideas });
@@ -164,7 +165,7 @@ export const ACTIVITIES: Record<string, Activity> = {
   'Vintage Bookstore': tip('Pick a book for each other 📚', 'Choose a book for each other and tell them why.', 'Read the first page out loud to each other.', 'Find a cookbook and plan one meal to cook together.'),
   'Hot Dog Stand': tip('Street food date 🌭', 'Try a food you have never had before, together.', 'Eat standing up and people watch for ten minutes.'),
   'Beach Volleyball': tip('Loser buys the matcha 🏐', 'Play a friendly game. Loser buys the drinks.', 'Make up a silly rule that has to be followed all game.'),
-  'Campfire Clearing': tip('Fireside talk 🔥', 'Ask each other: what is one thing you are looking forward to this month?', 'Tell the story of the day we first met, from your side.'),
+  'Campfire Clearing': { kind: 'together', tab: 'whisper', title: 'Fireside Whispers 🔥', line: 'Sit by the fire and trade one honest answer each.' },
   'Stargazing Spot': tip('Look up together 🔭', 'Find one star or planet each and name it after something you love.', 'Make a wish out loud, then tell each other one.'),
   'Lifeguard Stand': tip('Sunset on the sand 🌅', 'Watch the sunset with phones away.', 'Collect one shell each and tell its story.'),
   'Duck Pond': tip('Feed the ducks 🦆', 'Bring bread (or oats) and name every duck.', 'Sit by the water and each share one thing you are proud of this month.'),

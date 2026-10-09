@@ -1,7 +1,7 @@
 import { BOX_PRICE_GEMS, RARITY } from '../state/blindbox';
 import { itemOf } from '../state/catalog';
 import { outfitOf } from '../state/wardrobe';
-import { buyBlindBox, cancelOpenBox, confirmOpenBox, otherPlayer, startOpenBox, useGameState, useMe } from '../state/store';
+import { buyBlindBox, buyBlindBoxWithShells, cancelOpenBox, confirmOpenBox, otherPlayer, startOpenBox, useGameState, useMe } from '../state/store';
 import type { BlindReward } from '../types';
 import ItemIcon, { SpriteImg } from './ItemIcon';
 import { BoxImg, boxFor, CurrencyIcon } from './Currency';
@@ -74,6 +74,9 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
       </div>
       <button className={`${softBtn} mt-3 w-full`} disabled={s.gems < BOX_PRICE_GEMS} onClick={buyBlindBox}>
         Buy a box · <CurrencyIcon kind="gem" size={18} /> {BOX_PRICE_GEMS}
+      </button>
+      <button className={`${softBtn} mt-2 w-full`} disabled={s.shells < 10} onClick={buyBlindBoxWithShells}>
+        Trade 10 Heart Shells 🐚 for a box
       </button>
     </Sheet>
   );

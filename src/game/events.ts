@@ -15,6 +15,7 @@ export const BUS = {
   view: 'view',                 // React -> Phaser: 'island' | 'town'
   townToast: 'townToast',       // Phaser -> React: { text }
   townInteract: 'townInteract', // Phaser -> React: lot id to visit
+  together: 'together',         // Phaser -> React: open the Together hub on a tab
   presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null
