@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
 import { footprint, itemOf } from './catalog';
+import { PRESET_ORDER, type Preset } from './presets';
 
 export const GRID = 10;
 /** Tile occupied by the starting RV, shop or foundation. */
@@ -43,10 +44,11 @@ export function canPlace(
   y: number,
   rotation: number,
   extraBlocked: { x: number; y: number }[] = [],
+  ignoreInventory = false,
 ): PlaceCheck {
   const item = itemOf(itemId);
   if (!item) return { ok: false, reason: 'Unknown item' };
-  if ((s.inventory.find((i) => i.id === itemId)?.count ?? 0) < 1) return { ok: false, reason: 'None left in your bag' };
+  if (!ignoreInventory && (s.inventory.find((i) => i.id === itemId)?.count ?? 0) < 1) return { ok: false, reason: 'None left in your bag' };
   if (item.layer === 'walldecor') {
     const face = decorFace(s, x, y, rotation);
     if (!face) return { ok: false, reason: 'Hang this on a wall' };
@@ -100,4 +102,23 @@ export function freeShoreTile(s: GameState): { x: number; y: number } | null {
     for (let i = lo; i <= hi; i++) ring.push({ x: i, y: lo }, { x: hi, y: i }, { x: GRID - 1 - i, y: hi }, { x: lo, y: GRID - 1 - i });
   }
   return ring.find((t) => !taken.has(`${t.x},${t.y}`)) ?? null;
+}
+
+/** Preset items in the order they must be laid: floors, walls, furniture, then wall decor. */
+export function presetOrder(preset: Preset) {
+  return [...preset.items].sort((a, b) => (PRESET_ORDER[itemLayer(a.itemId)] ?? 2) - (PRESET_ORDER[itemLayer(b.itemId)] ?? 2));
+}
+const itemLayer = (id: string) => itemOf(id)?.layer ?? 'object';
+
+/** Checks that a whole room design fits at an anchor tile, laying each piece on top of the last. */
+export function canPlacePreset(
+  s: GameState, preset: Preset, x: number, y: number, extraBlocked: { x: number; y: number }[] = [],
+): PlaceCheck {
+  const temp: GameState = { ...s, placed: [...s.placed] };
+  for (const [i, pi] of presetOrder(preset).entries()) {
+    const check = canPlace(temp, pi.itemId, x + pi.dx, y + pi.dy, pi.rotation ?? 0, extraBlocked, true);
+    if (!check.ok) return check;
+    temp.placed.push({ id: `tmp${i}`, itemId: pi.itemId, tileX: x + pi.dx, tileY: y + pi.dy, rotation: pi.rotation ?? 0 });
+  }
+  return { ok: true };
 }

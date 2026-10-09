@@ -80,3 +80,47 @@ export function drawPine(g: G, cx: number, cy: number) {
   box(g, cx, cy, 0.16, 0.16, 10, 0, 0x8a5a3c);
   for (let i = 0; i < 3; i++) box(g, cx, cy, 0.7 - i * 0.18, 0.7 - i * 0.18, 10, 6 + i * 9, shade(0x4f8a5c, 1 + i * 0.1));
 }
+
+/** A leaning palm tree for the beaches. */
+export function drawPalm(g: G, cx: number, cy: number, variant: number) {
+  const p = cartesianToIso(cx, cy);
+  const lean = variant % 2 ? 8 : -8;
+  g.lineStyle(4, 0x9c7a54, 1);
+  g.beginPath();
+  g.moveTo(p.x, p.y);
+  g.lineTo(p.x + lean * 0.5, p.y - 14);
+  g.lineTo(p.x + lean, p.y - 30);
+  g.strokePath();
+  const top = { x: p.x + lean, y: p.y - 30 };
+  g.fillStyle(0x4f9a5c, 1);
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI * 2 * i) / 6 + variant;
+    const tip = { x: top.x + Math.cos(a) * 15, y: top.y + Math.sin(a) * 7 + 4 };
+    g.fillTriangle(top.x, top.y, tip.x, tip.y, top.x + Math.cos(a + 0.5) * 7, top.y + Math.sin(a + 0.5) * 4);
+  }
+  g.fillStyle(0x7a5a38, 1);
+  g.fillCircle(top.x, top.y + 1, 2);
+}
+
+/** A snow capped peak: two shaded faces and a white cap. */
+export function drawPeak(g: G, cx: number, cy: number, size: number, h: number, rock: number, snow: number) {
+  const x0 = cx - size / 2, x1 = cx + size / 2, y0 = cy - size / 2, y1 = cy + size / 2;
+  const L = cartesianToIso(x0, y1), F = cartesianToIso(x1, y1), R = cartesianToIso(x1, y0);
+  const apex = { x: cartesianToIso(cx, cy).x, y: cartesianToIso(cx, cy).y - h };
+  const lerp = (a: { x: number; y: number }, b: { x: number; y: number }, t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  const tri = (a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }, color: number) => {
+    g.fillStyle(color, 1);
+    g.fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y);
+  };
+  tri(L, F, apex, shade(rock, 1.08));
+  tri(F, R, apex, shade(rock, 0.8));
+  const k = 0.62; // snow line
+  tri(lerp(L, apex, k), lerp(F, apex, k), apex, shade(snow, 1));
+  tri(lerp(F, apex, k), lerp(R, apex, k), apex, shade(snow, 0.86));
+  // a ridge of darker rock for texture
+  g.lineStyle(1.5, shade(rock, 0.6), 0.5);
+  g.beginPath();
+  g.moveTo(F.x, F.y);
+  g.lineTo(apex.x, apex.y);
+  g.strokePath();
+}

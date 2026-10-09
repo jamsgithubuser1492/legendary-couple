@@ -64,7 +64,7 @@ export interface Memory {
   tileY: number;
 }
 
-export type CompanionId = 'kitty' | 'miffy' | 'snoopy';
+export type CompanionId = 'kitty' | 'miffy' | 'snoopy' | 'dog';
 
 export interface Wardrobe {
   owned: string[]; // outfit ids

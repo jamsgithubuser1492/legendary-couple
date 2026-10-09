@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { CompanionId, GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
-import { canPlace, freeShoreTile } from './placement';
+import { canPlace, canPlacePreset, freeShoreTile, presetOrder } from './placement';
+import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
@@ -35,7 +36,7 @@ const initial = (): GameState => ({
 function load(): GameState {
   try {
     const raw = localStorage.getItem(STATE_KEY);
-    if (raw) return { ...initial(), ...JSON.parse(raw) };
+    if (raw) return withDefaults(JSON.parse(raw));
     // migrate the Build 1 starting path key
     const legacy = localStorage.getItem('olw:startingPath');
     if (legacy === 'rv' || legacy === 'shop' || legacy === 'home') return { ...initial(), startingPath: legacy };
@@ -43,6 +44,21 @@ function load(): GameState {
     /* ignore */
   }
   return initial();
+}
+
+function withDefaults(saved: Partial<GameState>): GameState {
+  const base = initial();
+  const w = saved.wardrobe;
+  return {
+    ...base,
+    ...saved,
+    wardrobe: {
+      ...base.wardrobe,
+      ...w,
+      owned: [...new Set([...base.wardrobe.owned, ...(w?.owned ?? [])])],
+      equipped: { ...base.wardrobe.equipped, ...(w?.equipped ?? {}) },
+    },
+  };
 }
 
 let state: GameState = load();
@@ -74,7 +90,7 @@ function commit(next: GameState) {
 
 /** Used by the sync layer to apply a remote snapshot without echoing it back. */
 export function applyRemote(next: GameState) {
-  state = { ...initial(), ...next };
+  state = withDefaults(next);
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   } catch {
@@ -230,6 +246,22 @@ export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 
     ...state,
     inventory: addToInventory(state.inventory, itemId, -1),
     placed: [...state.placed, { id: uid(), itemId, tileX: x, tileY: y, rotation }],
+  });
+  return true;
+}
+
+/** Buys a ready made room and lays every piece of it in one go. */
+export function buyPreset(presetId: string, x: number, y: number, extraBlocked: { x: number; y: number }[] = []): boolean {
+  const preset = presetOf(presetId);
+  if (!preset || state.coins < preset.price.coins || state.gems < preset.price.gems) return false;
+  if (preset.seasons && !preset.seasons.includes(getTheme())) return false;
+  if (!canPlacePreset(state, preset, x, y, extraBlocked).ok) return false;
+  const added = presetOrder(preset).map((pi) => ({ id: uid(), itemId: pi.itemId, tileX: x + pi.dx, tileY: y + pi.dy, rotation: pi.rotation ?? 0 }));
+  commit({
+    ...state,
+    coins: state.coins - preset.price.coins,
+    gems: state.gems - preset.price.gems,
+    placed: [...state.placed, ...added],
   });
   return true;
 }

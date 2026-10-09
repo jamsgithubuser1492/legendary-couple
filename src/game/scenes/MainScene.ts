@@ -4,17 +4,20 @@ import {
   cartesianToIso, isoToCartesian, tileCenter, inBounds, findPath,
 } from '../iso';
 import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
-import { getMe, getState, onStateChange, placeObject, removeObject, setAvatarPos } from '../../state/store';
-import { blockedTiles, canPlace, decorFace, tilesOf, PLOT } from '../../state/placement';
+import { buyPreset, getMe, getState, onStateChange, placeObject, removeObject, setAvatarPos } from '../../state/store';
+import { blockedTiles, canPlace, canPlacePreset, decorFace, presetOrder, tilesOf, PLOT } from '../../state/placement';
+import { presetOf } from '../../state/presets';
 import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
 import { drawPlaced, box, diamond as isoDiamond } from '../draw';
 import { SPRITES, WALK_SHEET } from '../spriteList';
-import { Avatar, createWalkAnims } from '../Avatar';
+import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
+import { drawWall } from '../walls';
+import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
 import { Companion } from '../Companion';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { getTheme, onThemeChange } from '../../state/season';
-import type { CompanionId, PlacedObject, PlayerId } from '../../types';
+import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
 const CENTER_TILE = { x: GRID_SIZE / 2, y: GRID_SIZE / 2 };
 const MIN_ZOOM = 0.5;
@@ -39,6 +42,8 @@ export class MainScene extends Phaser.Scene {
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
   private companions = new Map<CompanionId, Companion>();
+  private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
+  private stateOverride?: GameState; // lets a ghost preview see its own walls
 
   constructor() {
     super('MainScene');
@@ -51,9 +56,11 @@ export class MainScene extends Phaser.Scene {
       frameWidth: WALK_SHEET.frameWidth,
       frameHeight: WALK_SHEET.frameHeight,
     });
+    preloadWalkStrips(this);
   }
 
   create(): void {
+    ensureFloorTextures(this);
     this.ambient = new Ambient(this);
     this.ambient.apply(getTheme());
     this.highlight = this.add.graphics().setDepth(1000);
@@ -66,6 +73,9 @@ export class MainScene extends Phaser.Scene {
     this.syncCompanions();
 
     this.centerCamera();
+    // WASD and the arrow keys. Capture is off so typing in text boxes still works.
+    this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
+    this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.input.addPointer(1); // second pointer for pinch zoom
     this.input.on('pointerdown', this.onPointerDown, this);
     this.input.on('pointermove', this.onPointerMove, this);
@@ -82,6 +92,7 @@ export class MainScene extends Phaser.Scene {
     };
     const onEdit = (e: EditPayload) => {
       this.edit = e;
+      this.ambient.setGrid(e.active);
       this.refreshHover();
     };
     const onFocus = (t: { x: number; y: number }) => {
@@ -104,12 +115,44 @@ export class MainScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offState();
       offTheme();
+      this.events.off(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
       gameBus.off(BUS.edit, onEdit);
       gameBus.off(BUS.startingPath, onPath);
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
       gameBus.off(BUS.focus, onFocus);
       gameBus.off(BUS.view, onView);
+    });
+  }
+
+  // ---------- WASD walking ----------
+
+  /**
+   * W, A, S, D (or the arrows) walk in the four screen directions, and two keys together walk diagonally,
+   * which gives all eight directions. On this isometric grid, up on screen is one tile in x and y together.
+   */
+  private keyboardWalk(): void {
+    const k = this.keys;
+    if (!k || !this.scene.isActive() || this.edit.active) return;
+    const tag = (document.activeElement as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const me = getMe();
+    const av = this.avatars[me];
+    if (av.moving) return;
+    const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
+    const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
+    const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    const ty = Math.sign((left ? 1 : 0) - (right ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    if (!tx && !ty) return;
+    const blocked = this.pathingBlocked(me);
+    const free = (x: number, y: number) => inBounds(x, y) && !blocked.has(`${x},${y}`);
+    const { x, y } = av.tile;
+    const options = [{ x: x + tx, y: y + ty }, { x: x + tx, y }, { x, y: y + ty }]; // then slide along a wall
+    const target = options.find((t, i) => (t.x !== x || t.y !== y) && free(t.x, t.y) && (i > 0 || !(tx && ty) || (free(x + tx, y) && free(x, y + ty))));
+    if (!target) return;
+    av.walk([target], () => {
+      setAvatarPos(me, av.tile.x, av.tile.y);
+      this.followLocal();
     });
   }
 
@@ -194,7 +237,8 @@ export class MainScene extends Phaser.Scene {
     }
     let added = false;
     for (const id of w.invited) {
-      const sprite = outfitOf(w.equipped[id])?.sprite;
+      const outfit = outfitOf(w.equipped[id]);
+      const sprite = outfit?.sprite;
       if (!sprite || !this.textures.exists(sprite)) continue;
       const existing = this.companions.get(id);
       if (existing) {
@@ -202,7 +246,7 @@ export class MainScene extends Phaser.Scene {
         continue;
       }
       const spot = this.nearbyFreeTiles()[this.companions.size] ?? this.avatars[getMe()].tile;
-      this.companions.set(id, new Companion(this, sprite, spot));
+      this.companions.set(id, new Companion(this, sprite, spot, outfit?.walkSheet));
       added = true;
     }
     if (added) this.followLocal();
@@ -237,11 +281,12 @@ export class MainScene extends Phaser.Scene {
       this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));
     } else if (p === 'rv' && this.textures.exists('rv_b')) {
       this.structure.push(this.img('rv_b', front.x, front.y - 4, 0.5, 1).setDepth(depth));
-    } else if (p === 'home' && this.textures.exists('floor_wood')) {
+    } else if (p === 'home') {
       const c = tileCenter(PLOT.x, PLOT.y);
-      this.structure.push(this.img('floor_wood', c.x, c.y, 0.5, 0.39).setDepth(-29));
-      const back = cartesianToIso(PLOT.x, PLOT.y + 1);
-      this.structure.push(this.img('wall_corner', cartesianToIso(PLOT.x, PLOT.y).x, back.y + 2, 0.5, 1).setDepth(depth));
+      this.structure.push(this.add.image(c.x, c.y, floorKey('floor_wood', 1)).setScale(0.5).setDepth(-29));
+      const wg = this.add.graphics().setDepth(depth);
+      drawWall(wg, PLOT.x, PLOT.y, 'wall', 0, { W: false, E: true, N: false, S: true });
+      this.structure.push(wg);
     } else {
       const g = this.add.graphics().setDepth(depth);
       const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;
@@ -265,9 +310,37 @@ export class MainScene extends Phaser.Scene {
     this.placedObjs = [];
     const wallAt = this.wallAtFn();
     for (const o of s.placed) this.placedObjs.push(...this.spawn(o, wallAt));
+    this.placedObjs.push(this.floorEdges());
     for (const m of s.memories) this.placedObjs.push(this.plaque(m.tileX, m.tileY));
     this.blocked = blockedTiles(s, this.hasStarter);
     this.refreshHover();
+  }
+
+  /** A thin slab along the outside edge of a floor, so floors have weight but joins stay seamless. */
+  private floorEdges(): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics().setDepth(-31);
+    const floors = new Map<string, string>();
+    for (const o of getState().placed) {
+      const it = itemOf(o.itemId);
+      if (it?.layer === 'floor') floors.set(`${o.tileX},${o.tileY}`, o.itemId);
+    }
+    const poly = (a: { x: number; y: number }, b: { x: number; y: number }, color: number) => {
+      g.fillStyle(color, 1);
+      g.beginPath();
+      g.moveTo(a.x, a.y);
+      g.lineTo(b.x, b.y);
+      g.lineTo(b.x, b.y + 5);
+      g.lineTo(a.x, a.y + 5);
+      g.closePath();
+      g.fillPath();
+    };
+    for (const [key, id] of floors) {
+      const [x, y] = key.split(',').map(Number);
+      const base = FLOOR_STYLES[id]?.grout ?? 0xc29a68;
+      if (!floors.has(`${x},${y + 1}`)) poly(cartesianToIso(x, y + 1), cartesianToIso(x + 1, y + 1), base);
+      if (!floors.has(`${x + 1},${y}`)) poly(cartesianToIso(x + 1, y + 1), cartesianToIso(x + 1, y), (base >> 1) & 0x7f7f7f);
+    }
+    return g;
   }
 
   private plaque(x: number, y: number): Phaser.GameObjects.Graphics {
@@ -293,6 +366,20 @@ export class MainScene extends Phaser.Scene {
   private spawn(o: PlacedObject, wallAt: (x: number, y: number) => boolean, alpha = 1, tint?: number): Phaser.GameObjects.GameObject[] {
     const item = itemOf(o.itemId);
     if (!item) return [];
+    if (item.layer === 'floor' && FLOOR_STYLES[item.id]) {
+      const c = tileCenter(o.tileX, o.tileY);
+      const v = Math.floor((Math.sin(o.tileX * 12.9898 + o.tileY * 78.233) * 43758.5453 % 1 + 1) * 1000) % FLOOR_VARIANTS;
+      const im = this.add.image(c.x, c.y, floorKey(item.id, v)).setScale(0.5).setAlpha(alpha).setDepth(-30);
+      if (tint !== undefined) im.setTint(tint);
+      return [im];
+    }
+    if (item.layer === 'wall') {
+      const g = this.add.graphics().setDepth(o.tileX + o.tileY + 0.1);
+      drawWall(g, o.tileX, o.tileY, item.variant ?? 'wall', o.rotation, {
+        W: wallAt(o.tileX - 1, o.tileY), E: wallAt(o.tileX + 1, o.tileY), N: wallAt(o.tileX, o.tileY - 1), S: wallAt(o.tileX, o.tileY + 1),
+      }, alpha, tint);
+      return [g];
+    }
     if (item.sprite && this.textures.exists(item.sprite)) return this.spawnSprite(item, o, wallAt, alpha, tint);
     if (item.layer === 'walldecor') return [];
     const g = this.add.graphics();
@@ -330,7 +417,7 @@ export class MainScene extends Phaser.Scene {
       return [mk(key, right.x, right.y + 2, 1, 1, flip).setDepth(depth)];
     }
     if (item.layer === 'walldecor') {
-      const face = decorFace(getState(), o.tileX, o.tileY, o.rotation);
+      const face = decorFace(this.stateOverride ?? getState(), o.tileX, o.tileY, o.rotation);
       if (!face) return [];
       const { tileX: x, tileY: y } = o;
       // sit on the middle of the wall's visible face, a little in front of it
@@ -375,7 +462,19 @@ export class MainScene extends Phaser.Scene {
       isoDiamond(this.highlight, x, y);
       this.highlight.fillPath();
     };
-    if (t && this.edit.active && this.edit.mode === 'place' && this.edit.itemId) {
+    if (t && this.edit.active && this.edit.mode === 'place' && this.edit.presetId && presetOf(this.edit.presetId)) {
+      const preset = presetOf(this.edit.presetId)!;
+      const s = getState();
+      const avatarTiles = [this.avatars.A.tile, this.avatars.B.tile];
+      const check = canPlacePreset(s, preset, t.x, t.y, avatarTiles);
+      const items = presetOrder(preset).map((pi, i) => ({ id: `ghost${i}`, itemId: pi.itemId, tileX: t.x + pi.dx, tileY: t.y + pi.dy, rotation: pi.rotation ?? 0 })) as PlacedObject[];
+      for (let dx = 0; dx < preset.w; dx++) for (let dy = 0; dy < preset.d; dy++) tint(check.ok ? 0x6fd48b : 0xff6b6b, 0.22, t.x + dx, t.y + dy);
+      this.stateOverride = { ...s, placed: [...s.placed, ...items] };
+      const wallAt = (x: number, y: number) => this.stateOverride!.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
+      for (const o of items) this.ghostObjs.push(...this.spawn(o, wallAt, check.ok ? 0.72 : 0.4, check.ok ? undefined : 0xff9a9a));
+      this.stateOverride = undefined;
+      this.ghostObjs.forEach((g) => (g as Phaser.GameObjects.Image).setDepth?.(1001));
+    } else if (t && this.edit.active && this.edit.mode === 'place' && this.edit.itemId) {
       const s = getState();
       const avatarTiles = [this.avatars.A.tile, this.avatars.B.tile];
       const check = canPlace(s, this.edit.itemId, t.x, t.y, this.edit.rotation, avatarTiles);
@@ -435,7 +534,16 @@ export class MainScene extends Phaser.Scene {
     if (wasDrag) return;
     const t = this.pointerTile(p);
     if (t && this.edit.active) {
-      if (this.edit.mode === 'place' && this.edit.itemId) {
+      if (this.edit.mode === 'place' && this.edit.presetId) {
+        const preset = presetOf(this.edit.presetId);
+        if (preset && buyPreset(preset.id, t.x, t.y, [this.avatars.A.tile, this.avatars.B.tile])) {
+          gameBus.emit(BUS.townToast, { text: `✨ ${preset.name} is ready. Enjoy your new room!` });
+          gameBus.emit(BUS.presetPlaced);
+        } else {
+          const why = preset ? canPlacePreset(getState(), preset, t.x, t.y) : null;
+          gameBus.emit(BUS.townToast, { text: why && !why.ok ? `It does not fit there: ${why.reason}` : 'You cannot afford that design yet.' });
+        }
+      } else if (this.edit.mode === 'place' && this.edit.itemId) {
         placeObject(this.edit.itemId, t.x, t.y, this.edit.rotation, [this.avatars.A.tile, this.avatars.B.tile]);
       } else if (this.edit.mode === 'remove') {
         const hit = this.objectAt(t.x, t.y);

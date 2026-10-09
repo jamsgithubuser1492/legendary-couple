@@ -14,11 +14,12 @@ export const BUS = {
   memoryOpen: 'memoryOpen',     // Phaser -> React: memory id
   view: 'view',                 // React -> Phaser: 'island' | 'town'
   townToast: 'townToast',       // Phaser -> React: { text }
+  presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null
 } as const;
 
-export type EditPayload = { active: boolean; mode: 'place' | 'remove'; itemId: string | null; rotation: 0 | 90 | 180 | 270 };
+export type EditPayload = { active: boolean; mode: 'place' | 'remove'; itemId: string | null; rotation: 0 | 90 | 180 | 270; presetId?: string | null };
 export type HoverPayload = { x: number; y: number } | null;
 export type PathPayload = StartingPath | null;
 

@@ -34,6 +34,34 @@ Priority first.
 11. **Hello Kitty and Miffy walk cycles** (4 directions) for wandering NPCs on the island.
 12. **Day and night or sunset tint** reference so we can add a light overlay.
 
+## Walk animation gaps (most useful next)
+The walk sheets you sent were messy (frames overlapping, rows merged), so I only cut the clean ones. For a fully animated cast, the best fix is one **clean sprite sheet per character**: a strict grid, one figure per cell, same size every cell, transparent or plain background.
+1. **Rachel, front and back walk**, 4 frames each (she only has side today)
+2. **James and Rachel, north east, north west, south east, south west**, 4 frames each (they use the nearest side view today)
+3. **Hello Kitty, Miffy and Snoopy, 4 directions, 4 frames, every outfit**. They bounce and mirror today, so a proper cycle would be a big upgrade
+4. **Golden retriever, front and back walk**, and a few idle poses (sit, wag, sleep)
+5. **Matching outfit sets for the two of you**, so the Wardrobe can dress James and Rachel in your concert outfit, lounge wear and holiday sweater
+
+## Gaps that would make the Town come alive (priority order)
+The Town is painted by code, so it reads clean and cohesive, but it cannot match your top down poster's hand painted detail. These assets would close the gap. Draw them 2:1 isometric, transparent PNG, soft upper left light, warm brown outline, and tell me the footprint in tiles.
+1. **Generic houses, 6 to 8 styles** (2 x 2 tiles, about 128 px wide at 2x): terracotta roof, blue door, pink cottage, balcony with flowers, red barn, windmill. Today these are simple drawn boxes and are the weakest part of the view.
+2. **Apartment and tower blocks, 4 styles** (2 x 2): pastel facades with balconies and a rooftop garden, replacing the drawn towers.
+3. **Trees: round, pine, blossom, autumn maple, snowy** (1 x 1, about 48 px wide). The forest is currently soft drawn circles. Real sprites would add leaf texture and make forests read as forest.
+4. **Palm trees, 3 variants**, plus beach props: umbrellas, towels, a sandcastle, a rowboat on the sand.
+5. **Boats on the water**: a sailboat, a small fishing boat and a moored dinghy (2 x 1). They bring the sea to life and are in your poster.
+6. **Lighthouse close up view and a pier end with lamp posts**. The lighthouse is a small sprite on a drawn rock today.
+7. **Cars**: your pink car and a camper van, 4 directions, to drive the town roads.
+8. **Park pieces**: a tree with a picnic blanket, pond with ducks, fountain, playground, tennis court.
+9. **Road tiles and crosswalks, sprite based**, so roads can have curbs, zebra crossings and parked cars. Roads are drawn lines today.
+10. **Mountain details**: pine clusters, a winding trail with stairs, a cabin close up, waterfalls. Mountains are soft drawn shapes today.
+11. **Birds, butterflies and a hot air balloon** to drift across the sky.
+12. **Lit windows at dusk**, a second "evening" version of the buildings so the town can glow at sunset like your poster.
+
+### Existing art worth flagging
+* Cut out edges on a few sprites (the café, the farmstead and the cabin) still have a faint pale edge. Clean transparent PNGs would remove it.
+* The farm and cabin sheets are single large pieces. Separate buildings would let them grow in stages.
+* James and Rachel look good small, but their sprites are 4 times smaller than the poster characters. A larger "close up" version for the quest and journal screens would be lovely.
+
 ## Town map art
 The town uses your shop, stand, farm, cabin and campus sprites plus buildings the game draws itself (pastel houses, towers, barns, trees). More **generic building sprites** in your style would make the town feel richer: houses in 5 or 6 styles, a barn, a windmill, apartment blocks, a school, a library, a train station and a pier. Draw each to fit a 2 x 2 tile footprint (about 128 px wide at 2x), and bigger landmarks to 3 x 3 or 4 x 4.
 

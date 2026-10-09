@@ -33,7 +33,7 @@ export default function App() {
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0 });
+  const [edit, setEdit] = useState<EditState>({ mode: 'place', itemId: null, rotation: 0, presetId: null });
   const [hover, setHover] = useState<HoverPayload>(null);
 
   useEffect(() => {
@@ -41,10 +41,13 @@ export default function App() {
     gameBus.on(BUS.hover, setHover);
     gameBus.on(BUS.memoryOpen, setViewing);
     gameBus.on(BUS.viewSync, setView);
+    const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
+    gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
       gameBus.off(BUS.hover, setHover);
       gameBus.off(BUS.memoryOpen, setViewing);
       gameBus.off(BUS.viewSync, setView);
+      gameBus.off(BUS.presetPlaced, donePreset);
     };
   }, []);
 
@@ -120,7 +123,7 @@ export default function App() {
         onDream={() => setDream(true)}
       />
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
-      {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
+      {shopOpen && <ShopModal onClose={() => setShopOpen(false)} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
       {questsOpen && (
         <QuestBoard
           onClose={() => setQuestsOpen(false)}
