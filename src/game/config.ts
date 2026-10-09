@@ -3,7 +3,7 @@ import { MainScene } from './scenes/MainScene';
 import { TownScene } from './scenes/TownScene';
 
 export function createGame(parent: HTMLElement): Phaser.Game {
-  return new Phaser.Game({
+  const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent,
     backgroundColor: '#bfe6f2',
@@ -16,4 +16,6 @@ export function createGame(parent: HTMLElement): Phaser.Game {
     input: { activePointers: 2, touch: { capture: true } },
     scene: [MainScene, TownScene],
   });
+  if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __phaser: Phaser.Game }).__phaser = game; // test hook
+  return game;
 }

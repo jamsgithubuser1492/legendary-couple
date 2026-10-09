@@ -4,7 +4,6 @@ import { shade } from './draw';
 import type { Palette } from '../state/season';
 
 type Pt = { x: number; y: number };
-const C = GRID_SIZE / 2;
 
 const hash = (x: number, y: number) => {
   const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
@@ -18,7 +17,8 @@ const mix = (a: number, b: number, t: number) => {
 /** The island's edge in tile coordinates: a soft squircle with a little natural wobble. */
 export function islandOutline(scale = 1): Pt[] {
   const pts: Pt[] = [];
-  const n = 4.4, half = 5.62;
+  const C = GRID_SIZE / 2;
+  const n = 4.4, half = GRID_SIZE * 0.562;
   for (let i = 0; i < 180; i++) {
     const t = (i / 180) * Math.PI * 2;
     const wob = 1 + 0.028 * Math.sin(3 * t + 1.2) + 0.02 * Math.sin(5 * t + 0.4) + 0.012 * Math.sin(9 * t);
@@ -68,18 +68,19 @@ export function drawIsland(scene: Phaser.Scene, pal: Palette): IslandLayers {
   fillPoly(land, toScreen(islandOutline(0.9)), mix(pal.sand, pal.grassA, 0.55));
   fillPoly(land, toScreen(islandOutline(0.86)), pal.grassA);
   // gentle lawn variation: big soft patches rather than tiles
-  for (let i = 0; i < 16; i++) {
-    const px = 1.5 + hash(i, 3) * 7, py = 1.5 + hash(5, i) * 7;
+  const G = GRID_SIZE, k = G / 10;
+  for (let i = 0; i < 16 * k * k; i++) {
+    const px = 1.5 + hash(i, 3) * (G - 3), py = 1.5 + hash(5, i) * (G - 3);
     const r = 1.2 + hash(i, i) * 1.8;
     const ring: Pt[] = [];
     for (let k = 0; k < 24; k++) ring.push({ x: px + Math.cos((k / 24) * Math.PI * 2) * r, y: py + Math.sin((k / 24) * Math.PI * 2) * r * 0.9 });
     fillPoly(land, toScreen(ring), i % 2 ? pal.grassB : mix(pal.grassA, 0xffffff, 0.25), 0.22);
   }
   // tiny flowers and tufts
-  for (let i = 0; i < 46; i++) {
-    const x = 1.2 + hash(i, 9) * 7.6, y = 1.2 + hash(9, i) * 7.6;
-    const dx = x - C, dy = y - C;
-    if (Math.abs(dx) ** 4.4 + Math.abs(dy) ** 4.4 > 4.6 ** 4.4) continue;
+  for (let i = 0; i < 46 * k * k; i++) {
+    const x = 1.2 + hash(i, 9) * (G - 2.4), y = 1.2 + hash(9, i) * (G - 2.4);
+    const dx = x - G / 2, dy = y - G / 2;
+    if (Math.abs(dx) ** 4.4 + Math.abs(dy) ** 4.4 > (4.6 * k) ** 4.4) continue;
     const s = cartesianToIso(x, y);
     land.fillStyle(i % 3 === 0 ? 0xffffff : i % 3 === 1 ? 0xffc4d6 : 0xfff0a8, 0.9);
     land.fillCircle(s.x, s.y, 1.6);

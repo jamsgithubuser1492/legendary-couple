@@ -4,12 +4,12 @@ import {
   cartesianToIso, isoToCartesian, tileCenter, inBounds, findPath,
 } from '../iso';
 import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
-import { buyPreset, getMe, getState, onStateChange, placeObject, removeObject, setAvatarPos } from '../../state/store';
+import { buyPreset, getMe, getState, onStateChange, placeObject, removeObject, removeStarter, setAvatarPos } from '../../state/store';
 import { blockedTiles, canPlace, canPlacePreset, decorFace, presetOrder, tilesOf, PLOT } from '../../state/placement';
 import { presetOf } from '../../state/presets';
 import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
 import { drawPlaced, box, diamond as isoDiamond } from '../draw';
-import { SPRITES, WALK_SHEET } from '../spriteList';
+import { SPRITES } from '../spriteList';
 import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
 import { drawWall } from '../walls';
 import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
@@ -19,7 +19,6 @@ import { Ambient } from '../ambient';
 import { getTheme, onThemeChange } from '../../state/season';
 import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
-const CENTER_TILE = { x: GRID_SIZE / 2, y: GRID_SIZE / 2 };
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
 const DRAG_THRESHOLD = 8;
@@ -36,6 +35,8 @@ export class MainScene extends Phaser.Scene {
   private placedObjs: Phaser.GameObjects.GameObject[] = [];
   private blocked = new Set<string>();
   private hasStarter = false;
+  private drawnSize = 0;
+  private starterKey = '';
   private dragStart?: { x: number; y: number; camX: number; camY: number };
   private dragging = false;
   private pinchDist = 0;
@@ -52,10 +53,6 @@ export class MainScene extends Phaser.Scene {
   preload(): void {
     this.load.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
     for (const s of SPRITES) this.load.image(s.key, s.file);
-    this.load.spritesheet(WALK_SHEET.key, WALK_SHEET.file, {
-      frameWidth: WALK_SHEET.frameWidth,
-      frameHeight: WALK_SHEET.frameHeight,
-    });
     preloadWalkStrips(this);
   }
 
@@ -63,6 +60,7 @@ export class MainScene extends Phaser.Scene {
     ensureFloorTextures(this);
     this.ambient = new Ambient(this);
     this.ambient.apply(getTheme());
+    this.drawnSize = GRID_SIZE;
     this.highlight = this.add.graphics().setDepth(1000);
 
     createWalkAnims(this);
@@ -101,6 +99,10 @@ export class MainScene extends Phaser.Scene {
       this.cameras.main.pan(c.x, c.y, 600, 'Sine.easeInOut');
     };
     const offState = onStateChange(() => {
+      const st = getState();
+      if (st.islandSize !== this.drawnSize) this.resizeIsland();
+      const key = `${st.startingPath}:${st.starterRemoved}`;
+      if (key !== this.starterKey) this.setStartingPath(st.startingPath);
       this.renderPlaced();
       this.syncPartner();
       this.syncCompanions();
@@ -123,6 +125,14 @@ export class MainScene extends Phaser.Scene {
       gameBus.off(BUS.focus, onFocus);
       gameBus.off(BUS.view, onView);
     });
+  }
+
+  /** Redraws the island after you expand the build area. */
+  private resizeIsland(): void {
+    this.drawnSize = GRID_SIZE;
+    this.ambient.apply(getTheme());
+    this.ambient.setGrid(this.edit.active);
+    this.centerCamera();
   }
 
   // ---------- WASD walking ----------
@@ -265,9 +275,10 @@ export class MainScene extends Phaser.Scene {
   private setStartingPath(p: PathPayload): void {
     this.structure.forEach((o) => o.destroy());
     this.structure = [];
-    this.hasStarter = !!p;
+    this.starterKey = `${p}:${getState().starterRemoved}`;
+    this.hasStarter = !!p && !getState().starterRemoved;
     this.blocked = blockedTiles(getState(), this.hasStarter);
-    if (!p) return;
+    if (!p || getState().starterRemoved) return;
     for (const pl of ['A', 'B'] as PlayerId[]) {
       const av = this.avatars[pl];
       if (av.tile.x === PLOT.x && av.tile.y === PLOT.y) {
@@ -488,6 +499,7 @@ export class MainScene extends Phaser.Scene {
     } else if (t && this.edit.active && this.edit.mode === 'remove') {
       const hit = this.objectAt(t.x, t.y);
       if (hit) for (const c of tilesOf(hit.itemId, hit.tileX, hit.tileY, hit.rotation)) tint(0xff6b6b, 0.4, c.x, c.y);
+      else if (this.hasStarter && t.x === PLOT.x && t.y === PLOT.y) tint(0xff6b6b, 0.4, t.x, t.y); // the starter structure
     } else if (t) {
       this.highlight.lineStyle(3, 0xff7fa1, 1);
       tint(0xff7fa1, 0.22, t.x, t.y);
@@ -548,6 +560,10 @@ export class MainScene extends Phaser.Scene {
       } else if (this.edit.mode === 'remove') {
         const hit = this.objectAt(t.x, t.y);
         if (hit) removeObject(hit.id);
+        else if (this.hasStarter && t.x === PLOT.x && t.y === PLOT.y) {
+          removeStarter();
+          gameBus.emit(BUS.townToast, { text: 'Starter picked up and added to your bag. Your build area is blank!' });
+        }
       }
       return;
     }
@@ -566,7 +582,7 @@ export class MainScene extends Phaser.Scene {
 
   private centerCamera(): void {
     const cam = this.cameras.main;
-    const c = tileCenter(CENTER_TILE.x - 0.5, CENTER_TILE.y - 0.5);
+    const c = tileCenter(GRID_SIZE / 2 - 0.5, GRID_SIZE / 2 - 0.5);
     const fit = Math.min(cam.width / (GRID_SIZE * TILE_W_HALF * 2.6), cam.height / (GRID_SIZE * TILE_H * 1.9));
     cam.setZoom(Phaser.Math.Clamp(fit, MIN_ZOOM, 1.4));
     cam.centerOn(c.x, c.y);

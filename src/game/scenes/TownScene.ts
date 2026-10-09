@@ -2,10 +2,13 @@ import Phaser from 'phaser';
 import { cartesianToIso, isoToCartesian, tileCenter } from '../iso';
 import { Ambient } from '../ambient';
 import { gameBus, BUS } from '../events';
-import { getState, onStateChange } from '../../state/store';
+import { Avatar } from '../Avatar';
+import { findPath } from '../iso';
+import { getMe, getState, onStateChange, setTownPos } from '../../state/store';
+import type { PlayerId } from '../../types';
 import { getTheme, onThemeChange } from '../../state/season';
 import {
-  HOME_PIN, LOTS, REGIONS, TOWN, growthOf, onGrowthPreviewChange, regionById, unlockedRegions,
+  HOME_PIN, LOTS, REGIONS, TOWN, activityOf, growthOf, onGrowthPreviewChange, regionById, unlockedRegions,
   type Lot, type RegionId,
 } from '../../state/town';
 import { SPRITES } from '../spriteList';
@@ -32,6 +35,10 @@ export class TownScene extends Phaser.Scene {
   private terrain: Phaser.GameObjects.GameObject[] = [];
   private scenery: Phaser.GameObjects.GameObject[] = [];
   private waterTick: (t: number) => void = () => {};
+  private avatars!: Record<PlayerId, Avatar>;
+  private following = false;
+  private blockedTown = new Set<string>();
+  private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private solid = new Map<string, boolean>();
   private fog: Phaser.GameObjects.GameObject[] = [];
   private lotObjs = new Map<string, Phaser.GameObjects.GameObject[]>();
@@ -55,6 +62,10 @@ export class TownScene extends Phaser.Scene {
     this.ambient.apply(getTheme());
     this.drawWorld();
     this.refresh(false);
+    const ta = getState().townAvatars;
+    this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7), B: new Avatar(this, 'B', ta.B, 0.7) };
+    this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
+    this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.fitAll();
     this.ambient.apply(getTheme()); // scatter the seasonal particles over the view we actually landed on
 
@@ -70,7 +81,11 @@ export class TownScene extends Phaser.Scene {
       if (v === 'island' && this.scene.isActive()) this.scene.switch('MainScene');
     };
     const offs = [
-      onStateChange(() => this.scene.isActive() && this.refresh(true)),
+      onStateChange(() => {
+        if (!this.scene.isActive()) return;
+        this.refresh(true);
+        this.syncPartner();
+      }),
       onGrowthPreviewChange(() => this.refresh(true)),
       onThemeChange(() => {
         this.backdrop.setTheme(getTheme());
@@ -87,6 +102,7 @@ export class TownScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.UPDATE, (time: number) => this.waterTick(time));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offs.forEach((o) => o());
+      this.events.off(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
       gameBus.off(BUS.view, onView);
@@ -191,7 +207,12 @@ export class TownScene extends Phaser.Scene {
       }
     }
     this.occupied = new Set();
-    for (const l of LOTS) for (let i = 0; i < l.w; i++) for (let j = 0; j < l.d; j++) this.occupied.add(`${l.x + i},${l.y + j}`);
+    for (const l of LOTS) {
+      if (!(open.has(l.region) && growth >= l.at)) continue; // only built places block the way
+      for (let i = 0; i < l.w; i++) for (let j = 0; j < l.d; j++) this.occupied.add(`${l.x + i},${l.y + j}`);
+    }
+    this.blockedTown = new Set(this.occupied);
+    for (let x = 0; x < TOWN; x++) for (let y = 0; y < TOWN; y++) if (!open.has(regionAt(x, y))) this.blockedTown.add(`${x},${y}`);
 
     // announce what changed
     const newRegions = [...open].filter((r) => !this.seenRegions.has(r));
@@ -305,6 +326,102 @@ export class TownScene extends Phaser.Scene {
     }
   }
 
+  // ---------- walking around town ----------
+
+  private follow(): void {
+    const cam = this.cameras.main;
+    if (this.following) return;
+    this.following = true;
+    cam.startFollow(this.avatars[getMe()].container, true, 0.1, 0.1);
+    this.tweens.add({ targets: cam, zoom: Math.max(cam.zoom, 0.95), duration: 700, ease: 'Sine.easeInOut' });
+  }
+
+  private pathBlocked(forPlayer: PlayerId): Set<string> {
+    const set = new Set(this.blockedTown);
+    const o = this.avatars[forPlayer === 'A' ? 'B' : 'A'].tile;
+    set.add(`${o.x},${o.y}`);
+    return set;
+  }
+
+  private walkTo(t: { x: number; y: number }, then?: () => void): boolean {
+    const me = getMe();
+    const av = this.avatars[me];
+    const path = findPath(av.tile, t, this.pathBlocked(me), TOWN);
+    if (!path.length) return false;
+    this.follow();
+    av.walk(path, () => {
+      setTownPos(me, av.tile.x, av.tile.y);
+      then?.();
+    });
+    return true;
+  }
+
+  /** Walks next to a place and opens it. */
+  private visit(l: Lot): void {
+    const me = getMe();
+    const av = this.avatars[me];
+    const near = (x: number, y: number) => x >= l.x - 1 && x <= l.x + l.w && y >= l.y - 1 && y <= l.y + l.d;
+    if (near(av.tile.x, av.tile.y)) {
+      gameBus.emit(BUS.townInteract, l.id);
+      return;
+    }
+    const blocked = this.pathBlocked(me);
+    let best: { x: number; y: number }[] | null = null;
+    for (let x = l.x - 1; x <= l.x + l.w; x++)
+      for (let y = l.y - 1; y <= l.y + l.d; y++) {
+        if (x < 0 || y < 0 || x >= TOWN || y >= TOWN || blocked.has(`${x},${y}`)) continue;
+        const path = findPath(av.tile, { x, y }, blocked, TOWN);
+        if (path.length && (!best || path.length < best.length)) best = path;
+      }
+    if (!best) {
+      gameBus.emit(BUS.townToast, { text: `${l.name} is too far to reach from here.` });
+      return;
+    }
+    this.follow();
+    av.walk(best, () => {
+      setTownPos(me, av.tile.x, av.tile.y);
+      gameBus.emit(BUS.townInteract, l.id);
+    });
+  }
+
+  /** WASD or arrows, in the same eight directions as on the island. */
+  private keyboardWalk(): void {
+    const k = this.keys;
+    if (!k || !this.scene.isActive()) return;
+    const tag = (document.activeElement as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const me = getMe();
+    const av = this.avatars[me];
+    if (av.moving) return;
+    const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
+    const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
+    const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    const ty = Math.sign((left ? 1 : 0) - (right ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
+    if (!tx && !ty) return;
+    const blocked = this.pathBlocked(me);
+    const free = (x: number, y: number) => x >= 0 && y >= 0 && x < TOWN && y < TOWN && !blocked.has(`${x},${y}`);
+    const { x, y } = av.tile;
+    const options = [{ x: x + tx, y: y + ty }, { x: x + tx, y }, { x, y: y + ty }];
+    const target = options.find((t, i) => (t.x !== x || t.y !== y) && free(t.x, t.y) && (i > 0 || !(tx && ty) || (free(x + tx, y) && free(x, y + ty))));
+    if (!target) return;
+    this.follow();
+    av.walk([target], () => setTownPos(me, av.tile.x, av.tile.y));
+  }
+
+  /** Brings the partner's avatar to where they are in the shared town. */
+  private syncPartner(): void {
+    const me = getMe();
+    for (const p of ['A', 'B'] as PlayerId[]) {
+      if (p === me) continue;
+      const av = this.avatars[p];
+      const t = getState().townAvatars[p];
+      if (av.moving || (av.tile.x === t.x && av.tile.y === t.y)) continue;
+      const path = findPath(av.tile, t, this.pathBlocked(p), TOWN);
+      if (path.length && path.length < 12) av.walk(path);
+      else av.snap(t.x, t.y);
+    }
+  }
+
   // ---------- input and camera ----------
 
   private tileAt(p: Phaser.Input.Pointer): { x: number; y: number } | null {
@@ -335,6 +452,10 @@ export class TownScene extends Phaser.Scene {
       const dx = p.x - this.dragStart.x, dy = p.y - this.dragStart.y;
       if (this.dragging || Math.hypot(dx, dy) > DRAG_THRESHOLD) {
         this.dragging = true;
+        if (this.following) {
+          cam.stopFollow();
+          this.following = false;
+        }
         cam.setScroll(this.dragStart.camX - dx / cam.zoom, this.dragStart.camY - dy / cam.zoom);
       }
     }
@@ -361,8 +482,11 @@ export class TownScene extends Phaser.Scene {
     }
     const lot = LOTS.find((l) => growth >= l.at && t.x >= l.x && t.x < l.x + l.w && t.y >= l.y && t.y < l.y + l.d && this.lotObjs.has(l.id));
     if (lot && lot.name !== 'Tree' && lot.name !== 'Pine') {
+      if (activityOf(lot.name)) return this.visit(lot);
       gameBus.emit(BUS.townToast, { text: `${lot.name}${lot.blurb ? ` · ${lot.blurb}` : ''}` });
+      return;
     }
+    this.walkTo(t); // an open tile: walk there
   }
 
   private zoomBy(d: number): void {
@@ -373,6 +497,8 @@ export class TownScene extends Phaser.Scene {
   /** Shows the whole painted world: sunset sky, sea, coast and every region. */
   private fitAll(): void {
     const cam = this.cameras.main;
+    cam.stopFollow();
+    this.following = false;
     // the painted world spans about 2300 x 1400 world pixels, from the lighthouse down to the south pier
     const zoom = Phaser.Math.Clamp(Math.min(cam.width / 2300, cam.height / 1400), MIN_ZOOM, 1);
     cam.setZoom(zoom);

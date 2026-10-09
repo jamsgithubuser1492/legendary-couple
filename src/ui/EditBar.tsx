@@ -14,12 +14,13 @@ interface Props {
   edit: EditState;
   onChange: (e: EditState) => void;
   onShop: () => void;
+  onExpand: () => void;
   onDone: () => void;
 }
 
 const chip = 'pointer-events-auto rounded-full px-3 py-2 font-display font-bold shadow active:scale-95';
 
-export default function EditBar({ edit, onChange, onShop, onDone }: Props) {
+export default function EditBar({ edit, onChange, onShop, onExpand, onDone }: Props) {
   const s = useGameState();
   const bag = s.inventory.filter((i) => i.count > 0 && itemOf(i.id));
   const preset = edit.presetId ? presetOf(edit.presetId) : undefined;
@@ -61,11 +62,12 @@ export default function EditBar({ edit, onChange, onShop, onDone }: Props) {
             🧺 Pick up
           </button>
           <button className={`${chip} bg-peach text-cocoa`} onClick={onShop}>🛍 Shop</button>
+          <button className={`${chip} bg-white text-cocoa`} onClick={onExpand}>🌴 Expand</button>
         </div>
         <button className={`${chip} bg-pink-400 text-white`} onClick={onDone}>Done ✓</button>
       </div>
       <p className="mt-1 text-xs text-cocoa/60">
-        {edit.mode === 'remove' ? 'Tap an object to put it back in your bag.' : edit.itemId ? `Tap a tile to place ${itemOf(edit.itemId)?.name}. Green means it fits.` : 'Pick an item from your bag.'}
+        {edit.mode === 'remove' ? 'Tap an object, or your starter, to put it back in your bag.' : edit.itemId ? `Tap a tile to place ${itemOf(edit.itemId)?.name}. Green means it fits.` : 'Pick an item from your bag.'}
       </p>
     </div>
   );

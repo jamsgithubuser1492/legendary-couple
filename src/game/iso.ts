@@ -2,7 +2,11 @@ export const TILE_W = 64;
 export const TILE_H = 32;
 export const TILE_W_HALF = TILE_W / 2;
 export const TILE_H_HALF = TILE_H / 2;
-export const GRID_SIZE = 10;
+/** The home island's size in tiles. It grows when you expand your build area. */
+export let GRID_SIZE = 10;
+export function setGridSize(n: number) {
+  GRID_SIZE = n;
+}
 
 /** Cartesian tile coords to isometric world coords (the diamond's top vertex). */
 export function cartesianToIso(x: number, y: number): { x: number; y: number } {
@@ -23,8 +27,8 @@ export function tileCenter(x: number, y: number): { x: number; y: number } {
   return { x: p.x, y: p.y + TILE_H_HALF };
 }
 
-export function inBounds(x: number, y: number): boolean {
-  return x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE;
+export function inBounds(x: number, y: number, size = GRID_SIZE): boolean {
+  return x >= 0 && y >= 0 && x < size && y < size;
 }
 
 /** 4-directional BFS path on the grid, avoiding blocked tiles. Excludes the start tile. */
@@ -32,6 +36,7 @@ export function findPath(
   from: { x: number; y: number },
   to: { x: number; y: number },
   blocked: Set<string>,
+  size = GRID_SIZE,
 ): { x: number; y: number }[] {
   const key = (x: number, y: number) => `${x},${y}`;
   if (blocked.has(key(to.x, to.y))) return [];
@@ -44,7 +49,7 @@ export function findPath(
       const nx = cur.x + dx;
       const ny = cur.y + dy;
       const k = key(nx, ny);
-      if (!inBounds(nx, ny) || blocked.has(k) || prev.has(k)) continue;
+      if (!inBounds(nx, ny, size) || blocked.has(k) || prev.has(k)) continue;
       prev.set(k, key(cur.x, cur.y));
       queue.push({ x: nx, y: ny });
     }

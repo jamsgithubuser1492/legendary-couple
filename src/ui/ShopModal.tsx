@@ -5,10 +5,10 @@ import { buyItem, useGameState } from '../state/store';
 import ItemIcon from './ItemIcon';
 import { PRESETS } from '../state/presets';
 
-export default function ShopModal({ onClose, onPickPreset }: { onClose: () => void; onPickPreset?: (id: string) => void }) {
+export default function ShopModal({ onClose, onPickPreset, initialCat }: { onClose: () => void; onPickPreset?: (id: string) => void; initialCat?: ShopCategory }) {
   const s = useGameState();
   const theme = useTheme();
-  const [cat, setCat] = useState<ShopCategory | 'rooms'>(onPickPreset ? 'rooms' : 'furniture');
+  const [cat, setCat] = useState<ShopCategory | 'rooms'>(initialCat ?? (onPickPreset ? 'rooms' : 'furniture'));
   const items = cat === 'rooms' ? [] : CATALOG.filter((i) => i.category === cat);
   const owned = (id: string) => s.inventory.find((i) => i.id === id)?.count ?? 0;
   const placedCount = (id: string) => s.placed.filter((p) => p.itemId === id).length;

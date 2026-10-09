@@ -1,25 +1,30 @@
 import Phaser from 'phaser';
 import type { PlayerId } from '../types';
-import { SPRITES, WALK_SHEET } from './spriteList';
 import { WALK_STRIPS } from './walkSheets';
 import { tileCenter } from './iso';
 
 export type Dir = 'front' | 'back' | 'left' | 'right';
 const STEP_MS = 240;
 const FEET = 6; // feet sit slightly below the tile center
-const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
-const STILL: Record<Dir, string> = { front: 'rachel_front', back: 'rachel_back', left: 'rachel_side', right: 'rachel_side' };
+const STRIP: Record<PlayerId, 'james_new' | 'rachel_new'> = { A: 'james_new', B: 'rachel_new' };
+const PREFIX: Record<PlayerId, string> = { A: 'james', B: 'rachel' };
+/** Frames in each strip: 0 to 2 walk west (mirrored for east), 3 to 5 walk toward the camera, 6 front, 7 back (James only). */
+const SIDE = [0, 1, 2, 1];
+const FRONT = [3, 4, 5, 4];
+const STAND_SIDE = 2, STAND_FRONT = 6, STAND_BACK = 7;
+const DISPLAY_H: Record<PlayerId, number> = { A: 52, B: 50 };
 
 /** Registers every walking animation once. */
 export function createWalkAnims(scene: Phaser.Scene) {
-  const add = (key: string, tex: string, start: number, end: number, rate: number) => {
+  const add = (key: string, tex: string, frames: number[], rate: number) => {
     if (scene.anims.exists(key)) return;
-    scene.anims.create({ key, frames: scene.anims.generateFrameNumbers(tex, { start, end }), frameRate: rate, repeat: -1 });
+    scene.anims.create({ key, frames: frames.map((frame) => ({ key: tex, frame })), frameRate: rate, repeat: -1 });
   };
-  WALK_SHEET.rows.forEach((dir, row) => add(`james_${dir}`, WALK_SHEET.key, row * 4, row * 4 + 3, 8));
-  add('james_side', 'james_walk_side', 0, WALK_STRIPS.james_walk_side.frames - 1, 10);
-  add('rachel_side', 'rachel_walk_side', 0, 4, 9); // the first five frames are the side walk, the last two are a turn
-  add('dog_walk', 'dog_walk_side', 0, 5, 10);
+  for (const p of ['A', 'B'] as PlayerId[]) {
+    add(`${PREFIX[p]}_side`, STRIP[p], SIDE, 8);
+    add(`${PREFIX[p]}_front`, STRIP[p], FRONT, 8);
+  }
+  add('dog_walk', 'dog_walk_side', [0, 1, 2, 3, 4, 5], 10);
 }
 
 /** Preloads the walk strips as spritesheets. */
@@ -28,10 +33,10 @@ export function preloadWalkStrips(scene: Phaser.Scene) {
 }
 
 /**
- * One walking partner.
- * James: real 4 direction cycle, plus a 7 frame side cycle for east and west.
- * Rachel: real 5 frame side cycle; her front and back views use her stills with a bounce as a placeholder walk.
- * Diagonal screen directions use the nearest view, mirrored where needed.
+ * One walking partner, drawn from a single consistent set of views.
+ * East and west share one walk cycle (mirrored), and walking toward the camera has its own cycle.
+ * The back view is a standing pose with a bounce for now, until a back walk cycle exists.
+ * Diagonal screen directions use the nearest view.
  */
 export class Avatar {
   readonly container: Phaser.GameObjects.Container;
@@ -42,50 +47,35 @@ export class Avatar {
   tile: { x: number; y: number };
   moving = false;
 
-  constructor(private scene: Phaser.Scene, readonly player: PlayerId, tile: { x: number; y: number }) {
+  constructor(private scene: Phaser.Scene, readonly player: PlayerId, tile: { x: number; y: number }, size = 1) {
     this.tile = { ...tile };
     const shadow = scene.add.ellipse(0, -1, 24, 10, 0x000000, 0.18);
-    this.sprite = player === 'A' ? scene.add.sprite(0, 0, WALK_SHEET.key, 0) : scene.add.sprite(0, 0, 'rachel_front');
-    this.sprite.setOrigin(0.5, 1);
+    this.sprite = scene.add.sprite(0, 0, STRIP[player], STAND_FRONT).setOrigin(0.5, 1).setScale(0.5);
     this.container = scene.add.container(0, 0, [shadow, this.sprite]);
+    this.container.setScale(size);
     this.snap(tile.x, tile.y);
     this.face('front', false);
-  }
-
-  private setStill(key: string) {
-    this.sprite.stop();
-    this.sprite.setTexture(key);
-    this.sprite.setScale((DW.get(key) ?? this.sprite.width) / this.sprite.width);
   }
 
   private face(dir: Dir, walking: boolean, flipBack = false) {
     this.dir = dir;
     const s = this.sprite;
-    const side = dir === 'left' || dir === 'right';
+    const pre = PREFIX[this.player];
     s.setFlipX(false);
-    if (this.player === 'A') {
-      if (side) {
-        s.setTexture('james_walk_side', 0).setScale(0.5).setFlipX(dir === 'left');
-        if (walking) s.play('james_side', true);
-        else s.stop();
-        return;
-      }
-      s.setTexture(WALK_SHEET.key).setScale(0.5).setFlipX(dir === 'back' && flipBack);
-      if (walking) s.play(`james_${dir}`, true);
-      else {
-        s.stop();
-        s.setFrame(WALK_SHEET.rows.indexOf(dir) * 4);
-      }
-      return;
-    }
-    if (side) {
-      s.setTexture('rachel_walk_side', 0).setScale(0.5).setFlipX(dir === 'left');
-      if (walking) s.play('rachel_side', true);
+    if (dir === 'left' || dir === 'right') {
+      s.setTexture(STRIP[this.player], STAND_SIDE).setScale(0.5).setFlipX(dir === 'right'); // the art walks west
+      if (walking) s.play(`${pre}_side`, true);
       else s.stop();
-      return;
+    } else if (dir === 'front') {
+      s.setTexture(STRIP[this.player], STAND_FRONT).setScale(0.5);
+      if (walking) s.play(`${pre}_front`, true);
+      else s.stop();
+    } else {
+      s.stop();
+      if (this.player === 'A') s.setTexture('james_new', STAND_BACK).setScale(0.5);
+      else s.setTexture('rachel_back').setScale(DISPLAY_H.B / s.height); // her back is a still sprite
+      s.setFlipX(flipBack);
     }
-    this.setStill(STILL[dir]);
-    s.setFlipX(dir === 'back' && flipBack);
   }
 
   /** A gentle breathing bob while standing still. */
@@ -152,8 +142,8 @@ export class Avatar {
           const t = tw.getValue() ?? 0;
           this.container.setPosition(a.x + (b.x - a.x) * t, a.y + FEET + (b.y - a.y) * t);
           this.container.setDepth(from.x + (next.x - from.x) * t + from.y + (next.y - from.y) * t + 0.2);
-          // placeholder bounce for views without a real walk cycle (Rachel front and back)
-          if (this.player === 'B' && (this.dir === 'front' || this.dir === 'back')) this.sprite.y = -Math.abs(Math.sin(t * Math.PI * 2)) * 3;
+          // placeholder bounce for the back view, which has no walk cycle yet
+          if (this.dir === 'back') this.sprite.y = -Math.abs(Math.sin(t * Math.PI * 2)) * 3;
         },
         onComplete: () => {
           if (token !== this.token) return;

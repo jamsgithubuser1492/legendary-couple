@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { CompanionId, GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
-import { canPlace, canPlacePreset, freeShoreTile, presetOrder } from './placement';
+import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
+import { setGridSize } from '../game/iso';
 import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
@@ -31,6 +32,10 @@ const initial = (): GameState => ({
   lastReveal: null,
   checkins: {},
   approvedCount: 0,
+  islandSize: 10,
+  starterRemoved: false,
+  ingredients: 2, // a welcome batch for the café
+  townAvatars: { A: { x: 2, y: 24 }, B: { x: 3, y: 24 } },
 });
 
 function load(): GameState {
@@ -48,10 +53,12 @@ function load(): GameState {
 
 function withDefaults(saved: Partial<GameState>): GameState {
   const base = initial();
+  const townAvatars = { ...base.townAvatars, ...(saved.townAvatars ?? {}) };
   const w = saved.wardrobe;
   return {
     ...base,
     ...saved,
+    townAvatars,
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -62,6 +69,7 @@ function withDefaults(saved: Partial<GameState>): GameState {
 }
 
 let state: GameState = load();
+setGridSize(state.islandSize);
 let me: PlayerId = (() => {
   try {
     return localStorage.getItem(ME_KEY) === 'B' ? 'B' : 'A';
@@ -79,6 +87,7 @@ function emit() {
 
 function commit(next: GameState) {
   state = next;
+  setGridSize(state.islandSize);
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   } catch {
@@ -91,6 +100,7 @@ function commit(next: GameState) {
 /** Used by the sync layer to apply a remote snapshot without echoing it back. */
 export function applyRemote(next: GameState) {
   state = withDefaults(next);
+  setGridSize(state.islandSize);
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
   } catch {
@@ -147,7 +157,39 @@ function patchQuest(id: string, fn: (q: Quest) => Quest) {
 // ---------- actions ----------
 
 export function setStartingPath(p: StartingPath) {
-  commit({ ...state, startingPath: p });
+  commit({ ...state, startingPath: p, starterRemoved: false });
+}
+
+/** Picks the starter structure back up into the bag, leaving a blank build area. */
+export function removeStarter() {
+  if (!state.startingPath || state.starterRemoved) return;
+  let inventory = state.inventory;
+  if (state.startingPath === 'home') inventory = addToInventory(addToInventory(inventory, 'floor_wood', 1), 'wall_cream', 1);
+  else inventory = addToInventory(inventory, state.startingPath === 'rv' ? 'lm_rv_awning' : 'lm_cafe', 1);
+  commit({ ...state, starterRemoved: true, inventory });
+}
+
+/** The next island size and its price, or null at the maximum. */
+export const nextExpansion = () => ISLAND_STEPS.find((s) => s.size > state.islandSize) ?? null;
+
+export function expandIsland(): boolean {
+  const step = nextExpansion();
+  if (!step || state.coins < step.coins) return false;
+  commit({ ...state, coins: state.coins - step.coins, islandSize: step.size });
+  return true;
+}
+
+export function setTownPos(p: PlayerId, x: number, y: number) {
+  const cur = state.townAvatars[p];
+  if (cur.x === x && cur.y === y) return;
+  commit({ ...state, townAvatars: { ...state.townAvatars, [p]: { x, y } } });
+}
+
+/** Café brewing: spends ingredients and adds a craftable treat to your bag. */
+export function brewDrink(itemId: string, cost: number): boolean {
+  if (state.ingredients < cost || !itemOf(itemId)) return false;
+  commit({ ...state, ingredients: state.ingredients - cost, inventory: addToInventory(state.inventory, itemId, 1) });
+  return true;
 }
 
 export function setNames(names: Record<PlayerId, string>) {
@@ -211,6 +253,7 @@ export function approveQuest(id: string, reviewer: PlayerId) {
     // quest boxes, plus a bonus box for every 5th approved quest (a milestone streak)
     blindBoxes: state.blindBoxes + (q.reward.blindBoxes ?? 0) + ((state.approvedCount + 1) % 5 === 0 ? 1 : 0),
     approvedCount: state.approvedCount + 1,
+    ingredients: state.ingredients + (q.area === 'body' || q.area === 'mind' ? 2 : 0), // healthy habits stock the café
   });
 }
 

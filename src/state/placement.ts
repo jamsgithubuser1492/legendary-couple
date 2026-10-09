@@ -2,7 +2,7 @@ import type { GameState } from '../types';
 import { footprint, itemOf } from './catalog';
 import { PRESET_ORDER, type Preset } from './presets';
 
-export const GRID = 10;
+export const ISLAND_STEPS: { size: number; coins: number }[] = [{ size: 12, coins: 500 }, { size: 14, coins: 1200 }, { size: 16, coins: 2500 }];
 /** Tile occupied by the starting RV, shop or foundation. */
 export const PLOT = { x: 4, y: 4 };
 
@@ -59,9 +59,9 @@ export function canPlace(
   }
   const tiles = tilesOf(itemId, x, y, rotation);
   for (const t of tiles) {
-    if (t.x < 0 || t.y < 0 || t.x >= GRID || t.y >= GRID) return { ok: false, reason: 'Off the island' };
+    if (t.x < 0 || t.y < 0 || t.x >= s.islandSize || t.y >= s.islandSize) return { ok: false, reason: 'Off the island' };
     if (item.layer !== 'floor') {
-      if (t.x === PLOT.x && t.y === PLOT.y) return { ok: false, reason: 'Your starter spot is in the way' };
+      if (!s.starterRemoved && t.x === PLOT.x && t.y === PLOT.y) return { ok: false, reason: 'Your starter spot is in the way' };
       if (extraBlocked.some((b) => b.x === t.x && b.y === t.y)) return { ok: false, reason: 'Someone is standing there' };
     }
   }
@@ -82,7 +82,7 @@ export function canPlace(
 /** Tiles an avatar cannot walk through. */
 export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
   const set = new Set<string>();
-  if (hasStarter) set.add(`${PLOT.x},${PLOT.y}`);
+  if (hasStarter && !s.starterRemoved) set.add(`${PLOT.x},${PLOT.y}`);
   for (const o of s.placed) {
     const it = itemOf(o.itemId);
     if (!it || it.layer === 'floor' || it.layer === 'walldecor') continue;
@@ -97,9 +97,10 @@ export function freeShoreTile(s: GameState): { x: number; y: number } | null {
   const taken = blockedTiles(s, true);
   for (const a of Object.values(s.avatars)) taken.add(`${a.x},${a.y}`);
   const ring: { x: number; y: number }[] = [];
-  for (let layer = 0; layer < GRID / 2; layer++) {
-    const lo = layer, hi = GRID - 1 - layer;
-    for (let i = lo; i <= hi; i++) ring.push({ x: i, y: lo }, { x: hi, y: i }, { x: GRID - 1 - i, y: hi }, { x: lo, y: GRID - 1 - i });
+  const G = s.islandSize;
+  for (let layer = 0; layer < G / 2; layer++) {
+    const lo = layer, hi = G - 1 - layer;
+    for (let i = lo; i <= hi; i++) ring.push({ x: i, y: lo }, { x: hi, y: i }, { x: G - 1 - i, y: hi }, { x: lo, y: G - 1 - i });
   }
   return ring.find((t) => !taken.has(`${t.x},${t.y}`)) ?? null;
 }

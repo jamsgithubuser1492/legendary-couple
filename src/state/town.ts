@@ -134,6 +134,35 @@ add('campus', 19, 18, 1, 1, 'tree', 184, 'Tree', { variant: 0 });
 add('campus', 24, 19, 1, 1, 'tree', 192, 'Tree', { variant: 1 });
 add('campus', 30, 16, 1, 1, 'tree', 200, 'Tree', { variant: 2 });
 
+export type Activity =
+  | { kind: 'brew' }
+  | { kind: 'shop'; cat: string; line: string }
+  | { kind: 'tip'; title: string; ideas: string[] };
+
+const tip = (title: string, ...ideas: string[]): Activity => ({ kind: 'tip', title, ideas });
+
+/** What you can do at each place once you are standing at it. */
+export const ACTIVITIES: Record<string, Activity> = {
+  'Bistro & Patisserie': { kind: 'brew' },
+  'Our Little Café': { kind: 'brew' },
+  'Coffee Stand': { kind: 'brew' },
+  'Blooms Florist': { kind: 'shop', cat: 'decor', line: 'Fresh flowers and plants for your home.' },
+  'Surf Shack': { kind: 'shop', cat: 'street', line: 'Boards, beach gear and boardwalk finds.' },
+  'Souvenir Shop': { kind: 'shop', cat: 'decor', line: 'Little keepsakes and cozy things.' },
+  Miniso: { kind: 'shop', cat: 'pets', line: 'Plushies and cute things, just how you like them.' },
+  'Play Toy Store': { kind: 'shop', cat: 'pets', line: 'Plush friends and playful finds.' },
+  'Ice Cream Stand': tip('Two scoops, one spoon 🍦', 'Share a scoop and each tell the other your favorite flavor memory.', 'Pick a flavor for each other without asking, then swap.', 'Take a walk with your cones and name three things you are grateful for today.'),
+  'Vintage Bookstore': tip('Pick a book for each other 📚', 'Choose a book for each other and tell them why.', 'Read the first page out loud to each other.', 'Find a cookbook and plan one meal to cook together.'),
+  'Hot Dog Stand': tip('Street food date 🌭', 'Try a food you have never had before, together.', 'Eat standing up and people watch for ten minutes.'),
+  'Beach Volleyball': tip('Loser buys the matcha 🏐', 'Play a friendly game. Loser buys the drinks.', 'Make up a silly rule that has to be followed all game.'),
+  'Campfire Clearing': tip('Fireside talk 🔥', 'Ask each other: what is one thing you are looking forward to this month?', 'Tell the story of the day we first met, from your side.'),
+  'Stargazing Spot': tip('Look up together 🔭', 'Find one star or planet each and name it after something you love.', 'Make a wish out loud, then tell each other one.'),
+  'Lifeguard Stand': tip('Sunset on the sand 🌅', 'Watch the sunset with phones away.', 'Collect one shell each and tell its story.'),
+  'The Farmstead': tip('Grow something 🌱', 'Plant something together, even a herb on the windowsill.', 'Plan a dinner using only things you grew or picked.'),
+  'The Mountain Cabin': tip('A cozy cabin day ⛰️', 'Plan a zero agenda cozy day: blankets, tea, no chores.', 'Pick a trail to walk together soon.'),
+};
+export const activityOf = (name: string): Activity | undefined => ACTIVITIES[name];
+
 /** Where the "Your Home Island" marker stands, on the west beach. */
 export const HOME_PIN = { x: 1, y: 24 };
 

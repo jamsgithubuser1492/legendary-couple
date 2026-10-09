@@ -14,9 +14,11 @@ OUT = os.path.join(ROOT, 'public', 'assets', 'sprites')
 
 # (name, sheet file, scan box x0,y0,x1,y1, display height in game px, expected figure count or None)
 STRIPS = [
-    ('james_walk_side', 'sheet22_couple_walks.jpg', (250, 350, 1040, 500), 57),
-    ('rachel_walk_side', 'sheet22_couple_walks.jpg', (250, 775, 1040, 905), 51),
-    ('dog_walk_side', 'sheet21_companion_walks.jpg', (440, 860, 1085, 930), 26),
+    # frames 0-2 walk west (mirrored for east), 3-5 walk toward the camera, 6 front idle, 7 back idle
+    ('james_new', 'sheet25_ew_rebuild.jpg', (455, 410, 1048, 548), 52, 8),
+    # same layout; the 8th figure on her row is James from behind, so only 7 are kept
+    ('rachel_new', 'sheet25_ew_rebuild.jpg', 'cols', 50, 7),
+    ('dog_walk_side', 'sheet21_companion_walks.jpg', (440, 860, 1085, 930), 26, None),
 ]
 
 
@@ -81,12 +83,34 @@ def cut_figure(im, arr, bg, dist, bbox, pad=3):
     return img.crop(bb) if bb else img
 
 
+# column x ranges of the eight figures on the sheet-25 rows
+EW_COLS = [(458, 522), (528, 590), (597, 660), (669, 731), (743, 806), (817, 879), (900, 964), (972, 1036)]
+
+
+def column_frames(src, y0, y1, n):
+    frames = []
+    for x0, x1 in EW_COLS[:n]:
+        box = (x0, y0, x1, y1)
+        im, arr, bg, dist, figs = figures(src, box, min_area=1500)
+        if not figs:
+            continue
+        big = max(figs, key=lambda f: f[4])
+        frames.append(cut_figure(im, arr, bg, dist, big))
+    return frames
+
+
 def main():
     meta = {}
-    for name, sheet, box, disp_h in STRIPS:
+    for name, sheet, box, disp_h, keep in STRIPS:
         src = Image.open(os.path.join(SRC, sheet)).convert('RGB')
-        im, arr, bg, dist, figs = figures(src, box)
-        frames = [cut_figure(im, arr, bg, dist, f) for f in figs]
+        if box == 'cols':
+            frames = column_frames(src, 562, 696, keep)
+        else:
+            im, arr, bg, dist, figs = figures(src, box, min_area=2500 if keep else 900)
+            figs = [f for f in figs if (f[2] - f[0]) > 28]  # drop thin column divider lines
+            if keep:
+                figs = figs[:keep]
+            frames = [cut_figure(im, arr, bg, dist, f) for f in figs]
         if not frames:
             print('no figures for', name)
             continue

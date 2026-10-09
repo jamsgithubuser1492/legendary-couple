@@ -165,7 +165,7 @@ export class Ambient {
       const a = Math.max(0, Math.sin(time / 700 + i * 2.3));
       if (a < 0.25) continue;
       const ang = i * 2.399, r = 1.15 + ((i * 37) % 10) / 14;
-      const p = cartesianToIso(GRID_SIZE / 2 + Math.cos(ang) * 5.6 * r, GRID_SIZE / 2 + Math.sin(ang) * 5.6 * r);
+      const p = cartesianToIso(GRID_SIZE / 2 + Math.cos(ang) * GRID_SIZE * 0.56 * r, GRID_SIZE / 2 + Math.sin(ang) * GRID_SIZE * 0.56 * r);
       g.fillStyle(0xffffff, a * 0.6);
       g.fillEllipse(p.x, p.y + 10, 10, 2.6);
     }

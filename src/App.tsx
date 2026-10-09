@@ -10,7 +10,9 @@ import Journal, { MemoryViewer } from './ui/Journal';
 import WardrobeModal from './ui/WardrobeModal';
 import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
-import { DreamMap, TownPanel, TownToast } from './ui/TownUI';
+import ExpandModal from './ui/ExpandModal';
+import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
+import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
@@ -27,6 +29,9 @@ export default function App() {
   const [viewing, setViewing] = useState<string | null>(null);
   const [panel, setPanel] = useState<'checkin' | 'boxes' | 'wardrobe' | null>(null);
   const [reveal, setReveal] = useState(false);
+  const [expandOpen, setExpandOpen] = useState(false);
+  const [interact, setInteract] = useState<string | null>(null);
+  const [shopCat, setShopCat] = useState<ShopCategory | undefined>();
   const [view, setView] = useState<'island' | 'town'>('island');
   const [townPanel, setTownPanel] = useState(false);
   const [dream, setDream] = useState(false);
@@ -41,12 +46,14 @@ export default function App() {
     gameBus.on(BUS.hover, setHover);
     gameBus.on(BUS.memoryOpen, setViewing);
     gameBus.on(BUS.viewSync, setView);
+    gameBus.on(BUS.townInteract, setInteract);
     const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
     gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
       gameBus.off(BUS.hover, setHover);
       gameBus.off(BUS.memoryOpen, setViewing);
       gameBus.off(BUS.viewSync, setView);
+      gameBus.off(BUS.townInteract, setInteract);
       gameBus.off(BUS.presetPlaced, donePreset);
     };
   }, []);
@@ -122,8 +129,10 @@ export default function App() {
         onTownPanel={() => setTownPanel(true)}
         onDream={() => setDream(true)}
       />
-      {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onDone={() => setEditing(false)} />}
-      {shopOpen && <ShopModal onClose={() => setShopOpen(false)} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
+      {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
+      {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
+      {interact && <TownInteract lotId={interact} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} />}
+      {shopOpen && <ShopModal initialCat={view === 'town' ? shopCat : undefined} onClose={() => { setShopOpen(false); setShopCat(undefined); }} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
       {questsOpen && (
         <QuestBoard
           onClose={() => setQuestsOpen(false)}

@@ -14,6 +14,7 @@ export const BUS = {
   memoryOpen: 'memoryOpen',     // Phaser -> React: memory id
   view: 'view',                 // React -> Phaser: 'island' | 'town'
   townToast: 'townToast',       // Phaser -> React: { text }
+  townInteract: 'townInteract', // Phaser -> React: lot id to visit
   presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null

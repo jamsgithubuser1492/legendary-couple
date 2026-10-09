@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { BUS, gameBus } from '../game/events';
-import { useGameState } from '../state/store';
+import { brewDrink, createQuest, useGameState, useMe } from '../state/store';
+import { activityOf } from '../state/town';
+import { itemOf } from '../state/catalog';
+import { dateKey } from '../state/questions';
+import ItemIcon from './ItemIcon';
 import { REGIONS, LOTS, actualGrowth, growthOf, nextMilestone, setGrowthPreview, useGrowthPreview } from '../state/town';
-import Sheet, { softBtn } from './Sheet';
+import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 /** Small message card for things happening in the town: new buildings, regions opening, tapped places. */
 export function TownToast() {
@@ -104,5 +108,90 @@ export function DreamMap({ onClose }: { onClose: () => void }) {
         <p className="mt-2 px-1 text-xs text-cocoa/60">Everything here is what you are building toward. Grow together and the mist lifts.</p>
       </div>
     </div>
+  );
+}
+
+const RECIPES: { itemId: string; cost: number; blurb: string }[] = [
+  { itemId: 'food_matcha', cost: 1, blurb: 'Whisked matcha with silky milk.' },
+  { itemId: 'latte_gold', cost: 1, blurb: 'A golden latte with a little heart.' },
+  { itemId: 'food_tray', cost: 1, blurb: 'A pot of tea for two.' },
+  { itemId: 'food_croissant', cost: 1, blurb: 'Warm, flaky and buttery.' },
+  { itemId: 'food_macarons', cost: 2, blurb: 'A box of pastel macarons.' },
+  { itemId: 'food_cake_a', cost: 2, blurb: 'A berry cake to share.' },
+];
+
+const pick = <T,>(arr: T[], seed: string): T => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+};
+
+/** What you can do at a place in town: brew drinks, browse a shop, or pick up a date idea. */
+export function TownInteract({ lotId, onClose, onShop }: { lotId: string; onClose: () => void; onShop: (cat: string) => void }) {
+  const s = useGameState();
+  const me = useMe();
+  const lot = LOTS.find((l) => l.id === lotId);
+  const act = lot ? activityOf(lot.name) : undefined;
+  if (!lot || !act) return null;
+
+  if (act.kind === 'brew') {
+    return (
+      <Sheet title={`${lot.name} ☕`} onClose={onClose}>
+        <p className="text-sm text-cocoa/80">Behind the counter, you can brew treats together. Every drink you make goes into your bag as decor for your home.</p>
+        <div className="mt-2 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3 text-center font-display font-bold text-cocoa">
+          🫘 Ingredients: {s.ingredients}
+          <div className="text-xs font-normal text-cocoa/70">Earn more by completing Body and Mind quests (+2 each).</div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {RECIPES.map((r) => {
+            const it = itemOf(r.itemId)!;
+            return (
+              <div key={r.itemId} className="flex flex-col rounded-2xl bg-white p-2 text-center shadow">
+                <div className="flex h-12 items-center justify-center"><ItemIcon id={r.itemId} size={44} /></div>
+                <div className="font-display text-sm font-bold text-cocoa">{it.name}</div>
+                <div className="text-[11px] text-cocoa/60">{r.blurb}</div>
+                <button
+                  disabled={s.ingredients < r.cost}
+                  onClick={() => brewDrink(r.itemId, r.cost)}
+                  className="mt-1 rounded-full bg-pink-400 px-3 py-1 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40"
+                >
+                  Brew · 🫘 {r.cost}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button className={`${softBtn} mt-3 w-full`} onClick={onClose}>Done</button>
+      </Sheet>
+    );
+  }
+
+  if (act.kind === 'shop') {
+    return (
+      <Sheet title={lot.name} onClose={onClose}>
+        <p className="text-cocoa">{act.line}</p>
+        <button className={`${primaryBtn} mt-4 w-full`} onClick={() => { onClose(); onShop(act.cat); }}>Browse the shop 🛍</button>
+        <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Not now</button>
+      </Sheet>
+    );
+  }
+
+  const idea = pick(act.ideas, `${dateKey()}${lot.name}`);
+  return (
+    <Sheet title={act.title} onClose={onClose}>
+      <p className="rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 font-display text-lg font-bold text-cocoa">{idea}</p>
+      <p className="mt-2 text-xs text-cocoa/60">This one is for real life. Do it together, then log it as a quest.</p>
+      <button
+        className={`${primaryBtn} mt-4 w-full`}
+        onClick={() => {
+          createQuest({ title: act.title.replace(/ [^\w\s]+$/u, ''), area: 'romance', description: idea, assignedTo: me, reward: { coins: 15, gems: 0 } });
+          onClose();
+          gameBus.emit(BUS.townToast, { text: '📋 Added to your Quest Board' });
+        }}
+      >
+        Add as a quest
+      </button>
+      <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Close</button>
+    </Sheet>
   );
 }

@@ -84,6 +84,14 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * **Placeholders until more art exists:** Rachel's front and back walk uses her standing poses with a bounce, and Hello Kitty, Miffy and Snoopy bounce, sway and mirror toward the way they move. Everyone gets a gentle idle breath
 * `python3 tools/slice_walks.py` cuts the walk strips from the walk sheets automatically
 
+### Build 10 status: Consistent characters, bigger build area, a walkable and interactive town
+
+* **James and Rachel rebuilt** from one consistent sheet: a shared east and west walk (mirrored), a walk toward the camera, and front and back standing poses. The old east and west cycles and mismatched outfits are gone
+* **Expand your build area:** 10 to 12, 14 and 16 tiles, bought with coins from the Decorate bar
+* **Pick up the starter:** in Decorate, Pick up, tap your starter structure. It goes into your bag and leaves a blank area
+* **Walk the town:** tap the 🌍 button, then tap anywhere open or use WASD. The camera follows you and unlocked regions are walkable. Locked regions stay blocked
+* **Places you can visit:** cafés let you brew drinks into placeable decor using ingredients earned from Body and Mind quests, shops open their shelves, and spots like the ice cream stand and stargazing spot hand you a date idea you can add as a quest
+
 ## Run it
 
 ```bash
