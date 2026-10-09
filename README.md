@@ -63,6 +63,12 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * Tap the Home pin on the west beach to return to your island. Preview a grown town from the 🌱 panel (this device only)
 * Boardwalk floors, street furniture, shops, stands, camping and farm items, and townsfolk are all in the shop
 
+### Town backdrop (Build 7b)
+
+* The whole world is painted and visible from the start: a sunset sky with sun and drifting clouds, a curving coastline with foam and shallow water, two wooden piers, a lighthouse on the headland, snow capped mountains, forests, farm rows and palms
+* Locked regions stay visible under a soft mist, and buildings you have not earned yet show as pale previews, so you can see everything you are growing toward
+* The sky and land follow the season, and the camera opens fitted to the whole map
+
 ## Run it
 
 ```bash
