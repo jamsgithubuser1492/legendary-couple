@@ -1,0 +1,271 @@
+import { useSyncExternalStore } from 'react';
+import type { GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
+import { availableIn, itemOf } from './catalog';
+import { canPlace, freeShoreTile } from './placement';
+import { getTheme } from './season';
+
+const STATE_KEY = 'olw:state:v1';
+const ME_KEY = 'olw:me';
+
+const initial = (): GameState => ({
+  startingPath: null,
+  coins: 1000,
+  gems: 50,
+  xp: 0,
+  names: { A: 'James', B: 'Rachel' },
+  quests: [],
+  inventory: [
+    { id: 'floor_wood', count: 4 },
+    { id: 'wall_cream', count: 4 },
+  ],
+  placed: [],
+  memories: [],
+  avatars: { A: { x: 1, y: 1 }, B: { x: 2, y: 1 } },
+});
+
+function load(): GameState {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (raw) return { ...initial(), ...JSON.parse(raw) };
+    // migrate the Build 1 starting path key
+    const legacy = localStorage.getItem('olw:startingPath');
+    if (legacy === 'rv' || legacy === 'shop' || legacy === 'home') return { ...initial(), startingPath: legacy };
+  } catch {
+    /* ignore */
+  }
+  return initial();
+}
+
+let state: GameState = load();
+let me: PlayerId = (() => {
+  try {
+    return localStorage.getItem(ME_KEY) === 'B' ? 'B' : 'A';
+  } catch {
+    return 'A';
+  }
+})();
+const listeners = new Set<() => void>();
+const meListeners = new Set<() => void>();
+const stateListeners = new Set<(s: GameState, local: boolean) => void>();
+
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+function commit(next: GameState) {
+  state = next;
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+  emit();
+  stateListeners.forEach((l) => l(state, true));
+}
+
+/** Used by the sync layer to apply a remote snapshot without echoing it back. */
+export function applyRemote(next: GameState) {
+  state = { ...initial(), ...next };
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+  emit();
+  stateListeners.forEach((l) => l(state, false));
+}
+
+export const getState = () => state;
+export const onStateChange = (l: (s: GameState, local: boolean) => void) => {
+  stateListeners.add(l);
+  return () => {
+    stateListeners.delete(l);
+  };
+};
+
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+};
+
+export const useGameState = () => useSyncExternalStore(subscribe, () => state);
+export const useMe = () => useSyncExternalStore(subscribe, () => me);
+
+export const getMe = () => me;
+export const onMeChange = (l: () => void) => {
+  meListeners.add(l);
+  return () => {
+    meListeners.delete(l);
+  };
+};
+
+export function setMe(p: PlayerId) {
+  me = p;
+  meListeners.forEach((l) => l());
+  try {
+    localStorage.setItem(ME_KEY, p);
+  } catch {
+    /* ignore */
+  }
+  emit();
+}
+
+const other = (p: PlayerId): PlayerId => (p === 'A' ? 'B' : 'A');
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function patchQuest(id: string, fn: (q: Quest) => Quest) {
+  commit({ ...state, quests: state.quests.map((q) => (q.id === id ? fn(q) : q)) });
+}
+
+// ---------- actions ----------
+
+export function setStartingPath(p: StartingPath) {
+  commit({ ...state, startingPath: p });
+}
+
+export function setNames(names: Record<PlayerId, string>) {
+  commit({ ...state, names });
+}
+
+export function createQuest(input: Omit<Quest, 'id' | 'status' | 'createdAt'>) {
+  commit({
+    ...state,
+    quests: [{ ...input, id: uid(), status: 'IN_PROGRESS', createdAt: Date.now() }, ...state.quests],
+  });
+}
+
+export function deleteQuest(id: string) {
+  commit({ ...state, quests: state.quests.filter((q) => q.id !== id) });
+}
+
+/** Assignee says "I did it". Waits for the partner. */
+export function submitQuest(id: string, evidence: { note?: string; photo?: string }) {
+  patchQuest(id, (q) =>
+    q.status === 'IN_PROGRESS' || q.status === 'REJECTED'
+      ? {
+          ...q,
+          status: 'PENDING_VERIFICATION',
+          completedAt: Date.now(),
+          evidenceNote: evidence.note?.trim() || undefined,
+          evidencePhoto: evidence.photo,
+          reviewNote: undefined,
+        }
+      : q,
+  );
+}
+
+/** Only the partner (not the assignee) may approve. Pays out the reward exactly once. */
+export function approveQuest(id: string, reviewer: PlayerId) {
+  const q = state.quests.find((x) => x.id === id);
+  if (!q || q.status !== 'PENDING_VERIFICATION' || q.assignedTo === reviewer) return;
+  const approved: Quest = { ...q, status: 'APPROVED', reviewedAt: Date.now() };
+  // Recurring habits come back as a fresh quest so they can be done again.
+  const quests = state.quests.map((x) => (x.id === id ? approved : x));
+  if (q.recurring) {
+    quests.unshift({
+      ...q,
+      id: uid(),
+      status: 'IN_PROGRESS',
+      createdAt: Date.now(),
+      completedAt: undefined,
+      evidenceNote: undefined,
+      evidencePhoto: undefined,
+      reviewNote: undefined,
+      reviewedAt: undefined,
+    });
+  }
+  commit({
+    ...state,
+    quests,
+    coins: state.coins + q.reward.coins,
+    gems: state.gems + q.reward.gems,
+    xp: state.xp + q.reward.coins,
+    inventory: q.reward.itemId ? addToInventory(state.inventory, q.reward.itemId, 1) : state.inventory,
+  });
+}
+
+export function requestEdit(id: string, reviewer: PlayerId, note: string) {
+  const q = state.quests.find((x) => x.id === id);
+  if (!q || q.status !== 'PENDING_VERIFICATION' || q.assignedTo === reviewer) return;
+  patchQuest(id, (x) => ({ ...x, status: 'REJECTED', reviewNote: note.trim() || 'Please add more detail.', reviewedAt: Date.now() }));
+}
+
+// ---------- inventory, shop, placement ----------
+
+function addToInventory(inv: GameState['inventory'], id: string, n: number) {
+  const has = inv.some((i) => i.id === id);
+  return has ? inv.map((i) => (i.id === id ? { ...i, count: i.count + n } : i)) : [...inv, { id, count: n }];
+}
+
+export function buyItem(itemId: string): boolean {
+  const item = itemOf(itemId);
+  if (!item || state.coins < item.price.coins || state.gems < item.price.gems) return false;
+  if (!availableIn(item, getTheme())) return false; // limited-time items only sell in season
+  commit({
+    ...state,
+    coins: state.coins - item.price.coins,
+    gems: state.gems - item.price.gems,
+    inventory: addToInventory(state.inventory, itemId, 1),
+  });
+  return true;
+}
+
+export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 90 | 180 | 270, extraBlocked: { x: number; y: number }[] = []): boolean {
+  if (!canPlace(state, itemId, x, y, rotation, extraBlocked).ok) return false;
+  commit({
+    ...state,
+    inventory: addToInventory(state.inventory, itemId, -1),
+    placed: [...state.placed, { id: uid(), itemId, tileX: x, tileY: y, rotation }],
+  });
+  return true;
+}
+
+/** Picks an object back up into the bag. */
+export function removeObject(id: string) {
+  const o = state.placed.find((p) => p.id === id);
+  if (!o) return;
+  commit({
+    ...state,
+    placed: state.placed.filter((p) => p.id !== id),
+    inventory: addToInventory(state.inventory, o.itemId, 1),
+  });
+}
+
+// ---------- avatars and memories ----------
+
+export function setAvatarPos(p: PlayerId, x: number, y: number) {
+  const cur = state.avatars[p];
+  if (cur.x === x && cur.y === y) return;
+  commit({ ...state, avatars: { ...state.avatars, [p]: { x, y } } });
+}
+
+export function createMemory(input: { title: string; note?: string; photo?: string; author: PlayerId; questId?: string }): Memory | null {
+  const tile = freeShoreTile(state);
+  if (!tile) return null;
+  const memory: Memory = {
+    id: uid(),
+    title: input.title.trim(),
+    note: input.note?.trim() || undefined,
+    photo: input.photo,
+    date: Date.now(),
+    author: input.author,
+    questId: input.questId,
+    tileX: tile.x,
+    tileY: tile.y,
+  };
+  commit({ ...state, memories: [memory, ...state.memories] });
+  return memory;
+}
+
+export function deleteMemory(id: string) {
+  commit({ ...state, memories: state.memories.filter((m) => m.id !== id) });
+}
+
+// ---------- selectors ----------
+
+export const levelOf = (xp: number) => 1 + Math.floor(xp / 100);
+export const pendingFor = (s: GameState, p: PlayerId) =>
+  s.quests.filter((q) => q.status === 'PENDING_VERIFICATION' && q.assignedTo === other(p));
+export { other as otherPlayer };
