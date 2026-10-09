@@ -54,6 +54,8 @@ export class MainScene extends Phaser.Scene {
     this.load.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
     for (const s of SPRITES) this.load.image(s.key, s.file);
     preloadWalkStrips(this);
+    // water effect sprites (cut by tools/slice_water.py)
+    for (const k of ['wave_s0', 'wave_s1', 'wave_s2', 'wave_s3', 'wave_m0', 'wave_m1', 'wave_m2', 'wave_l0', 'wave_l3', 'ripple_ring', 'ripple_cross', 'wake_prop', 'wake_dinghy']) this.load.image(k, `${k}.png`);
   }
 
   create(): void {
@@ -65,7 +67,7 @@ export class MainScene extends Phaser.Scene {
 
     createWalkAnims(this);
     const st = getState();
-    this.avatars = { A: new Avatar(this, 'A', st.avatars.A), B: new Avatar(this, 'B', st.avatars.B) };
+    this.avatars = { A: new Avatar(this, 'A', st.avatars.A, 1, st.looks.A), B: new Avatar(this, 'B', st.avatars.B, 1, st.looks.B) };
     this.setStartingPath(loadStartingPath());
     this.renderPlaced();
     this.syncCompanions();
@@ -100,6 +102,8 @@ export class MainScene extends Phaser.Scene {
     };
     const offState = onStateChange(() => {
       const st = getState();
+      this.avatars.A.setLook(st.looks.A);
+      this.avatars.B.setLook(st.looks.B);
       if (st.islandSize !== this.drawnSize) this.resizeIsland();
       const key = `${st.startingPath}:${st.starterRemoved}`;
       if (key !== this.starterKey) this.setStartingPath(st.startingPath);

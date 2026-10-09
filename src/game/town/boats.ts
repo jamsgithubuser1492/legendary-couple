@@ -7,7 +7,8 @@ type Pt = { x: number; y: number };
 
 interface Boat {
   img: Phaser.GameObjects.Image;
-  wake: Phaser.GameObjects.Graphics;
+  wake: Phaser.GameObjects.Image | null;
+  ripple: Phaser.GameObjects.Image | null;
   kind: 'sail' | 'fish';
   route: Pt[];
   speed: number; // tiles per second
@@ -27,7 +28,7 @@ const frameFor = (kind: 'sail' | 'fish', dx: number, dy: number) => {
 /** Sailboats and fishing boats that drift slowly along the sea, bobbing on the swell and leaving a soft wake. */
 export class Boats {
   private boats: Boat[] = [];
-  private moored: { img: Phaser.GameObjects.Image; ph: number; base: Pt }[] = [];
+  private moored: { img: Phaser.GameObjects.Image; ripple: Phaser.GameObjects.Image | null; ph: number; base: Pt }[] = [];
 
   constructor(private scene: Phaser.Scene) {
     scene.events.on(Phaser.Scenes.Events.UPDATE, this.update, this);
@@ -42,14 +43,18 @@ export class Boats {
 
   addBoat(kind: 'sail' | 'fish', route: Pt[], speed: number, ph: number) {
     if (!this.scene.textures.exists(`${kind}_fr`)) return;
-    const wake = this.scene.add.graphics().setDepth(-46);
+    const has = (k: string) => this.scene.textures.exists(k);
+    const wakeKey = kind === 'fish' ? 'wake_prop' : 'wake_dinghy';
+    const wake = has(wakeKey) ? this.scene.add.image(0, 0, wakeKey).setOrigin(1, 0.5).setDepth(-46).setScale(0.55) : null;
+    const ripple = has('ripple_ring') ? this.scene.add.image(0, 0, 'ripple_ring').setDepth(-47).setScale(0.5).setAlpha(0.5) : null;
     const pos = { ...route[0] };
-    this.boats.push({ img: this.image(`${kind}_fr`), wake, kind, route, speed, seg: 0, t: 0, dir: 1, ph, pos });
+    this.boats.push({ img: this.image(`${kind}_fr`), wake, kind, route, speed, seg: 0, t: 0, dir: 1, ph, pos, ripple });
   }
 
   addMoored(key: string, at: Pt, ph: number) {
     if (!this.scene.textures.exists(key)) return;
-    this.moored.push({ img: this.image(key), ph, base: cartesianToIso(at.x, at.y) });
+    const ripple = this.scene.textures.exists('ripple_ring') ? this.scene.add.image(0, 0, 'ripple_ring').setDepth(-47).setScale(0.4) : null;
+    this.moored.push({ img: this.image(key), ripple, ph, base: cartesianToIso(at.x, at.y) });
   }
 
   private update(time: number, delta: number) {
@@ -75,27 +80,37 @@ export class Boats {
       const bob = Math.sin(time / 700 + b.ph) * 1.8;
       b.img.setPosition(s.x, s.y + bob);
       b.img.setAngle(Math.sin(time / 900 + b.ph * 1.7) * 2.2);
-      // a soft wake: two fading ovals behind the boat
-      b.wake.clear();
-      const bx = (from.x - to.x) / len, by = (from.y - to.y) / len;
-      for (let i = 1; i <= 4; i++) {
-        const w = cartesianToIso(x + bx * i * 0.45, y + by * i * 0.45);
-        b.wake.fillStyle(0xffffff, 0.34 - i * 0.07);
-        b.wake.fillEllipse(w.x, w.y + 6, 22 + i * 7, 6 + i * 1.6);
+      // the wake trails behind, turned to follow the boat's heading on screen
+      const heading = Math.atan2((to.x + to.y - from.x - from.y) * 16, (to.x - to.y - from.x + from.y) * 32);
+      if (b.wake) {
+        b.wake.setPosition(s.x, s.y + 8).setRotation(heading).setAlpha(0.55 + Math.sin(time / 400 + b.ph) * 0.15);
+        b.wake.setFlipY(false);
+      }
+      if (b.ripple) {
+        const pulse = (time / 2200 + b.ph) % 1;
+        b.ripple.setPosition(s.x, s.y + 8).setScale(0.35 + pulse * 0.4).setAlpha((1 - pulse) * 0.5);
       }
     }
     for (const m of this.moored) {
       m.img.setPosition(m.base.x, m.base.y + Math.sin(time / 800 + m.ph) * 1.6);
       m.img.setAngle(Math.sin(time / 1100 + m.ph) * 2.5);
+      if (m.ripple) {
+        const pulse = (time / 2600 + m.ph) % 1; // rings spread out from each moored boat and fade
+        m.ripple.setPosition(m.base.x, m.base.y + 8).setScale(0.3 + pulse * 0.4).setAlpha((1 - pulse) * 0.55);
+      }
     }
   }
 
   destroy() {
     this.boats.forEach((b) => {
       b.img.destroy();
-      b.wake.destroy();
+      b.wake?.destroy();
+      b.ripple?.destroy();
     });
-    this.moored.forEach((m) => m.img.destroy());
+    this.moored.forEach((m) => {
+      m.img.destroy();
+      m.ripple?.destroy();
+    });
     this.boats = [];
     this.moored = [];
   }

@@ -242,14 +242,14 @@ SPRITES = [
     ('sandcastle', 's29', (898, 778, 1022, 888)),
     ('rowboat_sand', 's29', (1048, 778, 1212, 882)),
     # --- sheet 28: boats, lighthouse, pier ends ---
-    ('sail_fr', 's28', (26, 148, 116, 242)),
-    ('sail_fl', 's28', (124, 148, 214, 242)),
-    ('sail_br', 's28', (222, 148, 313, 242)),
-    ('sail_bl', 's28', (321, 148, 411, 242)),
-    ('fish_fr', 's28', (26, 406, 116, 484)),
-    ('fish_fl', 's28', (124, 406, 214, 484)),
-    ('fish_br', 's28', (222, 406, 313, 484)),
-    ('fish_bl', 's28', (321, 406, 411, 484)),
+    ('sail_fr', 's28', (29, 151, 113, 239)),
+    ('sail_fl', 's28', (127, 151, 211, 239)),
+    ('sail_br', 's28', (225, 151, 310, 239)),
+    ('sail_bl', 's28', (324, 151, 408, 239)),
+    ('fish_fr', 's28', (29, 409, 113, 481)),
+    ('fish_fl', 's28', (127, 409, 211, 481)),
+    ('fish_br', 's28', (225, 409, 310, 481)),
+    ('fish_bl', 's28', (324, 409, 408, 481)),
     ('dinghy_a', 's28', (28, 645, 130, 698)),
     ('dinghy_b', 's28', (138, 642, 236, 700)),
     ('lighthouse_n', 's28', (452, 148, 538, 284)),
@@ -343,14 +343,17 @@ def estimate_bg(arr):
     return np.median(border, axis=0)
 
 
-def cut(sheet, box, erase=()):
+TOL = {k: 7 for k in ['sail_fr', 'sail_fl', 'sail_br', 'sail_bl', 'fish_fr', 'fish_fl', 'fish_br', 'fish_bl']}
+
+
+def cut(sheet, box, erase=(), tol=14):
     im = sheet.crop(box).convert('RGB')
     arr = np.array(im).astype(np.int16)
     bg = estimate_bg(arr)
     for (ex0, ey0, ex1, ey1) in erase:
         arr[max(0, ey0 - box[1]):max(0, ey1 - box[1]), max(0, ex0 - box[0]):max(0, ex1 - box[0])] = bg
     dist = np.sqrt(((arr - bg) ** 2).sum(axis=2))
-    near = dist < 14
+    near = dist < tol
     labels, n = ndimage.label(near)
     remove = np.zeros_like(near)
     h, w = near.shape
@@ -404,7 +407,7 @@ def main():
     for item in SPRITES:
         key, sk, box = item[0], item[1], item[2]
         erase = item[3] if len(item) > 3 else ()
-        img = cut(sheets[sk], box, erase)
+        img = cut(sheets[sk], box, erase, TOL.get(key, 14))
         dw = DISPLAY_W[key]
         target = dw * 2
         if img.width > target:

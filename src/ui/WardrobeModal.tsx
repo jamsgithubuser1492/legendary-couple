@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CompanionId } from '../types';
 import { COMPANIONS, outfitOf, outfitsFor } from '../state/wardrobe';
-import { buyOutfit, setInvited, useGameState, wearOutfit } from '../state/store';
+import { buyOutfit, setInvited, setLook, useGameState, wearOutfit } from '../state/store';
 import { SpriteImg } from './ItemIcon';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
@@ -17,7 +17,18 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between text-sm font-bold text-cocoa">
         <span>🪙 {s.coins.toLocaleString()}  💎 {s.gems}</span>
       </div>
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 rounded-2xl bg-white p-3 shadow">
+        <div className="font-display font-bold text-cocoa">Your looks</div>
+        {(['A', 'B'] as const).map((p) => (
+          <div key={p} className="mt-1 flex items-center gap-2 text-sm text-cocoa">
+            <span className="w-20 font-bold">{s.names[p]}</span>
+            {([['cream', '🧢 Cream cap'], ['dark', '🖤 Dark cap & beanie']] as const).map(([id, label]) => (
+              <button key={id} onClick={() => setLook(p, id)} className={`rounded-full px-3 py-1 font-display font-bold ${s.looks[p] === id ? 'bg-pink-400 text-white' : 'bg-blush'}`}>{label}</button>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex gap-2">
         {COMPANIONS.map((c) => (
           <button key={c.id} onClick={() => setCid(c.id)} className={`rounded-full px-4 py-1.5 font-display font-bold ${cid === c.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
             {c.icon} {c.name}

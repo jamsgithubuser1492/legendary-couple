@@ -111,6 +111,7 @@ export interface GameState {
   lastReveal: Reveal | null;
   checkins: Record<string, Checkin>; // keyed by local date, YYYY-MM-DD
   approvedCount: number;
+  looks: Record<PlayerId, 'cream' | 'dark'>; // which outfit set each partner wears
   islandSize: number; // tiles per side of the home island
   starterRemoved: boolean; // the starter structure has been picked up
   ingredients: number; // café brewing ingredients

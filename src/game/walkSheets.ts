@@ -10,6 +10,16 @@ export const WALK_STRIPS = {
     "fw": 56,
     "fh": 102
   },
+  "james_dark": {
+    "frames": 9,
+    "fw": 59,
+    "fh": 106
+  },
+  "rachel_dark": {
+    "frames": 9,
+    "fw": 56,
+    "fh": 102
+  },
   "dog_walk_side": {
     "frames": 7,
     "fw": 71,

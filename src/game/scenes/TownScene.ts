@@ -67,7 +67,8 @@ export class TownScene extends Phaser.Scene {
     this.drawWorld();
     this.refresh(false);
     const ta = getState().townAvatars;
-    this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7), B: new Avatar(this, 'B', ta.B, 0.7) };
+    const lk = getState().looks;
+    this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7, lk.A), B: new Avatar(this, 'B', ta.B, 0.7, lk.B) };
     this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
     this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.fitAll();
@@ -88,6 +89,8 @@ export class TownScene extends Phaser.Scene {
       onStateChange(() => {
         if (!this.scene.isActive()) return;
         this.refresh(true);
+        this.avatars.A.setLook(getState().looks.A);
+        this.avatars.B.setLook(getState().looks.B);
         this.syncPartner();
       }),
       onGrowthPreviewChange(() => this.refresh(true)),

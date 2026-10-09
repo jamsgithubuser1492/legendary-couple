@@ -99,6 +99,13 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * **Water:** rolling wave crests travel in from the open sea and break on the shore, the surf foam breathes, a swash creeps up the sand, and sparkles twinkle. The coastline is a smooth curve
 * The town repaints only when the season or the open regions change
 
+### Build 12 status: Water effects and a second outfit set
+
+* **Breaking waves:** your small, medium and large wave sprites roll in from the open sea toward the shore, curl through their frames and dissolve, scattered along the coast
+* **Boat wakes and ripples:** sail and fishing boats trail your propeller and dinghy wake sprites, turned to follow their heading, with ripple rings spreading out from each boat and the moored dinghies
+* The coastline orientation is fixed so the beach bands no longer spike at tight turns, and the sails and masts of the boat sprites are intact
+* **Dark cap and beanie look** for James and Rachel, from the new walk sheet: separate left and right walk cycles plus front and back poses. Switch each partner's look in the Wardrobe
+
 ## Run it
 
 ```bash

@@ -1452,57 +1452,57 @@ export const SPRITES = [
   {
     "key": "sail_fr",
     "file": "sail_fr.png",
-    "w": 76,
-    "h": 94,
+    "w": 78,
+    "h": 88,
     "dw": 76
   },
   {
     "key": "sail_fl",
     "file": "sail_fl.png",
     "w": 77,
-    "h": 94,
+    "h": 88,
     "dw": 76
   },
   {
     "key": "sail_br",
     "file": "sail_br.png",
     "w": 77,
-    "h": 94,
+    "h": 88,
     "dw": 76
   },
   {
     "key": "sail_bl",
     "file": "sail_bl.png",
-    "w": 79,
-    "h": 94,
+    "w": 81,
+    "h": 88,
     "dw": 76
   },
   {
     "key": "fish_fr",
     "file": "fish_fr.png",
-    "w": 86,
-    "h": 73,
+    "w": 84,
+    "h": 72,
     "dw": 70
   },
   {
     "key": "fish_fl",
     "file": "fish_fl.png",
-    "w": 86,
-    "h": 73,
+    "w": 84,
+    "h": 71,
     "dw": 70
   },
   {
     "key": "fish_br",
     "file": "fish_br.png",
-    "w": 86,
-    "h": 73,
+    "w": 85,
+    "h": 72,
     "dw": 70
   },
   {
     "key": "fish_bl",
     "file": "fish_bl.png",
-    "w": 86,
-    "h": 73,
+    "w": 84,
+    "h": 72,
     "dw": 70
   },
   {

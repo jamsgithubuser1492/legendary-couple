@@ -32,6 +32,7 @@ const initial = (): GameState => ({
   lastReveal: null,
   checkins: {},
   approvedCount: 0,
+  looks: { A: 'cream', B: 'cream' },
   islandSize: 10,
   starterRemoved: false,
   ingredients: 2, // a welcome batch for the café
@@ -59,6 +60,7 @@ function withDefaults(saved: Partial<GameState>): GameState {
     ...base,
     ...saved,
     townAvatars,
+    looks: { ...base.looks, ...(saved.looks ?? {}) },
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -155,6 +157,10 @@ function patchQuest(id: string, fn: (q: Quest) => Quest) {
 }
 
 // ---------- actions ----------
+
+export function setLook(p: PlayerId, look: 'cream' | 'dark') {
+  commit({ ...state, looks: { ...state.looks, [p]: look } });
+}
 
 export function setStartingPath(p: StartingPath) {
   commit({ ...state, startingPath: p, starterRemoved: false });

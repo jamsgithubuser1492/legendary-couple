@@ -213,14 +213,20 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
   const south: Pt[] = [];
   for (let x = -2.5; x <= EXT.x1 + 3; x += 1.3) south.push({ x, y: coastY(x) });
   const coast = splinePts([...west, ...south], 380);
-  const normals: Pt[] = coast.map((p, i) => {
+  const rawNormals: Pt[] = coast.map((_p, i) => {
     const a = coast[Math.max(0, i - 9)], b = coast[Math.min(coast.length - 1, i + 9)];
     const t = sub(b, a);
     const len = Math.hypot(t.x, t.y) || 1;
-    let n = { x: -t.y / len, y: t.x / len };
-    if (!isLand(p.x + n.x * 0.9, p.y + n.y * 0.9)) n = { x: -n.x, y: -n.y }; // always point toward the land
-    return n;
+    return { x: -t.y / len, y: t.x / len };
   });
+  // one orientation for the whole curve: pick the side that points at land for most of it, so tight turns never flip
+  let votes = 0;
+  coast.forEach((p, i) => {
+    if (i % 6) return;
+    votes += isLand(p.x + rawNormals[i].x * 1.2, p.y + rawNormals[i].y * 1.2) ? 1 : -1;
+  });
+  const orient = votes >= 0 ? 1 : -1;
+  const normals: Pt[] = rawNormals.map((n) => ({ x: n.x * orient, y: n.y * orient }));
   const offset = (d: number): Pt[] => coast.map((p, i) => ({ x: p.x + normals[i].x * d, y: p.y + normals[i].y * d }));
   const band = (d: number): Pt[] => [...coast.map(proj), ...offset(d).map(proj).reverse()];
 
@@ -390,8 +396,42 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
     return { p: proj({ x: coast[k].x - normals[k].x * d, y: coast[k].y - normals[k].y * d }), w: 8 + hash2(i, 2) * 9, ph: hash2(i, 6) * 6.28 };
   });
   const seaward = (j: number, d: number): Pt => ({ x: coast[j].x - normals[j].x * d, y: coast[j].y - normals[j].y * d });
+  // breaking waves: your wave sprites roll toward the shore, curl through their frames, then dissolve
+  const SETS: string[][] = [['wave_s0', 'wave_s1', 'wave_s2', 'wave_s3'], ['wave_m0', 'wave_m1', 'wave_m2', 'wave_m2'], ['wave_l0', 'wave_l0', 'wave_l3', 'wave_l3']];
+  const breakers = scene.textures.exists('wave_s0')
+    ? Array.from({ length: 44 }, (_, i) => {
+        const k = 12 + Math.floor(hash2(i, 31) * (coast.length - 24));
+        const r = hash2(i, 32);
+        const set = SETS[r < 0.62 ? 0 : r < 0.9 ? 1 : 2];
+        const img = scene.add.image(0, 0, set[0]).setOrigin(0.5, 0.78).setDepth(-47).setAlpha(0);
+        objects.push(img);
+        const toLand = proj(normals[k]).x - proj({ x: 0, y: 0 }).x; // which way the swell travels on screen
+        return { k, set, img, off: hash2(i, 33), speed: 0.8 + hash2(i, 34) * 0.5, flip: toLand < 0, shown: '' };
+      })
+    : [];
+  const rollBreakers = (time: number) => {
+    for (const b of breakers) {
+      const ph = (time / (4600 / b.speed) + b.off) % 1;
+      if (ph > 0.82) {
+        b.img.setAlpha(0);
+        continue;
+      }
+      const u = ph / 0.82; // 0 far out, 1 at the shore
+      const frame = b.set[Math.min(3, Math.floor(u * 4))];
+      if (frame !== b.shown) {
+        b.shown = frame;
+        b.img.setTexture(frame);
+      }
+      const p = proj(seaward(b.k, 3.4 - u * 2.5));
+      const grow = 0.34 + u * 0.22;
+      b.img.setPosition(p.x, p.y + Math.sin(time / 500 + b.off * 9) * 1.2);
+      b.img.setScale(b.flip ? -grow : grow, grow);
+      b.img.setAlpha(Math.sin(Math.PI * u) * 0.92);
+    }
+  };
   let lastTick = -999;
   const tick = (time: number) => {
+    rollBreakers(time);
     if (time - lastTick < 60) return;
     lastTick = time;
     foam.clear();
