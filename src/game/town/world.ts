@@ -3,9 +3,11 @@ import { tileCenter } from '../iso';
 import { shade } from '../draw';
 import { LOTS, TOWN, regionOf, type RegionId } from '../../state/town';
 import { PALETTES, type Theme } from '../../state/season';
-import { drawCanopy, drawMountain, drawPalmTree, drawPier, fbm, feather, fillPoly, hash2, mixColor, proj, roundedRect, splinePts, strokePoly, TREE_COLORS, type Pt } from './nature';
+import { drawPier, fbm, feather, fillPoly, hash2, mixColor, proj, roundedRect, splinePts, strokePoly, type Pt } from './nature';
+import { SPRITES } from '../spriteList';
 
 type Obj = Phaser.GameObjects.GameObject;
+const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 
 /** The painted world: tiles from EXT.x0..x1 by EXT.y0..y1. The playable town sits at 0..31 in the middle. */
 export const EXT = { x0: -9, x1: 41, y0: -9, y1: 41 };
@@ -16,7 +18,12 @@ export const hash = hash2;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 // ---------- the coastline ----------
-const baseCoastX = (y: number) => Math.min(-1.2, -3.8 + 2.4 * Math.sin(y * 0.27 + 0.8) + 1.6 * Math.sin(y * 0.71 + 2.2) - (y > 19 && y < 29 ? 1.4 : 0));
+const softplus = (z: number) => Math.log(1 + Math.exp(z));
+// a smooth wobbling shoreline: no hard clamps, so the curve never kinks or spikes
+const baseCoastX = (y: number) => {
+  const v = -4.2 + 1.9 * Math.sin(y * 0.27 + 0.8) + 0.9 * Math.sin(y * 0.55 + 2.2) - 1.3 * Math.exp(-(((y - 24) / 4) ** 2));
+  return -1.3 - softplus(-1.3 - v);
+};
 // the lighthouse headland juts out as a rounded bulge at the top of the west coast
 const bulge = (y: number) => (Math.abs(y + 3) < 5.6 ? -3 - Math.sqrt(5.6 * 5.6 - (y + 3) ** 2) : 99);
 export const coastX = (y: number) => Math.min(baseCoastX(y), bulge(y));
@@ -206,14 +213,20 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
   const south: Pt[] = [];
   for (let x = -2.5; x <= EXT.x1 + 3; x += 1.3) south.push({ x, y: coastY(x) });
   const coast = splinePts([...west, ...south], 380);
-  const normals: Pt[] = coast.map((p, i) => {
+  const rawNormals: Pt[] = coast.map((_p, i) => {
     const a = coast[Math.max(0, i - 9)], b = coast[Math.min(coast.length - 1, i + 9)];
     const t = sub(b, a);
     const len = Math.hypot(t.x, t.y) || 1;
-    let n = { x: -t.y / len, y: t.x / len };
-    if (!isLand(p.x + n.x * 0.9, p.y + n.y * 0.9)) n = { x: -n.x, y: -n.y }; // always point toward the land
-    return n;
+    return { x: -t.y / len, y: t.x / len };
   });
+  // one orientation for the whole curve: pick the side that points at land for most of it, so tight turns never flip
+  let votes = 0;
+  coast.forEach((p, i) => {
+    if (i % 6) return;
+    votes += isLand(p.x + rawNormals[i].x * 1.2, p.y + rawNormals[i].y * 1.2) ? 1 : -1;
+  });
+  const orient = votes >= 0 ? 1 : -1;
+  const normals: Pt[] = rawNormals.map((n) => ({ x: n.x * orient, y: n.y * orient }));
   const offset = (d: number): Pt[] => coast.map((p, i) => ({ x: p.x + normals[i].x * d, y: p.y + normals[i].y * d }));
   const band = (d: number): Pt[] => [...coast.map(proj), ...offset(d).map(proj).reverse()];
 
@@ -368,38 +381,104 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
   for (const y of [24, 27, 30]) road([{ x: 18, y }, { x: 25, y: y + 0.1 }, { x: 33, y }], 11);
   road([{ x: 8, y: -0.5 }, { x: 8.6, y: 7 }, { x: 9, y: 14 }], 10); // country lane
 
-  // ----- surf, ripples and sparkles: redrawn gently every few frames -----
+  // ----- waves: crests roll in from the open sea, the surf breathes, and sparkles twinkle -----
   const foam = gfx(-49);
   const anim = gfx(-48);
-  const glintSpots = Array.from({ length: 70 }, (_, i) => {
+  const crests = Array.from({ length: 110 }, (_, i) => ({
+    k0: Math.floor(hash2(i, 1) * (coast.length - 40)),
+    len: 7 + Math.floor(hash2(i, 2) * 9),
+    speed: 0.6 + hash2(i, 3) * 0.5,
+    ph: hash2(i, 4),
+  }));
+  const glintSpots = Array.from({ length: 80 }, (_, i) => {
     const k = Math.floor(hash2(i, 4) * coast.length);
-    const d = 1.5 + hash2(i, 8) * 9;
+    const d = 1.5 + hash2(i, 8) * 10;
     return { p: proj({ x: coast[k].x - normals[k].x * d, y: coast[k].y - normals[k].y * d }), w: 8 + hash2(i, 2) * 9, ph: hash2(i, 6) * 6.28 };
   });
+  const seaward = (j: number, d: number): Pt => ({ x: coast[j].x - normals[j].x * d, y: coast[j].y - normals[j].y * d });
+  // breaking waves: your wave sprites roll toward the shore, curl through their frames, then dissolve
+  const SETS: string[][] = [['wave_s0', 'wave_s1', 'wave_s2', 'wave_s3'], ['wave_m0', 'wave_m1', 'wave_m2', 'wave_m2'], ['wave_l0', 'wave_l0', 'wave_l3', 'wave_l3']];
+  const breakers = scene.textures.exists('wave_s0')
+    ? Array.from({ length: 44 }, (_, i) => {
+        const k = 12 + Math.floor(hash2(i, 31) * (coast.length - 24));
+        const r = hash2(i, 32);
+        const set = SETS[r < 0.62 ? 0 : r < 0.9 ? 1 : 2];
+        const img = scene.add.image(0, 0, set[0]).setOrigin(0.5, 0.78).setDepth(-47).setAlpha(0);
+        objects.push(img);
+        const toLand = proj(normals[k]).x - proj({ x: 0, y: 0 }).x; // which way the swell travels on screen
+        return { k, set, img, off: hash2(i, 33), speed: 0.8 + hash2(i, 34) * 0.5, flip: toLand < 0, shown: '' };
+      })
+    : [];
+  const rollBreakers = (time: number) => {
+    for (const b of breakers) {
+      const ph = (time / (4600 / b.speed) + b.off) % 1;
+      if (ph > 0.82) {
+        b.img.setAlpha(0);
+        continue;
+      }
+      const u = ph / 0.82; // 0 far out, 1 at the shore
+      const frame = b.set[Math.min(3, Math.floor(u * 4))];
+      if (frame !== b.shown) {
+        b.shown = frame;
+        b.img.setTexture(frame);
+      }
+      const p = proj(seaward(b.k, 3.4 - u * 2.5));
+      const grow = 0.34 + u * 0.22;
+      b.img.setPosition(p.x, p.y + Math.sin(time / 500 + b.off * 9) * 1.2);
+      b.img.setScale(b.flip ? -grow : grow, grow);
+      b.img.setAlpha(Math.sin(Math.PI * u) * 0.92);
+    }
+  };
   let lastTick = -999;
   const tick = (time: number) => {
-    if (time - lastTick < 70) return;
+    rollBreakers(time);
+    if (time - lastTick < 60) return;
     lastTick = time;
     foam.clear();
     anim.clear();
-    const breathe = 0.4 + 0.15 * Math.sin(time / 900);
-    strokePoly(foam, screenCoast, 4.5, 0xffffff, 0.8);
-    // swells: thin lines that drift from the shore out to sea, fading as they go
-    for (let i = 0; i < 4; i++) {
-      const ph = (time / 5200 + i / 4) % 1;
-      const d = 0.7 + ph * 7;
-      const pts = coast.map((p, j) => {
-        const wob = Math.sin(j * 0.33 + time / 800 + i) * 0.14;
-        return proj({ x: p.x - normals[j].x * (d + wob), y: p.y - normals[j].y * (d + wob) });
-      });
-      strokePoly(anim, pts, 2.6 - ph * 1.4, 0xffffff, Math.sin(Math.PI * ph) * breathe * 1.1);
+    // the shoreline: a bright foam edge that pulses, and a swash that creeps up the sand and drains back
+    const pulse = 0.5 + 0.5 * Math.sin(time / 1300);
+    strokePoly(foam, screenCoast, 3.2 + pulse * 2.2, 0xffffff, 0.62 + pulse * 0.3);
+    const swash = coast.map((p, j) => {
+      const d = -0.15 - (0.5 + 0.5 * Math.sin(time / 1700 + j * 0.05)) * 0.55;
+      return proj({ x: p.x - normals[j].x * d, y: p.y - normals[j].y * d });
+    });
+    strokePoly(foam, swash, 2, 0xffffff, 0.34);
+    // rolling crests: each travels from deep water in to the shore, growing brighter, then fades as it breaks
+    for (const c of crests) {
+      const ph = (time / (9000 / c.speed) + c.ph) % 1;
+      const d = 9.5 - ph * 8.8;
+      const fade = Math.sin(Math.PI * Math.min(1, ph * 1.05)) * (0.3 + 0.55 * ph);
+      let prev: Pt | null = null;
+      for (let j = c.k0; j < c.k0 + c.len; j++) {
+        const u = (j - c.k0) / c.len;
+        const here = proj(seaward(j, d + Math.sin(u * Math.PI) * 0.3)); // each crest bows toward the shore like a real swell
+        if (prev) {
+          const taper = Math.sin(Math.PI * u);
+          anim.lineStyle(3.4 + ph * 2.2, 0xffffff, fade * taper * 0.22); // soft glow under the crest
+          anim.beginPath();
+          anim.moveTo(prev.x, prev.y);
+          anim.lineTo(here.x, here.y);
+          anim.strokePath();
+          anim.lineStyle(1.4 + ph * 1.2, 0xffffff, fade * taper * 0.85);
+          anim.beginPath();
+          anim.moveTo(prev.x, prev.y);
+          anim.lineTo(here.x, here.y);
+          anim.strokePath();
+        }
+        prev = here;
+      }
     }
-    // sparkles that twinkle
+    // twinkling sparkles
     for (const g of glintSpots) {
       const a = Math.max(0, Math.sin(time / 650 + g.ph));
-      if (a < 0.2) continue;
-      anim.fillStyle(0xffffff, a * 0.7);
+      if (a < 0.25) continue;
+      anim.fillStyle(0xffffff, a * 0.75);
       anim.fillEllipse(g.p.x, g.p.y, g.w * (0.6 + a * 0.4), 2.6);
+      if (a > 0.85) {
+        anim.fillStyle(0xfff6d8, 0.8);
+        anim.fillEllipse(g.p.x, g.p.y, 3.2, 3.2);
+      }
     }
   };
   tick(0);
@@ -409,16 +488,20 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
   drawPier(piers, 1.5, 21.6, -9.5, 21.6, 1.7);
   drawPier(piers, 21.6, 31, 21.6, 41, 1.7);
 
-  // ----- mountains: a rolling chain at the back of the map -----
-  const peaks: [number, number, number, number][] = [
-    [20, -8, 460, 230], [27, -8, 560, 330], [35, -5, 640, 380], [41, 2, 560, 330], [23, -4, 420, 210], [31, -1, 500, 250], [38, 9, 420, 190], [17, -2, 380, 170],
+  // ----- mountains: your painted peaks, in a rolling chain at the back of the map -----
+  const peaks: [string, number, number, number, boolean][] = [
+    ['mountain_b', 19, -6, 0.95, false], ['mountain_a', 25, -9, 1.12, false], ['mountain_b', 33, -9, 1.1, true], ['mountain_a', 40, -3, 1.1, true],
+    ['mountain_b', 38, 6, 0.95, false], ['mountain_a', 31, -1, 0.82, true], ['mountain_b', 27, -3, 0.78, false],
   ];
-  peaks.sort((a, b) => a[0] + a[1] - (b[0] + b[1]));
-  for (const [px, py, w, h] of peaks) {
-    const g = scene.add.graphics().setDepth(px + py + 0.2);
-    objects.push(g);
+  peaks.sort((a, b) => a[1] + a[2] - (b[1] + b[2]));
+  for (const [key, px, py, sc, flip] of peaks) {
+    if (!scene.textures.exists(key)) continue;
     const base = proj({ x: px, y: py });
-    drawMountain(g, base.x, base.y, w, h, theme, Math.min(0.55, Math.max(0, (24 - (px + py)) / 60)), px * 3 + py);
+    const im = scene.add.image(base.x, base.y, key).setOrigin(0.5, 0.86).setFlipX(flip).setDepth(px + py + 0.2);
+    im.setScale(((DW.get(key) ?? im.width) / im.width) * sc);
+    const far = clamp((24 - (px + py)) / 40, 0, 0.35);
+    if (far > 0.02) im.setAlpha(1 - far * 0.5);
+    objects.push(im);
   }
 
   // ----- forests and palms: soft clumps by noise, never on buildings or roads -----
@@ -429,17 +512,24 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
     const m = (v: number, k: number) => Math.abs(v - k) < 0.8;
     return [6, 12].some((k) => m(x, k) && y > 13 && y < 28) || [18, 24].some((k) => m(y, k) && x > 3 && x < 19) || [21, 24, 27, 30].some((k) => m(x, k) && y > 21) || [24, 27, 30].some((k) => m(y, k) && x > 17) || (m(y, 17.5) && x > 17);
   };
-  const rows = new Map<number, Phaser.GameObjects.Graphics>();
-  const rowGfx = (key: number) => {
-    let g = rows.get(key);
-    if (!g) {
-      g = scene.add.graphics().setDepth(key + 0.3);
-      rows.set(key, g);
-      objects.push(g);
+  const treeFor = (jx: number, jy: number, mountainous: boolean): string => {
+    const r = hash2(jy * 1.3, jx * 0.7);
+    if (mountainous) {
+      if (winter) return r < 0.4 ? 'pine_snow' : r < 0.7 ? 'pines_cluster_a' : 'pines_cluster_b';
+      return r < 0.25 ? 'pine_a' : r < 0.4 ? 'pine_c' : r < 0.65 ? 'pines_cluster_a' : r < 0.85 ? 'pines_cluster_b' : 'pines_cluster_c';
     }
-    return g;
+    if (winter) return r < 0.5 ? 'tree_snowpine' : r < 0.8 ? 'tree_pine' : 'tree_round';
+    if (theme === 'autumn') return r < 0.38 ? 'tree_maple' : r < 0.7 ? 'tree_round' : 'tree_pine';
+    if (theme === 'spring') return r < 0.22 ? 'tree_blossom' : r < 0.6 ? 'tree_round' : 'tree_pine';
+    return r < 0.55 ? 'tree_round' : 'tree_pine';
   };
-  const palette = TREE_COLORS[theme];
+  const put = (key: string, jx: number, jy: number, scale = 1) => {
+    if (!scene.textures.exists(key)) return;
+    const s = proj({ x: jx, y: jy });
+    const im = scene.add.image(s.x, s.y + 12, key).setOrigin(0.5, 1).setDepth(Math.floor(jx + jy) + 0.3);
+    im.setScale(((DW.get(key) ?? im.width) / im.width) * scale);
+    objects.push(im);
+  };
   for (let x = EXT.x0; x <= EXT.x1; x += 0.85)
     for (let y = EXT.y0; y <= EXT.y1; y += 0.85) {
       const jx = x + (hash2(x * 3, y) - 0.5) * 0.8, jy = y + (hash2(x, y * 3) - 0.5) * 0.8;
@@ -456,13 +546,10 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
       else if (region === 'campus') p = 0.1 * d;
       else if (region === 'coast') p = jx > 15 || jy < 15.5 ? 0.12 * d : 0.025;
       if (hash2(jx * 7.7, jy * 3.1) > p) continue;
-      const s = proj({ x: jx, y: jy });
-      const g = rowGfx(Math.floor(jx + jy));
-      if (nearSea) drawPalmTree(g, s.x, s.y, hash2(jx, jy) > 0.5 ? 8 : -8);
-      else {
-        const c = palette[Math.floor(hash2(jy, jx) * palette.length) % palette.length];
-        drawCanopy(g, s.x, s.y, 6.5 + hash2(jx, jy * 2) * 3.5, c);
-      }
+      const palm = ['palm_short', 'palm_medium', 'palm_tall'][Math.floor(hash2(jx, jy) * 3)];
+      const scale = 0.85 + hash2(jx * 2, jy) * 0.3;
+      if (nearSea) put(palm, jx, jy, scale);
+      else put(treeFor(jx, jy, region === 'mountain' || (!inCore && jy < 8 && jx > 14)), jx, jy, scale);
     }
 
   // ----- far edges melt into haze -----

@@ -6,13 +6,27 @@ import { tileCenter } from './iso';
 export type Dir = 'front' | 'back' | 'left' | 'right';
 const STEP_MS = 240;
 const FEET = 6; // feet sit slightly below the tile center
-const STRIP: Record<PlayerId, 'james_new' | 'rachel_new'> = { A: 'james_new', B: 'rachel_new' };
-const PREFIX: Record<PlayerId, string> = { A: 'james', B: 'rachel' };
-/** Frames in each strip: 0 to 2 walk west (mirrored for east), 3 to 5 walk toward the camera, 6 front, 7 back (James only). */
-const SIDE = [0, 1, 2, 1];
-const FRONT = [3, 4, 5, 4];
-const STAND_SIDE = 2, STAND_FRONT = 6, STAND_BACK = 7;
+type Look = 'cream' | 'dark';
 const DISPLAY_H: Record<PlayerId, number> = { A: 52, B: 50 };
+
+interface LookSpec {
+  strip: (p: PlayerId) => string;
+  right: number[]; // frames walking right on screen
+  left: number[];
+  flipLeft: boolean; // mirror the right-facing art for left
+  standRight: number;
+  standLeft: number;
+  front: number[] | null; // walking toward the camera, or null to bounce the standing pose
+  standFront: number;
+  standBack: number;
+}
+
+const LOOKS: Record<Look, LookSpec> = {
+  // cream cap set: one side cycle (mirrored) and a walk toward the camera
+  cream: { strip: (p) => (p === 'A' ? 'james_new' : 'rachel_new'), right: [0, 1, 2, 1], left: [0, 1, 2, 1], flipLeft: true, standRight: 2, standLeft: 2, front: [3, 4, 5, 4], standFront: 6, standBack: 7 },
+  // dark cap and beanie set: separate right and left cycles, standing front and back
+  dark: { strip: (p) => (p === 'A' ? 'james_dark' : 'rachel_dark'), right: [0, 1, 2, 3], left: [4, 5, 6, 5], flipLeft: false, standRight: 1, standLeft: 5, front: null, standFront: 7, standBack: 8 },
+};
 
 /** Registers every walking animation once. */
 export function createWalkAnims(scene: Phaser.Scene) {
@@ -20,10 +34,13 @@ export function createWalkAnims(scene: Phaser.Scene) {
     if (scene.anims.exists(key)) return;
     scene.anims.create({ key, frames: frames.map((frame) => ({ key: tex, frame })), frameRate: rate, repeat: -1 });
   };
-  for (const p of ['A', 'B'] as PlayerId[]) {
-    add(`${PREFIX[p]}_side`, STRIP[p], SIDE, 8);
-    add(`${PREFIX[p]}_front`, STRIP[p], FRONT, 8);
-  }
+  for (const look of Object.keys(LOOKS) as Look[])
+    for (const p of ['A', 'B'] as PlayerId[]) {
+      const spec = LOOKS[look], tex = spec.strip(p);
+      add(`${tex}_right`, tex, spec.right, 8);
+      add(`${tex}_left`, tex, spec.left, 8);
+      if (spec.front) add(`${tex}_front`, tex, spec.front, 8);
+    }
   add('dog_walk', 'dog_walk_side', [0, 1, 2, 3, 4, 5], 10);
 }
 
@@ -43,38 +60,46 @@ export class Avatar {
   private sprite: Phaser.GameObjects.Sprite;
   private token = 0;
   private idleTween?: Phaser.Tweens.Tween;
+  private look: Look = 'cream';
   dir: Dir = 'front';
   tile: { x: number; y: number };
   moving = false;
 
-  constructor(private scene: Phaser.Scene, readonly player: PlayerId, tile: { x: number; y: number }, size = 1) {
+  constructor(private scene: Phaser.Scene, readonly player: PlayerId, tile: { x: number; y: number }, size = 1, look: Look = 'cream') {
     this.tile = { ...tile };
+    this.look = look;
     const shadow = scene.add.ellipse(0, -1, 24, 10, 0x000000, 0.18);
-    this.sprite = scene.add.sprite(0, 0, STRIP[player], STAND_FRONT).setOrigin(0.5, 1).setScale(0.5);
+    this.sprite = scene.add.sprite(0, 0, LOOKS[look].strip(player), LOOKS[look].standFront).setOrigin(0.5, 1).setScale(0.5);
     this.container = scene.add.container(0, 0, [shadow, this.sprite]);
     this.container.setScale(size);
     this.snap(tile.x, tile.y);
     this.face('front', false);
   }
 
+  /** Switches between outfit sets (for example the cream cap or the dark cap and beanie). */
+  setLook(look: Look) {
+    if (look === this.look) return;
+    this.look = look;
+    this.face(this.dir, this.moving);
+  }
+
   private face(dir: Dir, walking: boolean, flipBack = false) {
     this.dir = dir;
-    const s = this.sprite;
-    const pre = PREFIX[this.player];
+    const s = this.sprite, spec = LOOKS[this.look], tex = spec.strip(this.player);
     s.setFlipX(false);
     if (dir === 'left' || dir === 'right') {
-      s.setTexture(STRIP[this.player], STAND_SIDE).setScale(0.5).setFlipX(dir === 'left'); // the art faces east, so mirror it for west
-      if (walking) s.play(`${pre}_side`, true);
+      s.setTexture(tex, dir === 'right' ? spec.standRight : spec.standLeft).setScale(0.5).setFlipX(dir === 'left' && spec.flipLeft);
+      if (walking) s.play(`${tex}_${dir}`, true);
       else s.stop();
     } else if (dir === 'front') {
-      s.setTexture(STRIP[this.player], STAND_FRONT).setScale(0.5);
-      if (walking) s.play(`${pre}_front`, true);
+      s.setTexture(tex, spec.standFront).setScale(0.5);
+      if (walking && spec.front) s.play(`${tex}_front`, true);
       else s.stop();
     } else {
       s.stop();
-      if (this.player === 'A') s.setTexture('james_new', STAND_BACK).setScale(0.5);
-      else s.setTexture('rachel_back').setScale(DISPLAY_H.B / s.height); // her back is a still sprite
-      s.setFlipX(flipBack);
+      if (this.player === 'B' && this.look === 'cream') s.setTexture('rachel_back').setScale(DISPLAY_H.B / s.height); // her cream back is a still sprite
+      else s.setTexture(tex, spec.standBack).setScale(0.5);
+      s.setFlipX(flipBack && this.look === 'cream');
     }
   }
 
@@ -143,7 +168,7 @@ export class Avatar {
           this.container.setPosition(a.x + (b.x - a.x) * t, a.y + FEET + (b.y - a.y) * t);
           this.container.setDepth(from.x + (next.x - from.x) * t + from.y + (next.y - from.y) * t + 0.2);
           // placeholder bounce for the back view, which has no walk cycle yet
-          if (this.dir === 'back') this.sprite.y = -Math.abs(Math.sin(t * Math.PI * 2)) * 3;
+          if (this.dir === 'back' || (this.dir === 'front' && !LOOKS[this.look].front)) this.sprite.y = -Math.abs(Math.sin(t * Math.PI * 2)) * 3;
         },
         onComplete: () => {
           if (token !== this.token) return;

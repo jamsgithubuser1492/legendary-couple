@@ -12,11 +12,14 @@ import {
   type Lot, type RegionId,
 } from '../../state/town';
 import { SPRITES } from '../spriteList';
-import { drawBarn, drawHouse, drawPine, drawTower, drawTree } from '../town/buildings';
+import { Boats } from '../town/boats';
+import { cartesianToIso as iso } from '../iso';
 import { Backdrop, REGION_RECTS, drawTerrain, regionAt } from '../town/world';
 import { feather } from '../town/nature';
 
 const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
+const HOUSES = ['house_terracotta', 'house_bluedoor', 'house_pink', 'house_balcony', 'house_coastal', 'house_modern'];
+const TOWERS = ['tower_coastal', 'tower_pastel', 'tower_garden', 'tower_city'];
 const NPCS = ['npc_grandma', 'npc_photographer', 'npc_woman', 'npc_hat'];
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.6;
@@ -35,6 +38,7 @@ export class TownScene extends Phaser.Scene {
   private terrain: Phaser.GameObjects.GameObject[] = [];
   private scenery: Phaser.GameObjects.GameObject[] = [];
   private waterTick: (t: number) => void = () => {};
+  private boats?: Boats;
   private avatars!: Record<PlayerId, Avatar>;
   private following = false;
   private blockedTown = new Set<string>();
@@ -63,7 +67,8 @@ export class TownScene extends Phaser.Scene {
     this.drawWorld();
     this.refresh(false);
     const ta = getState().townAvatars;
-    this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7), B: new Avatar(this, 'B', ta.B, 0.7) };
+    const lk = getState().looks;
+    this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7, lk.A), B: new Avatar(this, 'B', ta.B, 0.7, lk.B) };
     this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
     this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.fitAll();
@@ -84,6 +89,8 @@ export class TownScene extends Phaser.Scene {
       onStateChange(() => {
         if (!this.scene.isActive()) return;
         this.refresh(true);
+        this.avatars.A.setLook(getState().looks.A);
+        this.avatars.B.setLook(getState().looks.B);
         this.syncPartner();
       }),
       onGrowthPreviewChange(() => this.refresh(true)),
@@ -112,19 +119,43 @@ export class TownScene extends Phaser.Scene {
   // ---------- terrain ----------
 
   /** Paints the sea, coast, land, mountains and forests, plus the permanent scenery. */
+  private worldKey = '';
+
   private drawWorld(): void {
+    const key = `${getTheme()}|${unlockedRegions(growthOf(getState())).join(',')}`;
+    if (key === this.worldKey) return; // only repaint the land when the season or the open regions change
+    this.worldKey = key;
     this.terrain.forEach((o) => o.destroy());
     this.scenery.forEach((o) => o.destroy());
     this.scenery = [];
+    this.boats?.destroy();
     const t = drawTerrain(this, getTheme());
     this.terrain = t.objects;
     this.waterTick = t.tick;
-    if (this.textures.exists('lighthouse')) {
-      const front = cartesianToIso(-1, -1);
-      const im = this.add.image(front.x, front.y - 4, 'lighthouse').setOrigin(0.5, 1).setDepth(-2);
-      im.setScale((DW.get('lighthouse') ?? im.width) / im.width);
+    const place = (k: string, tx: number, ty: number, depth: number, dy = 0, flip = false) => {
+      if (!this.textures.exists(k)) return;
+      const p = iso(tx, ty);
+      const im = this.add.image(p.x, p.y + dy, k).setOrigin(0.5, 1).setDepth(depth).setFlipX(flip);
+      im.setScale((DW.get(k) ?? im.width) / im.width);
       this.scenery.push(im);
-    }
+    };
+    place('lighthouse_n', -3, -3, -2, 18);
+    // beach life on the west shore
+    place('umbrella_pink', 1.2, 30.2, 31.4);
+    place('umbrella_blue', 2.4, 28.9, 31.3);
+    place('sandcastle', 0.6, 31.6, 32.3);
+    place('rowboat_sand', 0.2, 20.2, 20.4, 8, true);
+    place('palm_tall', 2.2, 31.3, 33.6, 4);
+    place('pier_end_a', -9.6, 21.6, 12, 14);
+    place('pier_end_b', 21.6, 41.2, 63, 14);
+    // boats
+    this.boats = new Boats(this);
+    this.boats.addBoat('sail', [{ x: -13, y: 6 }, { x: -11, y: 15 }, { x: -14, y: 27 }, { x: -12, y: 36 }], 0.55, 0.4);
+    this.boats.addBoat('sail', [{ x: 8, y: 44 }, { x: 16, y: 46 }, { x: 31, y: 45 }], 0.5, 2.1);
+    this.boats.addBoat('fish', [{ x: 5, y: 40 }, { x: 13, y: 41.5 }, { x: 15, y: 46 }], 0.4, 1.2);
+    this.boats.addBoat('fish', [{ x: -9, y: 31 }, { x: -11.5, y: 38 }], 0.35, 3.3);
+    this.boats.addMoored('dinghy_a', { x: -8.2, y: 23.4 }, 0.8);
+    this.boats.addMoored('dinghy_b', { x: -9.2, y: 20.0 }, 2.4);
   }
 
   // ---------- buildings, fog, people ----------
@@ -133,19 +164,24 @@ export class TownScene extends Phaser.Scene {
     const out: Phaser.GameObjects.GameObject[] = [];
     const depth = l.x + l.w - 1 + (l.y + l.d - 1) + 0.4;
     const cx = l.x + l.w / 2, cy = l.y + l.d / 2;
-    if (l.kind === 'sprite' && l.sprite && this.textures.exists(l.sprite)) {
+    const theme = getTheme();
+    const treeKey = (v: number) => {
+      const set = theme === 'autumn' ? ['tree_round', 'tree_maple', 'tree_pine'] : theme === 'spring' ? ['tree_round', 'tree_blossom', 'tree_pine'] : theme === 'winter' || theme === 'holidays' ? ['tree_snowpine', 'tree_pine', 'tree_snowpine'] : ['tree_round', 'tree_pine', 'tree_round'];
+      return set[v % set.length];
+    };
+    let key: string | undefined = l.sprite;
+    if (l.kind === 'house') key = HOUSES[l.variant % HOUSES.length];
+    else if (l.kind === 'tower') key = TOWERS[l.variant % TOWERS.length];
+    else if (l.kind === 'barn') key = 'house_barn';
+    else if (l.kind === 'tree') key = treeKey(l.variant);
+    else if (l.kind === 'pine') key = theme === 'winter' || theme === 'holidays' ? 'pine_snow' : ['pine_a', 'pine_b', 'pine_c'][l.variant % 3];
+    if (key && this.textures.exists(key)) {
       const front = cartesianToIso(l.x + l.w, l.y + l.d);
-      const im = this.add.image(front.x, front.y - 6, l.sprite).setOrigin(0.5, 1).setDepth(depth);
-      im.setScale((DW.get(l.sprite) ?? im.width) / im.width);
+      const small = l.kind === 'tree' || l.kind === 'pine';
+      const c = iso(cx, cy);
+      const im = this.add.image(small ? c.x : front.x, small ? c.y + 14 : front.y - 6, key).setOrigin(0.5, 1).setDepth(depth);
+      im.setScale((DW.get(key) ?? im.width) / im.width);
       out.push(im);
-    } else {
-      const g = this.add.graphics().setDepth(depth);
-      if (l.kind === 'house') drawHouse(g, cx, cy, l.variant);
-      else if (l.kind === 'tower') drawTower(g, cx, cy, l.variant);
-      else if (l.kind === 'barn') drawBarn(g, cx, cy, l.variant);
-      else if (l.kind === 'tree') drawTree(g, cx, cy, l.variant);
-      else if (l.kind === 'pine') drawPine(g, cx, cy);
-      out.push(g);
     }
     if (animate) {
       out.forEach((o) => {

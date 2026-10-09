@@ -92,6 +92,20 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * **Walk the town:** tap the 🌍 button, then tap anywhere open or use WASD. The camera follows you and unlocked regions are walkable. Locked regions stay blocked
 * **Places you can visit:** cafés let you brew drinks into placeable decor using ingredients earned from Body and Mind quests, shops open their shelves, and spots like the ice cream stand and stargazing spot hand you a date idea you can add as a quest
 
+### Build 11 status: Painted town art and living water
+
+* The Town now uses your new sheets: 6 house styles, a barn, a windmill, 4 apartment towers, a fountain, round, pine, blossom, maple and snowy trees (matched to the season), palms, umbrellas, a sandcastle, pine clusters, the lighthouse, pier ends and your painted mountain peaks and waterfall
+* **Boats:** sailboats and fishing boats drift along the coast, turning to face their direction, bobbing on the swell with a soft wake, and dinghies sit moored at the pier
+* **Water:** rolling wave crests travel in from the open sea and break on the shore, the surf foam breathes, a swash creeps up the sand, and sparkles twinkle. The coastline is a smooth curve
+* The town repaints only when the season or the open regions change
+
+### Build 12 status: Water effects and a second outfit set
+
+* **Breaking waves:** your small, medium and large wave sprites roll in from the open sea toward the shore, curl through their frames and dissolve, scattered along the coast
+* **Boat wakes and ripples:** sail and fishing boats trail your propeller and dinghy wake sprites, turned to follow their heading, with ripple rings spreading out from each boat and the moored dinghies
+* The coastline orientation is fixed so the beach bands no longer spike at tight turns, and the sails and masts of the boat sprites are intact
+* **Dark cap and beanie look** for James and Rachel, from the new walk sheet: separate left and right walk cycles plus front and back poses. Switch each partner's look in the Wardrobe
+
 ## Run it
 
 ```bash

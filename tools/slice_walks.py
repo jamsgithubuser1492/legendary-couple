@@ -18,6 +18,9 @@ STRIPS = [
     ('james_new', 'sheet25_ew_rebuild.jpg', (455, 410, 1048, 548), 52, 8),
     # same layout; the 8th figure on her row is James from behind, so only 7 are kept
     ('rachel_new', 'sheet25_ew_rebuild.jpg', 'cols', 50, 7),
+    # sheet 32: dark cap and beanie look. 0 to 3 face right, 4 to 6 face left, 7 front, 8 back
+    ('james_dark', 'sheet32_dark_walks.jpg', ('cols2', 402, 522), 52, 9),
+    ('rachel_dark', 'sheet32_dark_walks.jpg', ('cols2', 545, 664), 50, 9),
     ('dog_walk_side', 'sheet21_companion_walks.jpg', (440, 860, 1085, 930), 26, None),
 ]
 
@@ -87,9 +90,12 @@ def cut_figure(im, arr, bg, dist, bbox, pad=3):
 EW_COLS = [(458, 522), (528, 590), (597, 660), (669, 731), (743, 806), (817, 879), (900, 964), (972, 1036)]
 
 
-def column_frames(src, y0, y1, n):
+DARK_COLS = [(380, 450), (458, 526), (530, 598), (600, 668), (686, 752), (756, 822), (826, 896), (912, 974), (984, 1044)]
+
+
+def column_frames(src, y0, y1, n, cols=None):
     frames = []
-    for x0, x1 in EW_COLS[:n]:
+    for x0, x1 in (cols or EW_COLS)[:n]:
         box = (x0, y0, x1, y1)
         im, arr, bg, dist, figs = figures(src, box, min_area=1500)
         if not figs:
@@ -105,6 +111,8 @@ def main():
         src = Image.open(os.path.join(SRC, sheet)).convert('RGB')
         if box == 'cols':
             frames = column_frames(src, 562, 696, keep)
+        elif isinstance(box, tuple) and box[0] == 'cols2':
+            frames = column_frames(src, box[1], box[2], keep, DARK_COLS)
         else:
             im, arr, bg, dist, figs = figures(src, box, min_area=2500 if keep else 900)
             figs = [f for f in figs if (f[2] - f[0]) > 28]  # drop thin column divider lines
