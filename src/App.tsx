@@ -12,6 +12,7 @@ import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
 import ExpandModal from './ui/ExpandModal';
 import CheatsModal from './ui/CheatsModal';
+import TogetherModal, { BidBanner, type TogetherTab } from './ui/TogetherModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
 import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
@@ -32,6 +33,7 @@ export default function App() {
   const [reveal, setReveal] = useState(false);
   const [expandOpen, setExpandOpen] = useState(false);
   const [cheats, setCheats] = useState(false);
+  const [together, setTogether] = useState<TogetherTab | null>(null);
   const [interact, setInteract] = useState<string | null>(null);
   const [shopCat, setShopCat] = useState<ShopCategory | undefined>();
   const [view, setView] = useState<'island' | 'town'>('island');
@@ -49,6 +51,8 @@ export default function App() {
     gameBus.on(BUS.memoryOpen, setViewing);
     gameBus.on(BUS.viewSync, setView);
     gameBus.on(BUS.townInteract, setInteract);
+    const openTogether = (t: string) => setTogether(t as TogetherTab);
+    gameBus.on(BUS.together, openTogether);
     const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
     gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
@@ -56,6 +60,7 @@ export default function App() {
       gameBus.off(BUS.memoryOpen, setViewing);
       gameBus.off(BUS.viewSync, setView);
       gameBus.off(BUS.townInteract, setInteract);
+      gameBus.off(BUS.together, openTogether);
       gameBus.off(BUS.presetPlaced, donePreset);
     };
   }, []);
@@ -124,6 +129,7 @@ export default function App() {
         onCheckin={() => setPanel('checkin')}
         onBoxes={() => setPanel('boxes')}
         onWardrobe={() => setPanel('wardrobe')}
+        onTogether={() => setTogether('whisper')}
         editing={editing}
         view={view}
         growth={growthOf(state)}
@@ -133,7 +139,7 @@ export default function App() {
       />
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
-      {interact && <TownInteract lotId={interact} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} />}
+      {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} />}
       {shopOpen && <ShopModal initialCat={view === 'town' ? shopCat : undefined} onClose={() => { setShopOpen(false); setShopCat(undefined); }} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
       {questsOpen && (
         <QuestBoard
@@ -151,6 +157,8 @@ export default function App() {
       {reveal && last && <RevealModal reward={last.reward} openedBy={`${state.names.A} and ${state.names.B}`} onClose={closeReveal} />}
       {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} onCheats={() => setCheats(true)} />}
+      <BidBanner />
+      {together && <TogetherModal tab={together} onTab={setTogether} onClose={() => setTogether(null)} />}
       {cheats && <CheatsModal onClose={() => setCheats(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}
     </div>

@@ -8,6 +8,7 @@ import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import { dateKey, streakOf } from './questions';
+import { adventureFor, BID_WINDOW_MS, LOVE_QUESTIONS, loveSet, weekKey, whisperQuestion, type BidKind, type WhisperTier } from './together';
 
 const STATE_KEY = 'olw:state:v1';
 const ME_KEY = 'olw:me';
@@ -33,6 +34,16 @@ const initial = (): GameState => ({
   checkins: {},
   approvedCount: 0,
   looks: { A: 'cream', B: 'cream' },
+  shells: 0,
+  whispers: {},
+  glowUntil: 0,
+  auraUntil: 0,
+  bid: null,
+  bidStats: { sent: 0, turned: 0 },
+  adventures: {},
+  lovemap: {},
+  gratitude: [],
+  notesOpened: 0,
   islandSize: 10,
   starterRemoved: false,
   ingredients: 2, // a welcome batch for the café
@@ -425,6 +436,130 @@ export function answerCheckin(player: PlayerId, text: string) {
     xp: state.xp + 15,
     blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0), // a week of check-ins earns a box
   });
+}
+
+// ---------- Together: whispers, bids, adventures, love map, gratitude ----------
+
+/** Fireside Whispers: pick a tier, then both answer. Answers stay hidden until both are in. */
+export function startWhisper(tier: WhisperTier) {
+  const day = dateKey();
+  if (state.whispers[day]) return;
+  commit({ ...state, whispers: { ...state.whispers, [day]: { tier, q: whisperQuestion(tier, day) } } });
+}
+
+export function answerWhisper(player: PlayerId, text: string) {
+  const day = dateKey();
+  const w = state.whispers[day];
+  if (!w || w[player] || !text.trim()) return;
+  const next = { ...w, [player]: text.trim() };
+  const both = !!(next.A && next.B);
+  const whispers = { ...state.whispers, [day]: { ...next, paid: both || w.paid } };
+  if (!both || w.paid) return commit({ ...state, whispers });
+  commit({ ...state, whispers, shells: state.shells + 2, xp: state.xp + 10, glowUntil: Date.now() + 24 * 3600 * 1000 });
+}
+
+/** A small bid for connection: a wave, a cup of tea or a flower. */
+export function sendBid(from: PlayerId, kind: BidKind): boolean {
+  const b = state.bid;
+  if (b && !b.turned && Date.now() - b.ts < BID_WINDOW_MS) return false; // one at a time
+  commit({ ...state, bid: { from, kind, ts: Date.now() }, bidStats: { ...state.bidStats, sent: state.bidStats.sent + 1 } });
+  return true;
+}
+
+/** The partner turns toward the bid within 30 seconds: both are rewarded. */
+export function turnToward(me: PlayerId): boolean {
+  const b = state.bid;
+  if (!b || b.turned || b.from === me || Date.now() - b.ts > BID_WINDOW_MS) return false;
+  commit({
+    ...state,
+    bid: { ...b, turned: true },
+    coins: state.coins + 10, // 5 each, in your shared wallet
+    auraUntil: Date.now() + 5 * 60 * 1000,
+    bidStats: { ...state.bidStats, turned: state.bidStats.turned + 1 },
+  });
+  return true;
+}
+
+export function rollAdventure() {
+  const wk = weekKey();
+  const cur = state.adventures[wk] ?? { rolls: 0 };
+  if (cur.questId) return;
+  commit({ ...state, adventures: { ...state.adventures, [wk]: { ...cur, rolls: cur.rolls + 1 } } });
+}
+
+/** Accepting the weekly adventure creates a verified quest whose reward is a Travel Capsule prop. */
+export function acceptAdventure(me: PlayerId) {
+  const wk = weekKey();
+  const cur = state.adventures[wk] ?? { rolls: 0 };
+  if (cur.questId) return;
+  const adv = adventureFor(wk, cur.rolls);
+  const id = uid();
+  const quest: Quest = {
+    id, title: adv.title, area: 'romance', description: `${adv.blurb} Reward: a Travel Capsule for your island.`,
+    assignedTo: me, status: 'IN_PROGRESS', reward: { coins: 60, gems: 10, itemId: adv.capsule }, milestone: true, createdAt: Date.now(),
+  };
+  commit({ ...state, quests: [quest, ...state.quests], adventures: { ...state.adventures, [wk]: { ...cur, questId: id } } });
+}
+
+export function submitLoveAnswers(player: PlayerId, answers: number[]) {
+  const wk = weekKey();
+  const r = state.lovemap[wk] ?? { answers: {}, guesses: {} };
+  if (r.answers[player]) return;
+  commit({ ...state, lovemap: { ...state.lovemap, [wk]: { ...r, answers: { ...r.answers, [player]: answers } } } });
+}
+
+/** Guess your partner's answers. Correct guesses earn shells, misses reveal the truth and spawn a gesture quest. */
+export function submitLoveGuesses(guesser: PlayerId, guesses: number[]) {
+  const wk = weekKey();
+  const r = state.lovemap[wk];
+  const target = other(guesser);
+  const truth = r?.answers[target];
+  if (!r || !truth || r.guesses[guesser]) return;
+  const set = loveSet(wk);
+  let correct = 0;
+  let firstMiss = -1;
+  guesses.forEach((g, i) => {
+    if (g === truth[i]) correct++;
+    else if (firstMiss < 0) firstMiss = i;
+  });
+  let quests = state.quests;
+  if (firstMiss >= 0) {
+    const lq = LOVE_QUESTIONS[set[firstMiss]];
+    quests = [{
+      id: uid(), title: `Thoughtful gesture for ${state.names[target]}`, area: 'romance',
+      description: `${state.names[target]} said: "${lq.q}" ${lq.options[truth[firstMiss]]}. Do something small that fits.`,
+      assignedTo: guesser, status: 'IN_PROGRESS', reward: { coins: 20, gems: 0 }, createdAt: Date.now(),
+    } as Quest, ...quests];
+  }
+  commit({ ...state, quests, shells: state.shells + correct * 2, lovemap: { ...state.lovemap, [wk]: { ...r, guesses: { ...r.guesses, [guesser]: guesses } } } });
+}
+
+/** One short thank you per person per day. Each note grows the Gratitude Tree. */
+export function dropNote(player: PlayerId, text: string): boolean {
+  const day = dateKey();
+  if (!text.trim() || state.gratitude.some((n) => n.from === player && n.day === day)) return false;
+  commit({ ...state, gratitude: [...state.gratitude, { id: uid(), from: player, text: text.trim().slice(0, 140), day }] });
+  return true;
+}
+
+/** Opening your partner's note earns a shell, and every third one unlocks floral decor. */
+export function openNote(player: PlayerId, id: string) {
+  const n = state.gratitude.find((x) => x.id === id);
+  if (!n || n.opened || n.from === player) return;
+  const count = state.notesOpened + 1;
+  commit({
+    ...state,
+    gratitude: state.gratitude.map((x) => (x.id === id ? { ...x, opened: true } : x)),
+    notesOpened: count,
+    shells: state.shells + 1,
+    inventory: count % 3 === 0 ? addToInventory(state.inventory, 'plant_b', 1) : state.inventory,
+  });
+}
+
+export function buyBlindBoxWithShells(): boolean {
+  if (state.shells < 10) return false;
+  commit({ ...state, shells: state.shells - 10, blindBoxes: state.blindBoxes + 1 });
+  return true;
 }
 
 // ---------- avatars and memories ----------

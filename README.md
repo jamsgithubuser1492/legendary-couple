@@ -106,6 +106,23 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * The coastline orientation is fixed so the beach bands no longer spike at tight turns, and the sails and masts of the boat sprites are intact
 * **Dark cap and beanie look** for James and Rachel, from the new walk sheet: separate left and right walk cycles plus front and back poses. Switch each partner's look in the Wardrobe
 
+### Build 13 status: Park, street and rewards art
+
+* **Seaside Park** grows into the coast as you do: duck pond, gazebo, picnic tree, flower garden, playground and a park sign, each with a real life date idea you can add as a quest. Parked pink beetle and retro van, a postbox and street bin dress the streets
+* The shop has a **Park** tab (pond, fountain, tennis court, playground, gazebo, flower garden, benches, lamp posts) and more **Street** items (crosswalks, cars, scooter, mailboxes, bike rack, signs)
+* Your **blind box, coin and gem art** now appears on the HUD, shop, blind box screen and reveal. Reveal screens show a different box for each rarity
+
+### Build 14 status: Together, five science backed mechanics
+
+Open the new 💞 Together button (or tap the Gratitude Tree on your island).
+
+* **Fireside Whispers** (Aron, escalating self-disclosure): pick a light, medium or deep question, both answer, and answers stay hidden until you both do. Earns 2 Heart Shells 🐚 each time and a 24 hour starry, firelit glow over your island. The Campfire Clearing in the mountains opens it too
+* **Reach Out** (Gottman, bids for connection): send a wave, a cup of tea or a flower. If your partner taps "Turn towards" within 30 seconds, you both get a pulsing Connected aura and 5 coins each. It tracks how often you turn toward each other
+* **Weekly Adventure** (Aron, self-expansion): a mystery date generator offers a novel real world task. Accepting adds a verified milestone quest that rewards a Travel Capsule prop for your island
+* **Love Map quiz** (Gottman): each week you both answer three questions about your current state, then guess each other's answers. Right guesses earn shells, wrong ones reveal the truth and add a Thoughtful Gesture quest
+* **Gratitude Tree** (Gable, capitalization): one thank you per person per day. Each note grows leaves and blossoms on the tree standing on your island. Opening your partner's note earns a shell, and every third unlocks floral decor
+* Heart Shells can be traded 10 for a blind box
+
 ## Run it
 
 ```bash

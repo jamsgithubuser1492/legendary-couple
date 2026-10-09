@@ -1639,6 +1639,258 @@ export const SPRITES = [
     "dw": 100
   },
   {
+    "key": "park_picnic",
+    "file": "park_picnic.png",
+    "w": 225,
+    "h": 240,
+    "dw": 128
+  },
+  {
+    "key": "park_pond",
+    "file": "park_pond.png",
+    "w": 260,
+    "h": 155,
+    "dw": 150
+  },
+  {
+    "key": "park_fountain",
+    "file": "park_fountain.png",
+    "w": 240,
+    "h": 190,
+    "dw": 140
+  },
+  {
+    "key": "park_playground",
+    "file": "park_playground.png",
+    "w": 263,
+    "h": 189,
+    "dw": 160
+  },
+  {
+    "key": "park_tennis",
+    "file": "park_tennis.png",
+    "w": 339,
+    "h": 138,
+    "dw": 190
+  },
+  {
+    "key": "park_gazebo",
+    "file": "park_gazebo.png",
+    "w": 144,
+    "h": 188,
+    "dw": 92
+  },
+  {
+    "key": "park_garden",
+    "file": "park_garden.png",
+    "w": 268,
+    "h": 163,
+    "dw": 134
+  },
+  {
+    "key": "park_bench_a",
+    "file": "park_bench_a.png",
+    "w": 66,
+    "h": 64,
+    "dw": 36
+  },
+  {
+    "key": "park_bench_b",
+    "file": "park_bench_b.png",
+    "w": 65,
+    "h": 66,
+    "dw": 36
+  },
+  {
+    "key": "park_bench_c",
+    "file": "park_bench_c.png",
+    "w": 67,
+    "h": 65,
+    "dw": 36
+  },
+  {
+    "key": "park_bench_d",
+    "file": "park_bench_d.png",
+    "w": 63,
+    "h": 70,
+    "dw": 36
+  },
+  {
+    "key": "park_lamp_a",
+    "file": "park_lamp_a.png",
+    "w": 35,
+    "h": 165,
+    "dw": 18
+  },
+  {
+    "key": "park_lamp_b",
+    "file": "park_lamp_b.png",
+    "w": 36,
+    "h": 150,
+    "dw": 18
+  },
+  {
+    "key": "crosswalk_a",
+    "file": "crosswalk_a.png",
+    "w": 126,
+    "h": 64,
+    "dw": 66
+  },
+  {
+    "key": "crosswalk_b",
+    "file": "crosswalk_b.png",
+    "w": 123,
+    "h": 58,
+    "dw": 66
+  },
+  {
+    "key": "car_pink",
+    "file": "car_pink.png",
+    "w": 65,
+    "h": 50,
+    "dw": 42
+  },
+  {
+    "key": "car_van",
+    "file": "car_van.png",
+    "w": 62,
+    "h": 53,
+    "dw": 46
+  },
+  {
+    "key": "car_scooter",
+    "file": "car_scooter.png",
+    "w": 34,
+    "h": 37,
+    "dw": 24
+  },
+  {
+    "key": "mailbox_red",
+    "file": "mailbox_red.png",
+    "w": 28,
+    "h": 51,
+    "dw": 18
+  },
+  {
+    "key": "mailbox_green",
+    "file": "mailbox_green.png",
+    "w": 28,
+    "h": 46,
+    "dw": 18
+  },
+  {
+    "key": "street_bin",
+    "file": "street_bin.png",
+    "w": 25,
+    "h": 36,
+    "dw": 18
+  },
+  {
+    "key": "bike_rack",
+    "file": "bike_rack.png",
+    "w": 37,
+    "h": 37,
+    "dw": 24
+  },
+  {
+    "key": "sign_park",
+    "file": "sign_park.png",
+    "w": 46,
+    "h": 53,
+    "dw": 28
+  },
+  {
+    "key": "sign_beach",
+    "file": "sign_beach.png",
+    "w": 46,
+    "h": 50,
+    "dw": 30
+  },
+  {
+    "key": "box_standard",
+    "file": "box_standard.png",
+    "w": 280,
+    "h": 295,
+    "dw": 140
+  },
+  {
+    "key": "box_special",
+    "file": "box_special.png",
+    "w": 280,
+    "h": 317,
+    "dw": 140
+  },
+  {
+    "key": "box_rare",
+    "file": "box_rare.png",
+    "w": 280,
+    "h": 287,
+    "dw": 140
+  },
+  {
+    "key": "box_grand",
+    "file": "box_grand.png",
+    "w": 320,
+    "h": 333,
+    "dw": 160
+  },
+  {
+    "key": "coin_heart",
+    "file": "coin_heart.png",
+    "w": 96,
+    "h": 101,
+    "dw": 48
+  },
+  {
+    "key": "coin_one",
+    "file": "coin_one.png",
+    "w": 96,
+    "h": 99,
+    "dw": 48
+  },
+  {
+    "key": "coin_five",
+    "file": "coin_five.png",
+    "w": 112,
+    "h": 69,
+    "dw": 56
+  },
+  {
+    "key": "coin_stack",
+    "file": "coin_stack.png",
+    "w": 120,
+    "h": 115,
+    "dw": 60
+  },
+  {
+    "key": "gem_blue",
+    "file": "gem_blue.png",
+    "w": 96,
+    "h": 92,
+    "dw": 48
+  },
+  {
+    "key": "gem_pink",
+    "file": "gem_pink.png",
+    "w": 96,
+    "h": 92,
+    "dw": 48
+  },
+  {
+    "key": "gem_yellow",
+    "file": "gem_yellow.png",
+    "w": 96,
+    "h": 80,
+    "dw": 48
+  },
+  {
+    "key": "gem_cluster",
+    "file": "gem_cluster.png",
+    "w": 128,
+    "h": 103,
+    "dw": 64
+  },
+  {
     "key": "rachel_front",
     "file": "rachel_front.png",
     "w": 62,

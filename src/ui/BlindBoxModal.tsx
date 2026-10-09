@@ -1,9 +1,10 @@
 import { BOX_PRICE_GEMS, RARITY } from '../state/blindbox';
 import { itemOf } from '../state/catalog';
 import { outfitOf } from '../state/wardrobe';
-import { buyBlindBox, cancelOpenBox, confirmOpenBox, otherPlayer, startOpenBox, useGameState, useMe } from '../state/store';
+import { buyBlindBox, buyBlindBoxWithShells, cancelOpenBox, confirmOpenBox, otherPlayer, startOpenBox, useGameState, useMe } from '../state/store';
 import type { BlindReward } from '../types';
 import ItemIcon, { SpriteImg } from './ItemIcon';
+import { BoxImg, boxFor, CurrencyIcon } from './Currency';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 export function rewardName(r: BlindReward): string {
@@ -14,8 +15,8 @@ export function rewardName(r: BlindReward): string {
 }
 
 function RewardArt({ r, size }: { r: BlindReward; size: number }) {
-  if (r.kind === 'coins') return <span style={{ fontSize: size * 0.8 }}>🪙</span>;
-  if (r.kind === 'gems') return <span style={{ fontSize: size * 0.8 }}>💎</span>;
+  if (r.kind === 'coins') return <CurrencyIcon kind="coin" size={size} />;
+  if (r.kind === 'gems') return <CurrencyIcon kind="gem" size={size} />;
   if (r.kind === 'item') return <ItemIcon id={r.refId!} size={size} />;
   const o = outfitOf(r.refId!);
   return o ? <SpriteImg sprite={o.sprite} size={size} /> : null;
@@ -30,7 +31,7 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Blind Boxes 🎁" onClose={onClose}>
       <div className="rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 text-center">
-        <div className={`text-6xl ${pending ? 'animate-wiggle' : ''}`}>🎁</div>
+        <BoxImg sprite="box_standard" size={150} className={pending ? 'animate-wiggle' : ''} />
         <div className="mt-1 font-display text-2xl font-bold text-cocoa">× {s.blindBoxes}</div>
       </div>
 
@@ -72,7 +73,10 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <button className={`${softBtn} mt-3 w-full`} disabled={s.gems < BOX_PRICE_GEMS} onClick={buyBlindBox}>
-        Buy a box · 💎 {BOX_PRICE_GEMS}
+        Buy a box · <CurrencyIcon kind="gem" size={18} /> {BOX_PRICE_GEMS}
+      </button>
+      <button className={`${softBtn} mt-2 w-full`} disabled={s.shells < 10} onClick={buyBlindBoxWithShells}>
+        Trade 10 Heart Shells 🐚 for a box
       </button>
     </Sheet>
   );
@@ -84,7 +88,8 @@ export function RevealModal({ reward, openedBy, onClose }: { reward: BlindReward
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-cocoa/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-xs rounded-3xl bg-cream p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <p className="font-display text-sm font-bold text-cocoa/60">Opened together 💕</p>
-        <div className={`animate-pop mx-auto mt-3 flex h-36 w-36 items-center justify-center rounded-3xl ${r.color}`}>
+        <BoxImg sprite={boxFor(reward.rarity)} size={72} className="mt-1 opacity-90" />
+        <div className={`animate-pop mx-auto mt-2 flex h-36 w-36 items-center justify-center rounded-3xl ${r.color}`}>
           <RewardArt r={reward} size={96} />
         </div>
         <span className={`mt-3 inline-block rounded-full px-3 py-0.5 text-xs font-bold text-cocoa ${r.color}`}>{r.label}</span>

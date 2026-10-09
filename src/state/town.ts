@@ -69,7 +69,6 @@ add('coast', 0, 18, 2, 2, 'sprite', 14, 'Souvenir Shop', { sprite: 'shop_souveni
 add('coast', 13, 19, 2, 2, 'house', 15, 'Garden House', { variant: 3 });
 add('coast', 13, 25, 2, 2, 'sprite', 18, 'Our Little Café', { sprite: 'cafe_exterior', blurb: 'The café you are building together.' });
 add('coast', 3, 21, 2, 2, 'house', 21, 'Peach House', { variant: 4 });
-add('coast', 11, 17, 1, 1, 'sprite', 22, 'Town Fountain', { sprite: 'town_fountain', blurb: 'Make a wish together.' });
 add('coast', 13, 28, 3, 2, 'sprite', 20, 'Beach Volleyball', { sprite: 'volleyball_net', blurb: 'Loser buys the matcha.' });
 add('coast', 0, 26, 2, 2, 'sprite', 23, 'Beach Lounge', { sprite: 'beach_set', blurb: 'Umbrella, lounger and a good book.' });
 add('coast', 3, 19, 2, 2, 'house', 24, 'Lilac House', { variant: 5 });
@@ -78,12 +77,19 @@ add('coast', 7, 25, 2, 2, 'house', 27, 'Mint House', { variant: 1 });
 add('coast', 9, 25, 2, 2, 'house', 30, 'Rose Cottage', { variant: 0 });
 add('coast', 15, 19, 2, 2, 'house', 33, 'Sunny House', { variant: 3 });
 add('coast', 15, 21, 2, 2, 'house', 36, 'Sky House', { variant: 2 });
-add('coast', 7, 15, 2, 2, 'house', 39, 'Hilltop House', { variant: 5 });
-add('coast', 9, 15, 2, 2, 'house', 42, 'Corner House', { variant: 4 });
-add('coast', 13, 15, 2, 2, 'house', 45, 'Bay House', { variant: 2 });
 add('coast', 3, 15, 2, 2, 'house', 48, 'Dune House', { variant: 3 });
 add('coast', 3, 25, 2, 2, 'house', 51, 'Shell House', { variant: 0 });
-add('coast', 15, 15, 2, 2, 'house', 54, 'Harbor House', { variant: 1 });
+// Seaside Park: grows in as you do
+add('coast', 6, 13, 4, 3, 'sprite', 36, 'Duck Pond', { sprite: 'park_pond', blurb: 'Feed the ducks and watch the lily pads.' });
+add('coast', 11, 13, 2, 2, 'sprite', 40, 'Garden Gazebo', { sprite: 'park_gazebo', blurb: 'A shady spot for slow conversations.' });
+add('coast', 7, 17, 3, 2, 'sprite', 44, 'Picnic Tree', { sprite: 'park_picnic', blurb: 'Blanket, snacks and nowhere to be.' });
+add('coast', 10, 16, 3, 3, 'sprite', 47, 'Flower Garden', { sprite: 'park_garden', blurb: 'Pick a favorite flower for each other.' });
+add('coast', 14, 13, 3, 3, 'sprite', 50, 'Playground', { sprite: 'park_playground', blurb: 'Swings, slides and a sandbox.' });
+add('coast', 16, 17, 1, 1, 'sprite', 52, 'Park Sign', { sprite: 'sign_park' });
+add('coast', 8, 19, 1, 1, 'sprite', 24, 'Pink Beetle', { sprite: 'car_pink', blurb: 'Parked and ready for a drive.' });
+add('coast', 11, 24, 1, 1, 'sprite', 34, 'Retro Van', { sprite: 'car_van' });
+add('coast', 5, 22, 1, 1, 'sprite', 26, 'Postbox', { sprite: 'mailbox_red' });
+add('coast', 12, 20, 1, 1, 'sprite', 38, 'Street Bin', { sprite: 'street_bin' });
 for (const [x, y, at] of [[6, 18, 4], [12, 18, 14], [6, 24, 22], [12, 24, 32]] as const) add('coast', x, y, 1, 1, 'sprite', at, 'Street Lamp', { sprite: 'street_lamp_a' });
 for (const [x, y, at] of [[5, 20, 7], [11, 20, 17], [5, 24, 28], [11, 23, 38]] as const) add('coast', x, y, 1, 1, 'sprite', at, 'Bench', { sprite: x % 2 ? 'bench_a' : 'bench_b' });
 for (const [x, y, at] of [[5, 16, 10], [11, 17, 19], [5, 26, 29], [15, 24, 40], [2, 14, 46]] as const) add('coast', x, y, 1, 1, 'tree', at, 'Tree', { variant: x % 3 });
@@ -140,6 +146,7 @@ add('campus', 30, 16, 1, 1, 'tree', 200, 'Tree', { variant: 2 });
 export type Activity =
   | { kind: 'brew' }
   | { kind: 'shop'; cat: string; line: string }
+  | { kind: 'together'; tab: string; title: string; line: string }
   | { kind: 'tip'; title: string; ideas: string[] };
 
 const tip = (title: string, ...ideas: string[]): Activity => ({ kind: 'tip', title, ideas });
@@ -158,9 +165,14 @@ export const ACTIVITIES: Record<string, Activity> = {
   'Vintage Bookstore': tip('Pick a book for each other 📚', 'Choose a book for each other and tell them why.', 'Read the first page out loud to each other.', 'Find a cookbook and plan one meal to cook together.'),
   'Hot Dog Stand': tip('Street food date 🌭', 'Try a food you have never had before, together.', 'Eat standing up and people watch for ten minutes.'),
   'Beach Volleyball': tip('Loser buys the matcha 🏐', 'Play a friendly game. Loser buys the drinks.', 'Make up a silly rule that has to be followed all game.'),
-  'Campfire Clearing': tip('Fireside talk 🔥', 'Ask each other: what is one thing you are looking forward to this month?', 'Tell the story of the day we first met, from your side.'),
+  'Campfire Clearing': { kind: 'together', tab: 'whisper', title: 'Fireside Whispers 🔥', line: 'Sit by the fire and trade one honest answer each.' },
   'Stargazing Spot': tip('Look up together 🔭', 'Find one star or planet each and name it after something you love.', 'Make a wish out loud, then tell each other one.'),
   'Lifeguard Stand': tip('Sunset on the sand 🌅', 'Watch the sunset with phones away.', 'Collect one shell each and tell its story.'),
+  'Duck Pond': tip('Feed the ducks 🦆', 'Bring bread (or oats) and name every duck.', 'Sit by the water and each share one thing you are proud of this month.'),
+  'Picnic Tree': tip('Picnic under the tree 🧺', 'Pack a picnic and put the phones away for an hour.', 'Play twenty questions about your favorite memories.'),
+  Playground: tip('Be kids again 🛝', 'Race to the swings. Loser plans the next date.', 'Take silly photos of each other.'),
+  'Garden Gazebo': tip('Gazebo talk 🛖', 'Ask each other: what do you want more of this season?', 'Read a letter or note you saved from each other.'),
+  'Flower Garden': tip('Flowers for no reason 🌷', 'Pick or buy a flower for each other and say why you chose it.', 'Learn the names of three flowers together.'),
   'The Farmstead': tip('Grow something 🌱', 'Plant something together, even a herb on the windowsill.', 'Plan a dinner using only things you grew or picked.'),
   'The Mountain Cabin': tip('A cozy cabin day ⛰️', 'Plan a zero agenda cozy day: blankets, tea, no chores.', 'Pick a trail to walk together soon.'),
 };

@@ -1,7 +1,7 @@
 import type { Theme } from './season';
 
 export type Layer = 'floor' | 'wall' | 'walldecor' | 'object';
-export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'decor' | 'pets' | 'landmark' | 'seasonal';
+export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'park' | 'decor' | 'pets' | 'landmark' | 'seasonal';
 export type Shape = 'box' | 'round' | 'tree';
 
 export interface CatalogItem {
@@ -173,6 +173,7 @@ export const CATEGORIES: { id: ShopCategory; label: string }[] = [
   { id: 'cafe', label: 'Café' },
   { id: 'camp', label: 'Camping' },
   { id: 'street', label: 'Street & Beach' },
+  { id: 'park', label: 'Park' },
   { id: 'decor', label: 'Decor' },
   { id: 'pets', label: 'Pets' },
   { id: 'landmark', label: 'Landmarks' },
@@ -249,3 +250,27 @@ add('vertical_farm', 'Vertical Farm', '🥬', 'camp', 'object', 140, 0, 1, 1, 'v
 for (const [k, n] of [['grandma', 'Grandma Reading'], ['photographer', 'Photographer'], ['woman', 'Coffee Walker'], ['hat', 'Sun Hat Visitor']] as const) {
   add(`npc_${k}`, n, '🧑', 'pets', 'object', 0, 20, 1, 1, `npc_${k}`);
 }
+
+// ---- Park, road and street pieces (Build 13) ----
+add('park_picnic', 'Picnic Tree', '🧺', 'park', 'object', 260, 0, 3, 2, 'park_picnic');
+add('park_pond', 'Duck Pond', '🦆', 'park', 'object', 380, 0, 4, 3, 'park_pond');
+add('park_fountain', 'Park Fountain', '⛲', 'park', 'object', 0, 70, 3, 3, 'park_fountain');
+add('park_playground', 'Playground', '🛝', 'park', 'object', 520, 0, 4, 3, 'park_playground');
+add('park_tennis', 'Tennis Court', '🎾', 'park', 'object', 640, 0, 5, 3, 'park_tennis');
+add('park_gazebo', 'Garden Gazebo', '🛖', 'park', 'object', 340, 0, 2, 2, 'park_gazebo');
+add('park_garden', 'Flower Garden', '🌷', 'park', 'object', 300, 0, 3, 3, 'park_garden');
+for (const [k, n] of [['a', 'Slat'], ['b', 'Curved'], ['c', 'Plain'], ['d', 'Scroll']] as const) add(`park_bench_${k}`, `${n} Park Bench`, '🪑', 'park', 'object', 70, 0, 1, 1, `park_bench_${k}`);
+add('park_lamp_a', 'Warm Lamp Post', '🏮', 'park', 'object', 80, 0, 1, 1, 'park_lamp_a');
+add('park_lamp_b', 'Iron Lamp Post', '🏮', 'park', 'object', 80, 0, 1, 1, 'park_lamp_b');
+add('crosswalk_a', 'Crosswalk', '🚸', 'street', 'floor', 60, 0, 1, 1, 'crosswalk_a');
+add('crosswalk_b', 'Angled Crosswalk', '🚸', 'street', 'floor', 60, 0, 1, 1, 'crosswalk_b');
+add('car_pink', 'Pink Beetle', '🚗', 'street', 'object', 0, 35, 1, 1, 'car_pink');
+add('car_van', 'Retro Van', '🚌', 'street', 'object', 0, 45, 2, 1, 'car_van');
+add('car_scooter', 'Scooter', '🛵', 'street', 'object', 140, 0, 1, 1, 'car_scooter');
+add('mailbox_red', 'Red Postbox', '📮', 'street', 'object', 70, 0, 1, 1, 'mailbox_red');
+add('mailbox_green', 'Green Mailbox', '📫', 'street', 'object', 70, 0, 1, 1, 'mailbox_green');
+add('street_bin', 'Street Bin', '🗑️', 'street', 'object', 30, 0, 1, 1, 'street_bin');
+add('bike_rack', 'Bike Rack', '🚲', 'street', 'object', 60, 0, 1, 1, 'bike_rack');
+add('sign_park', 'Park Entry Sign', '🪧', 'street', 'object', 50, 0, 1, 1, 'sign_park');
+add('sign_beach', 'Beach Sign', '🪧', 'street', 'object', 50, 0, 1, 1, 'sign_beach');
+

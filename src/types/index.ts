@@ -94,6 +94,12 @@ export interface Checkin {
   paid?: boolean;
 }
 
+export type WhisperTier = 'light' | 'medium' | 'deep';
+export interface Whisper { tier: WhisperTier; q: string; A?: string; B?: string; paid?: boolean }
+export interface Bid { from: PlayerId; kind: 'wave' | 'tea' | 'flower'; ts: number; turned?: boolean }
+export interface LoveRound { answers: { A?: number[]; B?: number[] }; guesses: { A?: number[]; B?: number[] } }
+export interface GratitudeNote { id: string; from: PlayerId; text: string; day: string; opened?: boolean }
+
 export interface GameState {
   startingPath: StartingPath | null;
   coins: number;
@@ -112,6 +118,16 @@ export interface GameState {
   checkins: Record<string, Checkin>; // keyed by local date, YYYY-MM-DD
   approvedCount: number;
   looks: Record<PlayerId, 'cream' | 'dark'>; // which outfit set each partner wears
+  shells: number; // Heart Shells, earned by growing closer
+  whispers: Record<string, Whisper>;
+  glowUntil: number; // starry fireside glow over the island
+  auraUntil: number; // Connected aura after turning toward a bid
+  bid: Bid | null;
+  bidStats: { sent: number; turned: number };
+  adventures: Record<string, { rolls: number; questId?: string }>;
+  lovemap: Record<string, LoveRound>;
+  gratitude: GratitudeNote[];
+  notesOpened: number;
   islandSize: number; // tiles per side of the home island
   starterRemoved: boolean; // the starter structure has been picked up
   ingredients: number; // café brewing ingredients

@@ -127,7 +127,7 @@ const pick = <T,>(arr: T[], seed: string): T => {
 };
 
 /** What you can do at a place in town: brew drinks, browse a shop, or pick up a date idea. */
-export function TownInteract({ lotId, onClose, onShop }: { lotId: string; onClose: () => void; onShop: (cat: string) => void }) {
+export function TownInteract({ lotId, onClose, onShop, onTogether }: { lotId: string; onClose: () => void; onShop: (cat: string) => void; onTogether: (tab: string) => void }) {
   const s = useGameState();
   const me = useMe();
   const lot = LOTS.find((l) => l.id === lotId);
@@ -171,6 +171,16 @@ export function TownInteract({ lotId, onClose, onShop }: { lotId: string; onClos
       <Sheet title={lot.name} onClose={onClose}>
         <p className="text-cocoa">{act.line}</p>
         <button className={`${primaryBtn} mt-4 w-full`} onClick={() => { onClose(); onShop(act.cat); }}>Browse the shop 🛍</button>
+        <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Not now</button>
+      </Sheet>
+    );
+  }
+
+  if (act.kind === 'together') {
+    return (
+      <Sheet title={act.title} onClose={onClose}>
+        <p className="text-cocoa">{act.line}</p>
+        <button className={`${primaryBtn} mt-4 w-full`} onClick={() => { onClose(); onTogether(act.tab); }}>Sit by the fire 🔥</button>
         <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Not now</button>
       </Sheet>
     );
