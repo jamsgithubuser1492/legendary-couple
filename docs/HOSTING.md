@@ -10,6 +10,9 @@ Notes
 * Pages on a **private** repo needs a paid GitHub plan. On a free plan the repo has to be public. Public means anyone can read the code and the art, including the Hello Kitty, Miffy, Snoopy and Miniso sprites. Fine for a private hobby, but think about it before sharing the link widely.
 * Your game progress is not stored in the repo, only in your browser (and in Supabase once you set it up).
 
+### If you see a blank white page
+This almost always means GitHub Pages is serving the repo's source files instead of the built game. Check **Settings, Pages, Build and deployment, Source**. It must say **GitHub Actions**, not "Deploy from a branch". After changing it, open the **Actions** tab, pick the latest "Deploy to GitHub Pages" run and press **Re-run all jobs**. A hard refresh (hold Shift while reloading) clears a cached blank page.
+
 ## 2. Link both phones (real time sync with Supabase, free)
 1. Create a free project at supabase.com.
 2. SQL Editor, paste the contents of `supabase/schema.sql`, run it.

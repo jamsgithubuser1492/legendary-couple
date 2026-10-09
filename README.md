@@ -54,6 +54,15 @@ To turn on real time sync: create a Supabase project, run `supabase/schema.sql`,
 * New art: your starter furniture, RV, camping set, wall decor and companion outfits
 * Sprite edges are now defringed in `tools/slice_sprites.py`, so no pale halos
 
+## Build 7 status: The Town map
+
+* A zoomed out **Town** (tap the 🌍 button) that mirrors your world map: Cozy Town and Coast, Countryside and Farms, Mountain Trail and Cabin, Downtown Extension, and the Future Campus and Greenhouses
+* It starts bare. Locked regions sit under mist, and the town fills with buildings, trees and walking townsfolk as your **growth** rises (approved quests, memories, daily questions and decorating)
+* Generic houses, towers, barns and trees are drawn by the game, mixed with your shops, stands, farm, cabin and campus art. New arrivals pop in with a message, and each region announces itself when it opens
+* The 🖼️ **dream map** shows your full panorama, with unopened regions hidden behind mist
+* Tap the Home pin on the west beach to return to your island. Preview a grown town from the 🌱 panel (this device only)
+* Boardwalk floors, street furniture, shops, stands, camping and farm items, and townsfolk are all in the shop
+
 ## Run it
 
 ```bash

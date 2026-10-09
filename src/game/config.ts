@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MainScene } from './scenes/MainScene';
+import { TownScene } from './scenes/TownScene';
 
 export function createGame(parent: HTMLElement): Phaser.Game {
   return new Phaser.Game({
@@ -13,6 +14,6 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       height: parent.clientHeight || window.innerHeight,
     },
     input: { activePointers: 2, touch: { capture: true } },
-    scene: [MainScene],
+    scene: [MainScene, TownScene],
   });
 }

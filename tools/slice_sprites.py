@@ -15,6 +15,7 @@ OUT = os.path.join(ROOT, 'public', 'assets', 'sprites')
 SHEETS = {
     's1': 'sheet1_overview.webp', 's2': 'sheet2_modular_seasonal.webp', 's6': 'sheet6_cafe_day.jpg',
     's7': 'sheet7_world_characters.jpg', 's8': 'sheet8_cafe_sunset.jpg',
+    's12': 'sheet12_downtown.jpg', 's13': 'sheet13_boardwalk.jpg', 's14': 'sheet14_regions.jpg',
     's9': 'sheet9_starter_walldecor.jpg', 's10': 'sheet10_rv_interior.jpg', 's11': 'sheet11_camp_characters.jpg',
 }
 
@@ -149,6 +150,69 @@ SPRITES = [
     ('dinette_seating', 's10', (322, 528, 492, 648)),
     ('cabinet_shelving', 's10', (643, 508, 748, 658)),
     ('bathroom_module', 's10', (503, 498, 628, 652)),
+    # --- sheet 12: downtown shops, stands, street props, townsfolk ---
+    ('shop_bookstore', 's12', (28, 112, 218, 312)),
+    ('shop_bistro', 's12', (262, 108, 472, 308)),
+    ('shop_florist', 's12', (148, 260, 326, 442), [(276, 420, 332, 448)]),
+    ('shop_toy', 's12', (450, 220, 642, 422)),
+    ('stand_news', 's12', (728, 110, 832, 248)),
+    ('stand_hotdog', 's12', (908, 98, 1042, 248)),
+    ('stand_art', 's12', (703, 283, 842, 422)),
+    ('board_message', 's12', (912, 273, 1028, 422)),
+    ('street_lamp_a', 's12', (32, 508, 92, 702)),
+    ('street_lamp_b', 's12', (103, 510, 172, 702)),
+    ('street_lamp_c', 's12', (176, 505, 228, 702)),
+    ('street_lamp_d', 's12', (238, 508, 298, 702)),
+    ('bench_a', 's12', (313, 503, 418, 602)),
+    ('bench_b', 's12', (426, 503, 528, 598)),
+    ('bench_c', 's12', (316, 596, 422, 697)),
+    ('bench_d', 's12', (426, 596, 528, 697)),
+    ('planter_pot', 's12', (543, 506, 607, 582)),
+    ('planter_box_a', 's12', (613, 498, 707, 602)),
+    ('plant_tall', 's12', (538, 573, 612, 697)),
+    ('planter_box_b', 's12', (613, 588, 707, 702)),
+    ('phone_booth', 's12', (733, 503, 824, 702)),
+    ('bus_sign', 's12', (833, 546, 880, 702)),
+    ('clock_post', 's12', (878, 503, 947, 697)),
+    ('wall_clock', 's12', (953, 508, 1052, 617)),
+    ('bin_a', 's12', (953, 623, 1007, 697)),
+    ('bin_b', 's12', (1003, 623, 1062, 697)),
+    ('npc_grandma', 's12', (483, 752, 562, 902)),
+    ('npc_photographer', 's12', (573, 748, 647, 907)),
+    ('npc_woman', 's12', (678, 748, 742, 907)),
+    ('npc_hat', 's12', (768, 748, 832, 907)),
+    # --- sheet 13: boardwalk tiles, beach shops and props ---
+    ('bw_light', 's13', (22, 62, 202, 152)),
+    ('bw_light2', 's13', (225, 62, 402, 152)),
+    ('bw_coral', 's13', (427, 62, 604, 152)),
+    ('bw_dark', 's13', (125, 136, 300, 234)),
+    ('bw_brown', 's13', (25, 198, 202, 294)),
+    ('bw_green', 's13', (125, 260, 300, 364)),
+    ('bw_coral2', 's13', (325, 260, 502, 362)),
+    ('bw_sand', 's13', (427, 322, 607, 428), [(520, 420, 612, 450)]),
+    ('shop_surf', 's13', (688, 62, 862, 222)),
+    ('shop_icecream', 's13', (888, 68, 1052, 226)),
+    ('stand_coffee', 's13', (688, 262, 812, 422)),
+    ('shop_souvenir', 's13', (862, 262, 1052, 422)),
+    ('lifeguard_red', 's13', (32, 508, 158, 702)),
+    ('surfboard_rack', 's13', (178, 558, 297, 702)),
+    ('surfboard_stack', 's13', (302, 498, 427, 702)),
+    ('volleyball_net', 's13', (452, 488, 697, 697)),
+    ('beach_set', 's13', (478, 742, 642, 897)),
+    ('souvenir_display', 's13', (703, 762, 812, 902)),
+    ('seating_cluster', 's13', (852, 748, 1052, 888)),
+    # --- sheet 14: regions and their props ---
+    ('region_farm', 's14', (22, 112, 518, 458)),
+    ('region_mountain', 's14', (668, 88, 1062, 452)),
+    ('campus_buildings', 's14', (28, 485, 438, 705)),
+    ('greenhouse_domes', 's14', (435, 488, 722, 692)),
+    ('farm_tools', 's14', (478, 112, 652, 208)),
+    ('crate_veg', 's14', (533, 203, 642, 258)),
+    ('orange_tree', 's14', (523, 343, 572, 428)),
+    ('telescope', 's14', (985, 463, 1052, 548)),
+    ('hiking_poles', 's14', (922, 473, 958, 548)),
+    ('golf_cart', 's14', (862, 612, 952, 692)),
+    ('vertical_farm', 's14', (972, 583, 1052, 692)),
     # --- avatars (static, from the overview sheet) ---
     ('rachel_front', 's1', (803, 58, 880, 200)),
     ('rachel_side', 's1', (878, 58, 950, 200)),
@@ -157,6 +221,19 @@ SPRITES = [
 
 # On-screen width in px at zoom 1 (one tile is 64 px wide). Sprites are stored at 2x this for crispness.
 DISPLAY_W = {
+    'shop_bookstore': 110, 'shop_bistro': 110, 'shop_florist': 100, 'shop_toy': 110, 'stand_news': 56,
+    'stand_hotdog': 64, 'stand_art': 70, 'board_message': 64, 'street_lamp_a': 20, 'street_lamp_b': 24,
+    'street_lamp_c': 20, 'street_lamp_d': 24, 'bench_a': 46, 'bench_b': 46, 'bench_c': 46, 'bench_d': 46,
+    'planter_pot': 28, 'planter_box_a': 44, 'plant_tall': 34, 'planter_box_b': 44, 'phone_booth': 40,
+    'bus_sign': 20, 'clock_post': 28, 'wall_clock': 36, 'bin_a': 22, 'bin_b': 22,
+    'npc_grandma': 30, 'npc_photographer': 30, 'npc_woman': 28, 'npc_hat': 28,
+    'bw_light': 66, 'bw_light2': 66, 'bw_coral': 66, 'bw_dark': 66, 'bw_brown': 66, 'bw_green': 66,
+    'bw_coral2': 66, 'bw_sand': 66, 'shop_surf': 90, 'shop_icecream': 74, 'stand_coffee': 64,
+    'shop_souvenir': 100, 'lifeguard_red': 60, 'surfboard_rack': 44, 'surfboard_stack': 50,
+    'volleyball_net': 110, 'beach_set': 76, 'souvenir_display': 40, 'seating_cluster': 90,
+    'region_farm': 300, 'region_mountain': 260, 'campus_buildings': 220, 'greenhouse_domes': 170,
+    'farm_tools': 40, 'crate_veg': 30, 'orange_tree': 28, 'telescope': 26, 'hiking_poles': 14,
+    'golf_cart': 40, 'vertical_farm': 36,
     'lamp_floor': 34, 'bed_wood': 100, 'bookshelf_small': 50, 'plant_floor': 40, 'wreath_holiday': 34,
     'string_lights': 56, 'print_palm': 22, 'print_coffee': 22, 'print_sunset': 24, 'shelf_plant': 34,
     'shelf_books': 34, 'latte_gold': 28, 'pastry_trio': 34, 'wreath_xmas': 36, 'garland_stars': 56,
@@ -244,6 +321,14 @@ def cut(sheet, box, erase=()):
     return img.crop(bbox) if bbox else img
 
 
+def save_small(img, path):
+    # 256 colour PNG with alpha: cartoon art loses nothing visible and files shrink by about half
+    try:
+        img.quantize(colors=256, method=Image.FASTOCTREE, dither=Image.NONE).save(path, optimize=True)
+    except Exception:
+        img.save(path, optimize=True)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     sheets = {k: Image.open(os.path.join(SRC, v)).convert('RGB') for k, v in SHEETS.items()}
@@ -256,7 +341,7 @@ def main():
         target = dw * 2
         if img.width > target:
             img = img.resize((target, round(img.height * target / img.width)), Image.LANCZOS)
-        img.save(os.path.join(OUT, key + '.png'), optimize=True)
+        save_small(img, os.path.join(OUT, key + '.png'))
         entries.append({'key': key, 'file': key + '.png', 'w': img.width, 'h': img.height, 'dw': dw})
     # walk sheet: 4 cols x 4 rows, every frame the same size, bottom aligned
     sheet2 = sheets['s2']
@@ -269,7 +354,7 @@ def main():
             atlas.paste(tile, (c * WALK_W + ox, r * WALK_H + oy), tile)
     fw, fh = round(WALK_W * WALK_SCALE), round(WALK_H * WALK_SCALE)
     atlas = atlas.resize((fw * 4, fh * 4), Image.LANCZOS)
-    atlas.save(os.path.join(OUT, 'james_walk.png'), optimize=True)
+    save_small(atlas, os.path.join(OUT, 'james_walk.png'))
     ts = ['// Generated by tools/slice_sprites.py. Do not edit by hand.',
           'export const SPRITES = ' + json.dumps(entries, indent=2) + ' as const;', '',
           f'export const WALK_SHEET = {{ key: "james_walk", file: "james_walk.png", frameWidth: {fw}, frameHeight: {fh}, rows: ["front", "back", "left", "right"] }} as const;', '']
@@ -278,5 +363,12 @@ def main():
     print('wrote', len(entries), 'sprites + walk sheet')
 
 
+def make_world_map():
+    # the zoomed out world map poster, without the character and UI panels underneath it
+    im = Image.open(os.path.join(SRC, 'sheet15_world_map.jpg')).convert('RGB').crop((0, 0, 1085, 690))
+    im.save(os.path.join(ROOT, 'public', 'assets', 'world_map.jpg'), quality=82, optimize=True)
+
+
 if __name__ == '__main__':
+    make_world_map()
     sys.exit(main())

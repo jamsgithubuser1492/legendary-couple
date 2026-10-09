@@ -64,7 +64,7 @@ export class Ambient {
   private particles: Particle[] = [];
   private theme: Theme = 'spring';
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, private opts: { island: boolean } = { island: true }) {
     this.scene = scene;
     makeTextures(scene);
     scene.events.on(Phaser.Scenes.Events.UPDATE, this.update, this);
@@ -77,8 +77,10 @@ export class Ambient {
     this.scene.cameras.main.setBackgroundColor(pal.skyCss);
     this.world.forEach((g) => g.destroy());
     this.world = [];
-    this.drawWater(pal.waterRing);
-    this.drawIsland(pal);
+    if (this.opts.island) {
+      this.drawWater(pal.waterRing);
+      this.drawIsland(pal);
+    }
     this.spawn(KIND[theme]);
   }
 

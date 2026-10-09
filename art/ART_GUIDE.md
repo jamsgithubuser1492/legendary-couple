@@ -34,6 +34,9 @@ Priority first.
 11. **Hello Kitty and Miffy walk cycles** (4 directions) for wandering NPCs on the island.
 12. **Day and night or sunset tint** reference so we can add a light overlay.
 
+## Town map art
+The town uses your shop, stand, farm, cabin and campus sprites plus buildings the game draws itself (pastel houses, towers, barns, trees). More **generic building sprites** in your style would make the town feel richer: houses in 5 or 6 styles, a barn, a windmill, apartment blocks, a school, a library, a train station and a pier. Draw each to fit a 2 x 2 tile footprint (about 128 px wide at 2x), and bigger landmarks to 3 x 3 or 4 x 4.
+
 ## Wall decor orientation
 Hanging pieces (prints, shelves, wreaths, garlands) are drawn for the back left wall, the one that rises to the right. The game mirrors them for the back right wall. Draw them flat against the wall, not floating.
 

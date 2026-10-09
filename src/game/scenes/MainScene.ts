@@ -75,13 +75,17 @@ export class MainScene extends Phaser.Scene {
     });
 
     const onPath = (p: PathPayload) => this.setStartingPath(p);
-    const onCenter = () => this.centerCamera();
-    const onZoom = (d: number) => this.zoomBy(d);
+    const onCenter = () => this.scene.isActive() && this.centerCamera();
+    const onZoom = (d: number) => this.scene.isActive() && this.zoomBy(d);
+    const onView = (v: string) => {
+      if (v === 'town' && this.scene.isActive()) this.scene.switch('TownScene');
+    };
     const onEdit = (e: EditPayload) => {
       this.edit = e;
       this.refreshHover();
     };
     const onFocus = (t: { x: number; y: number }) => {
+      if (!this.scene.isActive()) return;
       const c = tileCenter(t.x, t.y);
       this.cameras.main.pan(c.x, c.y, 600, 'Sine.easeInOut');
     };
@@ -96,6 +100,7 @@ export class MainScene extends Phaser.Scene {
     gameBus.on(BUS.center, onCenter);
     gameBus.on(BUS.zoom, onZoom);
     gameBus.on(BUS.focus, onFocus);
+    gameBus.on(BUS.view, onView);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offState();
       offTheme();
@@ -104,6 +109,7 @@ export class MainScene extends Phaser.Scene {
       gameBus.off(BUS.center, onCenter);
       gameBus.off(BUS.zoom, onZoom);
       gameBus.off(BUS.focus, onFocus);
+      gameBus.off(BUS.view, onView);
     });
   }
 
