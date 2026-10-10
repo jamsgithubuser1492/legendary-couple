@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { GRID_SIZE, TILE_W_HALF, tileCenter } from './iso';
-import { drawIsland, islandOutline } from './island';
+import { drawIsland, islandOutline, paintLand } from './island';
+import { getState } from '../state/store';
+import { growthOf } from '../state/town';
 import { cartesianToIso } from './iso';
 import { PALETTES, type Theme } from '../state/season';
 
@@ -68,6 +70,9 @@ export class Ambient {
   private lastRipple = 0;
   private particles: Particle[] = [];
   private theme: Theme = 'spring';
+  private landImg?: Phaser.GameObjects.Image;
+  private landBucket = -1;
+  private waterTile?: Phaser.GameObjects.TileSprite;
 
   constructor(scene: Phaser.Scene, private opts: { island: boolean } = { island: true }) {
     this.scene = scene;
@@ -84,7 +89,10 @@ export class Ambient {
     this.world = [];
     if (this.opts.island) {
       this.drawWater(pal.waterRing);
-      const layers = drawIsland(this.scene, pal);
+      const g = this.greenness();
+      this.landBucket = g.bucket;
+      const layers = drawIsland(this.scene, pal, { theme, greenness: g.value, bucket: g.bucket });
+      this.landImg = layers.objects.find((o) => o instanceof Phaser.GameObjects.Image) as Phaser.GameObjects.Image | undefined;
       this.world.push(...layers.objects);
       this.grid = layers.grid;
       this.grid.setVisible(this.gridOn);
@@ -92,7 +100,59 @@ export class Ambient {
     this.spawn(KIND[theme]);
   }
 
+  /** How far the bare dirt has greened over: it starts bare and fills in as the two of you grow. */
+  private greenness() {
+    const value = Math.min(1, 0.22 + growthOf(getState()) / 45);
+    return { value, bucket: Math.round(value * 10) };
+  }
+
+  /** Repaints only the ground when the greenness changes, so growing never resets the particles. */
+  refreshGround() {
+    if (!this.opts.island) return;
+    const g = this.greenness();
+    if (g.bucket === this.landBucket) return;
+    this.landBucket = g.bucket;
+    const old = this.landImg;
+    const img = paintLand(this.scene, this.theme, g.value, g.bucket);
+    if (!img) return;
+    this.landImg = img;
+    this.world.push(img);
+    if (old) {
+      this.world = this.world.filter((o) => o !== old);
+      const key = old.texture.key;
+      old.destroy();
+      if (key !== img.texture.key && this.scene.textures.exists(key)) this.scene.textures.remove(key);
+    }
+  }
+
+  /** The painted sea: your seasonal water art, mirrored so it never shows a seam, drifting slowly under the island. */
+  private paintWater() {
+    const name = ({ spring: 'env_water_spring', summer: 'env_water_summer', autumn: 'env_water_autumn', winter: 'env_water_winter', holidays: 'env_water_winter' } as const)[this.theme];
+    if (!this.scene.textures.exists(name)) return;
+    const src = this.scene.textures.get(name).getSourceImage() as HTMLImageElement;
+    const key = `${name}_mirror`;
+    if (!this.scene.textures.exists(key)) {
+      const t = this.scene.textures.createCanvas(key, src.width * 2, src.height * 2);
+      if (t) {
+        const c = t.getContext();
+        for (let i = 0; i < 2; i++)
+          for (let j = 0; j < 2; j++) {
+            c.save();
+            c.translate(i ? src.width * 2 : 0, j ? src.height * 2 : 0);
+            c.scale(i ? -1 : 1, j ? -1 : 1);
+            c.drawImage(src, 0, 0);
+            c.restore();
+          }
+        t.refresh();
+      }
+    }
+    this.waterTile?.destroy();
+    this.waterTile = this.scene.add.tileSprite(0, 400, 7000, 4200, key).setDepth(-101).setAlpha(this.theme === 'spring' ? 0.7 : 0.32).setTileScale(2.2, 2.2);
+    this.world.push(this.waterTile);
+  }
+
   private drawWater(color: number) {
+    this.paintWater();
     const g = this.scene.add.graphics().setDepth(-100);
     const c = tileCenter(GRID_SIZE / 2 - 0.5, GRID_SIZE / 2 - 0.5);
     const N = 14;
@@ -172,6 +232,7 @@ export class Ambient {
   }
 
   private update(time: number, delta: number) {
+    if (this.waterTile?.active) this.waterTile.tilePositionX += delta * 0.006;
     if (this.opts.island && time - this.lastRipple > 66) {
       this.lastRipple = time;
       this.drawRipples(time);

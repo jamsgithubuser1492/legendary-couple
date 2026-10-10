@@ -14,8 +14,6 @@ const planks = (a: number, b: number, grout: number, strips = 4): FloorStyle => 
 
 export const FLOOR_STYLES: Record<string, FloorStyle> = {
   floor_wood: planks(0xeccfa4, 0xdcb98a, 0xc29a68, 4),
-  floor_pink: { kind: 'tiles', a: 0xffe3ea, b: 0xffd6e0, grout: 0xf4bccb },
-  floor_checker: { kind: 'checker', a: 0xfff6ee, b: 0xf6b9c9, grout: 0xe8a0b4 },
   bw_light: planks(0xe8d8bc, 0xdccaa8, 0xc3aa86, 5),
   bw_light2: planks(0xeadfc8, 0xdfd0b2, 0xc8b690, 5),
   bw_coral: planks(0xe49a82, 0xd8886e, 0xb86e58, 4),

@@ -20,6 +20,7 @@ import { QuadrantFx } from '../quadrantFx';
 import { preloadNpcStrips } from '../town/npcs';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
+import { FLOOR_FY } from '../floorOrigins';
 import { IslandEffects } from '../effects';
 import { TREE } from '../../state/placement';
 import { getTheme, onThemeChange } from '../../state/season';
@@ -124,6 +125,7 @@ export class MainScene extends Phaser.Scene {
       const key = `${st.startingPath}:${st.starterRemoved}`;
       if (key !== this.starterKey) this.setStartingPath(st.startingPath);
       this.renderPlaced();
+      this.ambient.refreshGround();
       this.syncPartner();
       this.syncCompanions();
       this.syncRoamers();
@@ -482,7 +484,7 @@ export class MainScene extends Phaser.Scene {
       const g = this.add.graphics().setDepth(o.tileX + o.tileY + 0.1);
       drawWall(g, o.tileX, o.tileY, item.variant ?? 'wall', o.rotation, {
         W: wallAt(o.tileX - 1, o.tileY), E: wallAt(o.tileX + 1, o.tileY), N: wallAt(o.tileX, o.tileY - 1), S: wallAt(o.tileX, o.tileY + 1),
-      }, alpha, tint);
+      }, alpha, tint, item.material);
       return [g];
     }
     if (item.sprite && this.textures.exists(item.sprite)) return this.spawnSprite(item, o, wallAt, alpha, tint);
@@ -501,7 +503,7 @@ export class MainScene extends Phaser.Scene {
     };
     if (item.layer === 'floor') {
       const c = tileCenter(o.tileX, o.tileY);
-      return [mk(key, c.x, c.y, 0.5, 0.39).setDepth(-30)];
+      return [mk(key, c.x, c.y, 0.5, FLOOR_FY[key] ?? 0.39).setDepth(-30 + (o.tileX + o.tileY) * 0.0005)]; // tiles in front cover the edge of the ones behind
     }
     if (item.layer === 'wall') {
       const { tileX: x, tileY: y } = o;

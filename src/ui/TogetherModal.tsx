@@ -33,6 +33,9 @@ function Whisper() {
   if (!w) {
     return (
       <>
+        <div className="mb-2 flex items-end justify-center gap-3 rounded-2xl bg-gradient-to-b from-indigo-900 to-indigo-700 p-3">
+          <ArtImg name="fx_star_2" size={22} className="animate-pulse" /><ArtImg name="prop_campfire" size={84} /><ArtImg name="fx_star_5" size={26} className="animate-pulse" />
+        </div>
         <p className="text-sm text-cocoa/80">Sit by the fire and answer one question each. Answers stay hidden until you both answer. Pick how deep tonight goes.</p>
         <div className="mt-3 grid gap-2">
           {TIERS.map((t) => (
@@ -111,6 +114,7 @@ function Adventure() {
           <button className={`${primaryBtn} flex-1`} onClick={() => acceptAdventure(me)}>Accept</button>
         </div>
       )}
+      <div className="mt-3 flex flex-wrap justify-center gap-1.5">{Array.from({ length: 9 }, (_, i) => <ArtImg key={i} name={`ui_reveal_${i + 1}`} size={34} className="rounded-lg shadow" />)}</div>
       <p className="mt-2 text-center text-xs text-cocoa/50">{ADVENTURES.length} adventures and counting. A new week brings a new one.</p>
     </>
   );
@@ -137,19 +141,28 @@ function LoveMap() {
     </div>
   );
   const myAns = r.answers[me], theirAns = r.answers[partnerId], myGuess = r.guesses[me];
+  const hearts = myGuess && theirAns ? myGuess.filter((g, i) => g === theirAns[i]).length : 0;
+  const header = (
+    <div className="mb-2 flex items-center justify-center gap-4 rounded-2xl bg-gradient-to-b from-pink-100 to-amber-50 p-3">
+      <ArtImg name="ui_lovemap_card" size={96} />
+      <div className="text-center"><div className="flex justify-center gap-1">{[0, 1, 2].map((i) => <span key={i} className={i < hearts ? '' : 'opacity-25 grayscale'}><ArtImg name="ui_quad_romance" size={26} /></span>)}</div><div className="mt-1 text-xs text-cocoa/70">This week's Love Map</div></div>
+    </div>
+  );
   if (!myAns) {
     return (
       <>
+        {header}
         <p className="text-sm text-cocoa/80">Three quick questions about how you are feeling this week. Then {partner} tries to guess your answers.</p>
         {set.map((qi, i) => chips(i, LOVE_QUESTIONS[qi].q))}
         <button className={`${primaryBtn} mt-4 w-full`} disabled={!full} onClick={() => { submitLoveAnswers(me, pick); setPick([-1, -1, -1]); }}>Save my answers</button>
       </>
     );
   }
-  if (!theirAns) return <p className="rounded-xl bg-white p-3 text-center text-cocoa shadow">✅ Your answers are saved. Waiting for {partner} to answer theirs.</p>;
+  if (!theirAns) return <><>{header}</><p className="rounded-xl bg-white p-3 text-center text-cocoa shadow">✅ Your answers are saved. Waiting for {partner} to answer theirs.</p></>;
   if (!myGuess) {
     return (
       <>
+        {header}
         <p className="text-sm text-cocoa/80">How did {partner} answer? Each right guess earns 2 Heart Shells. Wrong guesses show the truth and add a gesture quest.</p>
         {set.map((qi, i) => chips(i, LOVE_QUESTIONS[qi].q))}
         <button className={`${primaryBtn} mt-4 w-full`} disabled={!full} onClick={() => { submitLoveGuesses(me, pick); setPick([-1, -1, -1]); }}>Lock in my guesses</button>
@@ -159,6 +172,7 @@ function LoveMap() {
   const right = myGuess.filter((g, i) => g === theirAns[i]).length;
   return (
     <>
+      {header}
       <p className={card}>You got {right} of 3 about {partner}! 🐚 +{right * 2}</p>
       <div className="mt-3 space-y-2">
         {set.map((qi, i) => (
@@ -185,7 +199,7 @@ function Gratitude() {
   return (
     <>
       <div className="rounded-2xl bg-gradient-to-b from-sky to-green-100 p-3 text-center">
-        <div className="text-5xl">{n < 10 ? '🌱' : n < 20 ? '🌳' : '🌸'}</div>
+        <div className="flex items-end justify-center gap-3"><ArtImg name={n > 0 ? 'prop_jar_full' : 'prop_jar_closed'} size={64} /><span className="text-5xl">{n < 10 ? '🌱' : n < 20 ? '🌳' : '🌸'}</span></div>
         <div className="font-display font-bold text-cocoa">{stage}</div>
         <div className="text-xs text-cocoa/70">{n} thank you notes. It also grows on your island.</div>
       </div>

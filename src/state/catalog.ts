@@ -17,6 +17,8 @@ export interface CatalogItem {
   color: number;
   color2?: number;
   variant?: 'wall' | 'window' | 'door';
+  /** Wall surface: plaster (default), pink, sage, brick, batten, wainscot, picket, hedge or glass. */
+  material?: 'plaster' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
   shape?: Shape;
   facing?: boolean;
   /** Texture key from spriteList. Items without one are drawn procedurally. */
@@ -35,8 +37,8 @@ const WINTERISH: Theme[] = ['winter', 'holidays'];
 export const CATALOG: CatalogItem[] = [
   // floors
   { id: 'floor_wood', name: 'Wood Floor', icon: '🟫', category: 'floor', layer: 'floor', price: c(40), w: 1, d: 1, h: 0, color: 0xe3c295, sprite: 'floor_wood' },
-  { id: 'floor_pink', name: 'Pink Tile', icon: '🌸', category: 'floor', layer: 'floor', price: c(60), w: 1, d: 1, h: 0, color: 0xffd3de },
-  { id: 'floor_checker', name: 'Café Checker', icon: '🏁', category: 'floor', layer: 'floor', price: c(80), w: 1, d: 1, h: 0, color: 0xfff4ee, color2: 0xf7b8c8 },
+  { id: 'floor_pink', name: 'Pink Tile', icon: '🌸', category: 'floor', layer: 'floor', price: c(60), w: 1, d: 1, h: 0, color: 0xffd3de, sprite: 'floor_pink_tile' },
+  { id: 'floor_checker', name: 'Café Checker', icon: '🏁', category: 'floor', layer: 'floor', price: c(80), w: 1, d: 1, h: 0, color: 0xfff4ee, color2: 0xf7b8c8, sprite: 'floor_cafe_checker' },
   // walls (the art pieces auto-tile into straight runs and corners)
   { id: 'wall_cream', name: 'Cream Wall', icon: '🧱', category: 'wall', layer: 'wall', price: c(40), w: 1, d: 1, h: 36, color: 0xf8ecd8, variant: 'wall', sprite: 'wall_single' },
   { id: 'wall_window', name: 'Window Wall', icon: '🪟', category: 'wall', layer: 'wall', price: c(70), w: 1, d: 1, h: 36, color: 0xf8ecd8, variant: 'window', sprite: 'wall_window' },
@@ -387,3 +389,27 @@ const NEW_ITEMS: Row[] = [
   ['wi_cocoa', 'Warm Cocoa Mug', '☕', 'seasonal', 'object', 0, 6, 1, 1, 'prop_winter_cocoa', { seasons: WIN }],
 ];
 for (const [id, name, icon, cat, layer, coins, gems, w, d, sprite, extra] of NEW_ITEMS) add(id, name, icon, cat, layer, coins, gems, w, d, sprite, extra);
+
+// ---- Build 19: painted floors (sheets 36 and 37) ----
+for (const [id, name, icon, coins] of [
+  ['floor_rug_blue', 'Pastel Rug Blue', '🟦', 90], ['floor_rug_pink', 'Pastel Rug Pink', '🟪', 90], ['floor_rug_yellow', 'Pastel Rug Yellow', '🟨', 90],
+  ['floor_grass_flowers', 'Flower Meadow', '🌼', 70], ['floor_stone_path', 'Stone Path', '🪨', 70],
+  ['floor_wood_plank', 'Parquet Wood', '🟫', 60], ['floor_cream_stone', 'Cream Stone Tile', '⬜', 80], ['floor_mosaic', 'Inlay Mosaic', '🔶', 140],
+  ['floor_terracotta', 'Terracotta Tile', '🟧', 80], ['floor_wood_light', 'Light Wood Stain', '🟫', 50], ['floor_wood_mid', 'Mid Wood Stain', '🟫', 55],
+  ['floor_wood_dark', 'Dark Wood Stain', '🟫', 60], ['floor_tatami', 'Tatami Mat', '🟩', 70], ['floor_carpet_plush', 'Plush Carpet', '🩷', 75],
+] as const) add(id, name, icon, 'floor', 'floor', coins, 0, 1, 1, id);
+
+// ---- Build 19: wall materials (sheet 36), drawn on the game's own wall shape so they join, corner and cross on their own ----
+const WALL_MATS: [id: string, name: string, icon: string, coins: number, color: number, open: boolean][] = [
+  ['pink', 'Pastel Pink', '🌸', 50, 0xf8cfdc, true], ['sage', 'Sage Green', '🌿', 50, 0xbcd6aa, true], ['brick', 'Exposed Brick', '🧱', 90, 0xc9725a, true],
+  ['batten', 'Board and Batten', '🪵', 70, 0xeec9a2, true], ['wainscot', 'Wainscot', '🏠', 70, 0xf3e6d2, true],
+  ['picket', 'White Picket Fence', '🏡', 40, 0xf8f4ec, false], ['hedge', 'Boxwood Hedge', '🌳', 60, 0x6aa04c, false], ['glass', 'Glass Panel Wall', '🪟', 110, 0xcfeaf5, false],
+];
+for (const [m, name, icon, coins, color, open] of WALL_MATS) {
+  const material = m as CatalogItem['material'];
+  CATALOG.push({ id: `wall_${m}`, name: `${name} Wall`, icon, category: 'wall', layer: 'wall', price: c(coins), w: 1, d: 1, h: 36, color, variant: 'wall', material });
+  if (open) {
+    CATALOG.push({ id: `wall_${m}_window`, name: `${name} Window`, icon: '🪟', category: 'wall', layer: 'wall', price: c(coins + 30), w: 1, d: 1, h: 36, color, variant: 'window', material });
+    CATALOG.push({ id: `wall_${m}_door`, name: `${name} Door`, icon: '🚪', category: 'wall', layer: 'wall', price: c(coins + 40), w: 1, d: 1, h: 36, color, variant: 'door', material });
+  }
+}
