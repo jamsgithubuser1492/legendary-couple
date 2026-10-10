@@ -83,7 +83,9 @@ export class QuadrantFx {
       let l = this.lanterns.get(p);
       if (focusing && !l) {
         const glow = this.scene.add.circle(0, -84, 26, 0xffd27a, 0.35);
-        const txt = this.scene.add.text(0, -84, '🏮', { fontSize: '30px' }).setOrigin(0.5).setData('lanternOf', p).setInteractive({ useHandCursor: true });
+        const art = this.scene.textures.exists('fx_lantern_2');
+        const txt = (art ? this.scene.add.image(0, -84, 'fx_lantern_2').setScale(0.5) : this.scene.add.text(0, -84, '🏮', { fontSize: '30px' }).setOrigin(0.5)).setData('lanternOf', p).setInteractive({ useHandCursor: true });
+        if (art) this.scene.tweens.add({ targets: txt, scale: 0.56, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         l = this.scene.add.container(0, 0, [glow, txt]);
         a.container.add(l);
         this.scene.tweens.add({ targets: l, y: -5, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

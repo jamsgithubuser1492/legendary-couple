@@ -369,13 +369,22 @@ export class TownScene extends Phaser.Scene {
     g.moveTo(b.x, b.y);
     g.lineTo(b.x, b.y - 70);
     g.strokePath();
-    const colors = [0xff9ebb, 0xffd23f, 0x8fd3e8, 0xb9e8a8, 0xc9a7ff];
-    for (let i = 0; i < 9; i++) {
-      const t = (i + 0.5) / 9;
-      const x = a.x + (b.x - a.x) * t;
-      const y = a.y - 70 + (b.y - a.y) * t + Math.sin(t * Math.PI) * 18;
-      g.fillStyle(colors[i % colors.length], 1);
-      g.fillTriangle(x - 8, y, x + 8, y, x, y + 16);
+    const bkey = ['bunting_rainbow', 'bunting_gold', 'bunting_teal'][live.length % 3];
+    if (this.textures.exists(bkey)) {
+      const tex = this.textures.get(bkey).getSourceImage() as { width: number; height: number };
+      const width = Math.hypot(b.x - a.x, b.y - a.y);
+      const im = this.add.image((a.x + b.x) / 2, (a.y + b.y) / 2 - 62, bkey).setDisplaySize(width, (width * tex.height) / tex.width).setDepth(plaza.x + plaza.w + plaza.y + plaza.d + 5);
+      im.setRotation(Math.atan2(b.y - a.y, b.x - a.x));
+      this.bunting.push(im);
+    } else {
+      const colors = [0xff9ebb, 0xffd23f, 0x8fd3e8, 0xb9e8a8, 0xc9a7ff];
+      for (let i = 0; i < 9; i++) {
+        const t = (i + 0.5) / 9;
+        const x = a.x + (b.x - a.x) * t;
+        const y = a.y - 70 + (b.y - a.y) * t + Math.sin(t * Math.PI) * 18;
+        g.fillStyle(colors[i % colors.length], 1);
+        g.fillTriangle(x - 8, y, x + 8, y, x, y + 16);
+      }
     }
     const label = this.add.text((a.x + b.x) / 2, (a.y + b.y) / 2 - 104, `🎉 ${live[0].title}`, { fontFamily: '"Baloo 2", system-ui', fontSize: '15px', color: '#6b4f4f', backgroundColor: '#fff3e8', padding: { x: 8, y: 3 } }).setOrigin(0.5).setDepth(plaza.x + plaza.w + plaza.y + plaza.d + 6);
     this.bunting.push(g, label);

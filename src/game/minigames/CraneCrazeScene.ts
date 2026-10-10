@@ -33,6 +33,7 @@ export class CraneCrazeScene extends MinigameScene {
   }
   protected duration = 0;
   private m!: Model;
+  private caps = new Map<number, Phaser.GameObjects.Image>();
   private nextId = 1;
   private t!: Record<string, Phaser.GameObjects.Text>;
   private btn: Record<string, ReturnType<MinigameScene['button']>> = {};
@@ -49,6 +50,7 @@ export class CraneCrazeScene extends MinigameScene {
 
   protected build() {
     this.nextId = 1;
+    this.caps.clear();
     this.m = { phase: 'x', tries: 0, cx: 0.05, dy: 0, dirX: 1, dirD: 1, locked: false, boxes: this.stock(), grabbed: null, aura: false, liftT: 0, lifted: 0, msg: '', won: [], showT: 0 };
     const mk = (x: number, y: number, size: number, color = '#6b4f4f') =>
       this.add.text(x, y, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: `${size}px`, color, align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5).setDepth(10);
@@ -159,20 +161,31 @@ export class CraneCrazeScene extends MinigameScene {
     g.fillRect(90, SHELF_Y + 24, 780, 18);
     g.lineStyle(4, 0xffffff, 0.9);
     g.strokeRoundedRect(90, 60, 780, 360, 20);
-    // boxes
+    // capsules, coloured by the series of the figure inside
+    const live = new Set<number>();
     for (const b of m.boxes) {
       if (b.taken) continue;
-      const x = BX(b.x), s = b.heavy ? 56 : 44;
-      g.fillStyle(b.heavy ? 0xb88adf : 0xff9ebb, 1);
-      g.fillRoundedRect(x - s / 2, SHELF_Y + 24 - s, s, s, 8);
-      g.fillStyle(0xffffff, 0.9);
-      g.fillRect(x - 3, SHELF_Y + 24 - s, 6, s);
-      g.fillRect(x - s / 2, SHELF_Y + 24 - s / 2 - 3, s, 6);
-      if (b.heavy) {
-        g.fillStyle(0x6b4f4f, 1);
-        g.fillRect(x - 8, SHELF_Y + 24 - s + 10, 16, 4);
+      live.add(b.id);
+      const s = b.heavy ? 62 : 48;
+      let im = this.caps.get(b.id);
+      if (!im) {
+        const series = figureOf(b.fig)?.series;
+        const key = series === 'Barista' ? 'cap_barista_closed' : series === 'Sleepy Pajama' ? 'cap_pajama_closed' : series === 'Golden' ? 'cap_golden_closed' : 'cap_beach_closed';
+        if (!this.textures.exists(key)) continue;
+        im = this.add.image(0, 0, key).setDepth(5);
+        this.caps.set(b.id, im);
       }
+      im.setDisplaySize(s * 0.9, s * 1.05);
+      if (b.heavy) im.setTint(0xcfc0e8); // heavy ones carry a lilac tint
+      else im.clearTint();
+      if (m.phase === 'lift' && m.grabbed === b.id) {
+        const cx = BX(m.cx);
+        const cy = 96 + m.dy * (SHELF_Y - 96 - 40) * Math.max(0, 1 - m.liftT / 1.5);
+        im.setPosition(cx, cy + 56).setDepth(25);
+      } else im.setPosition(BX(b.x), SHELF_Y + 24 - s / 2).setDepth(5);
+      im.setVisible(true);
     }
+    for (const [id, im] of this.caps) if (!live.has(id)) im.setVisible(false);
     // claw
     const x = BX(m.cx);
     let y = 96;
@@ -198,13 +211,6 @@ export class CraneCrazeScene extends MinigameScene {
     g.moveTo(x + 14, y + 12);
     g.lineTo(x + open, y + 34);
     g.strokePath();
-    if (m.phase === 'lift' && m.grabbed) {
-      const b = m.boxes.find((q) => q.id === m.grabbed);
-      if (b) {
-        g.fillStyle(b.heavy ? 0xb88adf : 0xff9ebb, 1);
-        g.fillRoundedRect(x - 20, y + 30, 40, 40, 8);
-      }
-    }
     // depth guide for B
     g.fillStyle(0x000000, 0.12);
     g.fillRoundedRect(880, 80, 14, 300, 7);

@@ -4,6 +4,7 @@ import { AREAS, areaOf, SEASON_EVENTS, TEMPLATES, type QuestTemplate } from '../
 import { THEMES, useTheme } from '../state/season';
 import { approveQuest, createQuest, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
+import { QuadIcon } from './ItemIcon';
 import { CATALOG, itemOf } from '../state/catalog';
 import { QUADRANTS, quadrantInfo, quadrantOf } from '../state/quadrants';
 import type { Quadrant } from '../types';
@@ -78,11 +79,11 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
         <div className="flex flex-wrap gap-2">
           {QUADRANTS.map((q) => (
             <button key={q.id} onClick={() => { setQuadrant(q.id); setArea(q.area); }} className={`rounded-full px-3 py-1 text-sm text-cocoa ${q.color} ${quadrant === q.id ? 'ring-4 ring-pink-300' : 'opacity-70'}`}>
-              {q.icon} {q.label}
+              <QuadIcon id={q.id} size={20} /> {q.label}
             </button>
           ))}
         </div>
-        <p className="-mt-1 text-xs text-cocoa/70">{quadrantInfo(quadrant).icon} {quadrantInfo(quadrant).mechanic}: {quadrantInfo(quadrant).hook}</p>
+        <p className="-mt-1 text-xs text-cocoa/70"><QuadIcon id={quadrant} size={16} /> {quadrantInfo(quadrant).mechanic}: {quadrantInfo(quadrant).hook}</p>
         <input className={field} placeholder="If-Then plan (optional): IF it is 7 AM, THEN I will walk for 20 mins" value={ifThen} onChange={(e) => setIfThen(e.target.value)} />
         <div className="flex items-center gap-2 text-sm text-cocoa">
           <span className="font-bold">Assigned to</span>
@@ -201,7 +202,7 @@ function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onS
   return (
     <div className="rounded-2xl bg-white p-3 shadow">
       <div className="flex items-start gap-2">
-        <span className={`rounded-full px-2 py-1 text-lg ${qd.color}`}>{qd.icon}</span>
+        <span className={`rounded-full px-2 py-1 text-lg ${qd.color}`}><QuadIcon id={qd.id} size={26} /></span>
         <div className="min-w-0 flex-1">
           <div className="font-display font-bold text-cocoa">{quest.title}{quest.recurring && <span className="ml-1 text-xs font-normal text-cocoa/60">↻ repeats</span>}</div>
           {quest.description && <div className="text-sm text-cocoa/70">{quest.description}</div>}

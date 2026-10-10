@@ -56,18 +56,18 @@ export const gameOf = (t: MGType) => GAMES.find((g) => g.type === t)!;
 // ---------- collectibles ----------
 export interface Figure { id: string; name: string; series: string; sprite: string; rare?: boolean }
 export const FIGURES: Figure[] = [
-  { id: 'fig_kitty_beach', name: 'Beach Kitty', series: 'Beach Vacation', sprite: 'kitty_o2' },
-  { id: 'fig_miffy_beach', name: 'Beach Miffy', series: 'Beach Vacation', sprite: 'miffy_boots' },
-  { id: 'fig_snoopy_beach', name: 'Beach Snoopy', series: 'Beach Vacation', sprite: 'snoopy_o2' },
-  { id: 'fig_kitty_barista', name: 'Barista Kitty', series: 'Barista', sprite: 'kitty_o1' },
-  { id: 'fig_miffy_barista', name: 'Barista Miffy', series: 'Barista', sprite: 'miffy_sweater' },
-  { id: 'fig_snoopy_barista', name: 'Barista Snoopy', series: 'Barista', sprite: 'snoopy_o1' },
-  { id: 'fig_kitty_pj', name: 'Sleepy Kitty', series: 'Sleepy Pajama', sprite: 'plush_kitty' },
-  { id: 'fig_miffy_pj', name: 'Sleepy Miffy', series: 'Sleepy Pajama', sprite: 'plush_miffy' },
-  { id: 'fig_snoopy_pj', name: 'Sleepy Snoopy', series: 'Sleepy Pajama', sprite: 'snoopy_o3' },
-  { id: 'fig_golden_kitty', name: 'Golden Kitty', series: 'Golden', sprite: 'kitty_o4', rare: true },
-  { id: 'fig_golden_miffy', name: 'Golden Miffy', series: 'Golden', sprite: 'miffy_raincoat', rare: true },
-  { id: 'fig_golden_snoopy', name: 'Golden Snoopy', series: 'Golden', sprite: 'snoopy_o4', rare: true },
+  { id: 'fig_kitty_beach', name: 'Beach Kitty', series: 'Beach Vacation', sprite: 'toy_beach_kitty' },
+  { id: 'fig_miffy_beach', name: 'Beach Miffy', series: 'Beach Vacation', sprite: 'toy_beach_miffy' },
+  { id: 'fig_snoopy_beach', name: 'Beach Snoopy', series: 'Beach Vacation', sprite: 'toy_beach_snoopy' },
+  { id: 'fig_kitty_barista', name: 'Barista Kitty', series: 'Barista', sprite: 'toy_barista_kitty' },
+  { id: 'fig_miffy_barista', name: 'Barista Miffy', series: 'Barista', sprite: 'toy_barista_miffy' },
+  { id: 'fig_snoopy_barista', name: 'Barista Snoopy', series: 'Barista', sprite: 'toy_barista_snoopy' },
+  { id: 'fig_kitty_pj', name: 'Sleepy Kitty', series: 'Sleepy Pajama', sprite: 'toy_sleepy_kitty' },
+  { id: 'fig_miffy_pj', name: 'Sleepy Miffy', series: 'Sleepy Pajama', sprite: 'toy_sleepy_miffy' },
+  { id: 'fig_snoopy_pj', name: 'Sleepy Snoopy', series: 'Sleepy Pajama', sprite: 'toy_sleepy_snoopy' },
+  { id: 'fig_golden_kitty', name: 'Golden Kitty', series: 'Golden', sprite: 'toy_golden_kitty', rare: true },
+  { id: 'fig_golden_miffy', name: 'Golden Miffy', series: 'Golden', sprite: 'toy_golden_miffy', rare: true },
+  { id: 'fig_golden_snoopy', name: 'Golden Snoopy', series: 'Golden', sprite: 'toy_golden_snoopy', rare: true },
 ];
 export const figureOf = (id: string) => FIGURES.find((f) => f.id === id);
 export const COMMON_FIGURES = FIGURES.filter((f) => !f.rare).map((f) => f.id);
@@ -80,7 +80,7 @@ export const FAUNA: { id: string; name: string; icon: string }[] = [
 ];
 
 export const RECIPES = ['Our First Date Matcha', 'Sunset Strawberry Cloud', 'Pier Day Boba', 'Cozy Rainy Latte'];
-export const CAFE_DECOR = ['espresso', 'cafe_pastry_case', 'seating_cluster'];
+export const CAFE_DECOR = ['espresso', 'cafe_pastry_case', 'seating_cluster', 'neon_cafe'];
 
 export interface MGResult {
   type: MGType;

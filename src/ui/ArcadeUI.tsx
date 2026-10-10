@@ -73,7 +73,7 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
             const free = s.freeFigures.includes(f.id);
             return (
               <div key={f.id} className={`rounded-2xl bg-white p-2 text-center text-cocoa shadow ${n ? '' : 'opacity-40'}`}>
-                <div className="flex h-20 items-end justify-center">{n ? <SpriteImg sprite={f.sprite} size={72} /> : <span className="text-3xl">❔</span>}</div>
+                <div className="flex h-20 items-end justify-center">{n ? <SpriteImg sprite={f.sprite} size={72} /> : <SpriteImg sprite="toy_secret" size={72} />}</div>
                 <div className="text-xs font-bold">{n ? f.name : '???'}{f.rare ? ' ✨' : ''}{n > 1 ? ` x${n}` : ''}</div>
                 <div className="text-[10px] opacity-70">{f.series}</div>
                 {n > 0 && <button className={`${softBtn} mt-1 !px-2 !py-1 text-xs`} onClick={() => setFigureFree(f.id, !free)}>{free ? 'Shelve' : 'Set free'}</button>}

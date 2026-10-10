@@ -270,18 +270,20 @@ export class MainScene extends Phaser.Scene {
     }
     for (const [id, b] of live) {
       if (this.bottleObjs.has(id)) continue;
-      const g = this.add.graphics();
-      g.fillStyle(0xffffff, 0.35);
-      g.fillCircle(0, -12, 18);
-      g.fillStyle(0x7ac49a, 1);
-      g.fillRoundedRect(-6, -26, 12, 24, 5);
-      g.fillStyle(0xc99a62, 1);
-      g.fillRect(-3, -31, 6, 6);
-      g.fillStyle(0xffe4ec, 1);
-      g.fillRect(-3, -18, 6, 9);
-      const heart = this.add.text(0, -44, '💌', { fontSize: '16px' }).setOrigin(0.5);
+      const parts: Phaser.GameObjects.GameObject[] = [];
+      if (this.textures.exists('prop_bottle_shore')) {
+        parts.push(this.add.image(0, 0, 'prop_bottle_shore').setOrigin(0.5, 0.85).setScale(0.55));
+      } else {
+        const g = this.add.graphics();
+        g.fillStyle(0x7ac49a, 1);
+        g.fillRoundedRect(-6, -26, 12, 24, 5);
+        g.fillStyle(0xc99a62, 1);
+        g.fillRect(-3, -31, 6, 6);
+        parts.push(g);
+      }
+      parts.push(this.add.text(0, -44, '💌', { fontSize: '16px' }).setOrigin(0.5));
       const p = tileCenter(b.tileX, b.tileY);
-      const c = this.add.container(p.x, p.y + 6, [g, heart]).setDepth(b.tileX + b.tileY + 0.3);
+      const c = this.add.container(p.x, p.y + 6, parts).setDepth(b.tileX + b.tileY + 0.3);
       this.tweens.add({ targets: c, y: c.y - 5, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.bottleObjs.set(id, c);
     }

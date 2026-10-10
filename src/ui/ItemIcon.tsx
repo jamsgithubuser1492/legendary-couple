@@ -30,3 +30,10 @@ export function SpriteImg({ sprite, size = 40 }: { sprite: string; size?: number
     />
   );
 }
+
+/** A painted interface icon from the sprite sheets (quadrant icons, bids, streak flames and so on). */
+export function ArtImg({ name, size = 32, className = '' }: { name: string; size?: number; className?: string }) {
+  return <img src={`${import.meta.env.BASE_URL}assets/sprites/${name}.png`} alt="" style={{ height: size, width: size }} className={`inline-block object-contain align-[-0.25em] ${className}`} draggable={false} />;
+}
+
+export const QuadIcon = ({ id, size = 22 }: { id: string; size?: number }) => <ArtImg name={`ui_quad_${id}`} size={size} />;

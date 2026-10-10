@@ -168,3 +168,14 @@ See [docs/HOSTING.md](docs/HOSTING.md) for putting it online, linking both phone
 * **Facing follows the way they walk:** screen right uses the east view, screen left the west view (or a mirror of it), walking toward the camera uses the front view. The sheet has no back views, so walking away from the camera keeps the side view
 * The sheet's own N S E W labels were wrong, so every row was checked by eye. The student row mixes six different people and was left out, and a few repeated rows were skipped
 * Four more art sheets are saved in `art/source/` (sheets 36 to 39: home foundations, modular walls and floors, shore edge cases, coastal ground and water) and are not wired into the game yet
+
+## Build 18 status: Collectibles, mechanic art and 95 new shop items
+
+Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 sprites, listed in `src/game/spriteListExtra.ts`)
+
+* **Crane figures:** all 12 collectible figures now use their own painted art, and the Crane machine shows series coloured capsules (Beach blue, Barista green, Pajama pink, Golden). Figures you have not found yet show the secret silhouette
+* **Mechanic art:** painted quadrant icons on the quest board, the Focus lantern over your avatar, the sealed bottle on the island shore, the bunting over the Town Square, the Wisdom Bookshelf (5 stages by library size), the Dream Vault piggy and the blueprint, scaffolding and finished building art for the Glass Café, Rooftop Deck and island expansion
+* **Together art:** painted wave, tea and flower bids (with the "turned toward you" glow on the banner), streak flames in the daily check in, and whisper card thumbnails on the Fireside tiers
+* **Shop:** 95 new items across kitchen, living, bedroom, bathroom, outdoor, wall decor, pets, café and seasonal sets. The café neon sign is now a 3 star Matcha Masters reward, and the espresso machine and pumpkin use painted art
+* Cut but not used yet: gratitude jars and notes, the love map card, the scratch card reveals, the campfire and star sprites, tea parachute frames, confetti and balloons. Sheets 36 to 39 and 45 (ground, shoreline, walls, floors, edge cases) are saved but not wired in
+* `src/game/spriteList.ts` is now a small file that joins `spriteListBase.ts` (from `tools/slice_sprites.py`) with `spriteListExtra.ts`

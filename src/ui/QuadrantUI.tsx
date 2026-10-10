@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 import { CurrencyIcon } from './Currency';
 import { shrinkImage } from './imageUtil';
+import { ArtImg } from './ItemIcon';
 import { BUS, gameBus } from '../game/events';
 import {
   buildBlueprint, cancelFocus, depositVault, finishFocus, focusActive, nextExpansion, openBottle, sealBottle, sendTea, startFocus, useGameState, useMe,
@@ -97,6 +98,7 @@ function Bookshelf() {
   const s = useGameState();
   const [open, setOpen] = useState<string | null>(null);
   const book = s.library.find((b) => b.id === open);
+  const n = s.library.length;
   const speak = (t: string) => {
     try {
       window.speechSynthesis.cancel();
@@ -109,6 +111,7 @@ function Bookshelf() {
     <div>
       <p className="mb-2 text-sm text-cocoa/80">Every learning goal your partner approves adds a book or scroll. Tap one to hear the Key Takeaway read aloud.</p>
       {s.library.length === 0 && <p className="rounded-xl bg-white p-4 text-center text-sm text-cocoa/70">The shelf is empty. Finish a 📚 Learning goal with a Key Takeaway to place the first book.</p>}
+      <img src={`${import.meta.env.BASE_URL}assets/sprites/mech_bookshelf_${n === 0 ? 1 : n < 3 ? 2 : n < 6 ? 3 : n < 12 ? 4 : 5}.png`} alt="Wisdom Bookshelf" className="mx-auto mb-3 max-h-40 object-contain" draggable={false} />
       <div className="flex flex-wrap items-end gap-1 rounded-xl bg-[#d9b88a] p-3">
         {s.library.map((b) => (
           <button key={b.id} onClick={() => { setOpen(b.id); speak(`${s.names[b.from]} learned: ${b.text}`); }} title={b.title}
@@ -128,14 +131,18 @@ function Bookshelf() {
   );
 }
 
-/** Blueprint drawing that fills in as the vault grows. */
-function BlueprintArt({ pct, icon }: { pct: number; icon: string }) {
+/** Blueprint art: the plan while saving, scaffolding when half funded, and the finished building once built. */
+const ART: Record<string, [string, string, string]> = {
+  glass_cafe: ['bp_glass_cafe', 'bp_glass_cafe', 'glass_cafe_done'],
+  rooftop: ['bp_rooftop', 'bp_rooftop', 'rooftop_done'],
+  expand: ['bp_island', 'scaffold_island', 'island_ext_done'],
+};
+function BlueprintArt({ id, pct, built }: { id: string; pct: number; built: boolean }) {
+  const [plan, mid, done] = ART[id] ?? ART.expand;
+  const name = built ? done : pct >= 0.5 ? mid : plan;
   return (
-    <div className="relative mx-auto h-24 w-32 overflow-hidden rounded-xl border-2 border-dashed border-sky-400 bg-sky-100">
-      <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-20">{icon}</div>
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center overflow-hidden bg-sky-300/60" style={{ height: `${Math.round(pct * 100)}%` }}>
-        <span className="absolute bottom-1 text-5xl">{icon}</span>
-      </div>
+    <div className="flex h-24 w-32 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-sky-50">
+      <img src={`${import.meta.env.BASE_URL}assets/sprites/${name}.png`} alt="" className={`max-h-full max-w-full object-contain ${built || pct >= 0.5 ? '' : 'opacity-90'}`} style={{ filter: !built && pct < 1 ? `saturate(${0.4 + pct})` : undefined }} draggable={false} />
     </div>
   );
 }
@@ -152,7 +159,7 @@ function Vault() {
     <div className="space-y-3 text-cocoa">
       <p className="text-sm">Saving together builds your dream. Finish a 💰 Finance goal and half the coins go straight into the vault. You can also add coins yourselves.</p>
       <div className="flex items-center justify-between rounded-2xl bg-white p-3 shadow">
-        <span className="font-display text-lg font-bold">🏦 Vault: <CurrencyIcon kind="coin" size={20} /> {s.vault.coins.toLocaleString()}</span>
+        <span className="flex items-center gap-2 font-display text-lg font-bold"><ArtImg name={`mech_vault_${s.vault.coins < 150 ? 1 : s.vault.coins < 500 ? 2 : 3}`} size={40} /> Vault: <CurrencyIcon kind="coin" size={20} /> {s.vault.coins.toLocaleString()}</span>
         <span className="flex gap-1">
           {[25, 50, 100].map((n) => <button key={n} className={`${softBtn} !px-3 !py-1 text-sm`} disabled={s.coins < n} onClick={() => depositVault(n)}>+{n}</button>)}
         </span>
@@ -161,7 +168,7 @@ function Vault() {
         const pct = b.built ? 1 : Math.min(1, s.vault.coins / b.cost);
         return (
           <div key={b.id} className={`flex items-center gap-3 rounded-2xl bg-white p-3 shadow ${b.built ? 'opacity-60' : ''} ${target?.id === b.id ? 'ring-2 ring-pink-300' : ''}`}>
-            <BlueprintArt pct={pct} icon={b.icon} />
+            <BlueprintArt id={b.id} pct={pct} built={b.built} />
             <div className="min-w-0 flex-1">
               <div className="font-display font-bold">{b.name}</div>
               <div className="text-xs opacity-70">{b.blurb}</div>

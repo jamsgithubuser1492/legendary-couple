@@ -7,7 +7,7 @@ import {
 } from '../state/store';
 import { itemOf } from '../state/catalog';
 import type { MessageKind, PlayerId } from '../types';
-import ItemIcon from './ItemIcon';
+import ItemIcon, { ArtImg } from './ItemIcon';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 
 export type TogetherTab = 'whisper' | 'reach' | 'adventure' | 'lovemap' | 'gratitude' | 'log';
@@ -36,7 +36,7 @@ function Whisper() {
         <p className="text-sm text-cocoa/80">Sit by the fire and answer one question each. Answers stay hidden until you both answer. Pick how deep tonight goes.</p>
         <div className="mt-3 grid gap-2">
           {TIERS.map((t) => (
-            <button key={t.id} className={`${softBtn} text-left`} onClick={() => startWhisper(t.id)}>{t.icon} {t.label} <span className="font-normal text-cocoa/60">· {t.blurb}</span></button>
+            <button key={t.id} className={`${softBtn} text-left`} onClick={() => startWhisper(t.id)}><ArtImg name={`ui_whisper_${t.id === 'medium' ? 'med' : t.id}`} size={34} className="mr-2" /> {t.icon} {t.label} <span className="font-normal text-cocoa/60">· {t.blurb}</span></button>
           ))}
         </div>
       </>
@@ -77,7 +77,7 @@ function Reach() {
       <div className="mt-3 grid grid-cols-3 gap-2">
         {BIDS.map((b) => (
           <button key={b.id} className="flex flex-col items-center rounded-2xl bg-white p-3 shadow active:scale-95" onClick={() => sendBid(me, b.id as BidKind)}>
-            <span className="text-3xl">{b.icon}</span><span className="mt-1 font-display text-sm font-bold text-cocoa">{b.label}</span>
+            <ArtImg name={`ui_bid_${b.id}_2`} size={64} /><span className="mt-1 font-display text-sm font-bold text-cocoa">{b.label}</span>
           </button>
         ))}
       </div>
@@ -319,7 +319,7 @@ export function BidBanner() {
   return (
     <div className="absolute inset-x-0 top-16 z-30 flex justify-center px-4">
       <div className="animate-pop flex items-center gap-3 rounded-2xl bg-cream px-4 py-3 shadow-2xl">
-        <span className="text-3xl">{info.icon}</span>
+        <ArtImg name={`ui_bid_${b.kind}_4`} size={52} />
         <div className="font-display text-sm font-bold text-cocoa">{s.names[b.from]} {info.text}<div className="text-xs font-normal text-cocoa/60">{Math.max(0, 30 - Math.floor((now - b.ts) / 1000))}s left</div></div>
         <button className={primaryBtn} onClick={() => turnToward(me)}>Turn towards 💞</button>
       </div>

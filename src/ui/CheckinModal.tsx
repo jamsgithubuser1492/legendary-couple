@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArtImg } from './ItemIcon';
 import { dateKey, questionFor, streakOf } from '../state/questions';
 import { answerCheckin, otherPlayer, useGameState, useMe } from '../state/store';
 import Sheet, { fieldCls, primaryBtn } from './Sheet';
@@ -21,7 +22,7 @@ export default function CheckinModal({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Daily Question 💬" onClose={onClose}>
       <div className="flex items-center justify-between text-sm">
-        <span className="font-bold text-cocoa">🔥 {streak} day streak</span>
+        <span className="font-bold text-cocoa"><ArtImg name={`ui_streak_${streak < 3 ? 1 : streak < 7 ? 2 : streak < 14 ? 3 : streak < 30 ? 4 : 5}`} size={30} /> {streak} day streak</span>
         <span className="text-cocoa/60">{streak % 7 === 0 && streak > 0 ? 'Box earned!' : `${7 - (streak % 7)} to your next box`}</span>
       </div>
       <p className="mt-3 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 font-display text-lg font-bold text-cocoa">{questionFor(key)}</p>
