@@ -16,6 +16,12 @@ export const BUS = {
   townToast: 'townToast',       // Phaser -> React: { text }
   townInteract: 'townInteract', // Phaser -> React: lot id to visit
   together: 'together',         // Phaser -> React: open the Together hub on a tab
+  mgLaunch: 'mgLaunch',         // React -> manager: start a minigame
+  mgState: 'mgState',           // manager -> React: a minigame started or ended
+  mgResult: 'mgResult',         // manager -> React: show the results
+  mgInvite: 'mgInvite',         // manager -> React: your partner invited you
+  mgBottle: 'mgBottle',         // scene -> React: you caught a bottle, write a note
+  mgAttach: 'mgAttach',         // React -> manager: (re)join the room lobby
   presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null

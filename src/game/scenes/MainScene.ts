@@ -14,6 +14,7 @@ import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
 import { drawWall } from '../walls';
 import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
 import { Companion } from '../Companion';
+import { figureOf } from '../../state/minigames';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { IslandEffects } from '../effects';
@@ -45,6 +46,8 @@ export class MainScene extends Phaser.Scene {
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
   private companions = new Map<CompanionId, Companion>();
+  private roamers = new Map<string, Companion>();
+  private roamTimer?: Phaser.Time.TimerEvent;
   private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private stateOverride?: GameState; // lets a ghost preview see its own walls
 
@@ -74,6 +77,7 @@ export class MainScene extends Phaser.Scene {
     new IslandEffects(this, () => this.avatars);
     this.renderPlaced();
     this.syncCompanions();
+    this.syncRoamers();
 
     this.centerCamera();
     // WASD and the arrow keys. Capture is off so typing in text boxes still works.
@@ -113,6 +117,7 @@ export class MainScene extends Phaser.Scene {
       this.renderPlaced();
       this.syncPartner();
       this.syncCompanions();
+      this.syncRoamers();
     });
     const offTheme = onThemeChange(() => this.ambient.apply(getTheme()));
     gameBus.on(BUS.edit, onEdit);
@@ -241,6 +246,37 @@ export class MainScene extends Phaser.Scene {
       if (path.length) comp.walk(path);
       else comp.snap(spot.x, spot.y);
     }
+  }
+
+  /** Collectible figures that were set free wander the island on their own. */
+  private syncRoamers(): void {
+    const free = getState().freeFigures;
+    for (const [id, c] of this.roamers) {
+      if (!free.includes(id)) {
+        c.destroy();
+        this.roamers.delete(id);
+      }
+    }
+    for (const id of free) {
+      const sprite = figureOf(id)?.sprite;
+      if (this.roamers.has(id) || !sprite || !this.textures.exists(sprite)) continue;
+      const spot = this.nearbyFreeTiles()[this.roamers.size] ?? this.avatars[getMe()].tile;
+      this.roamers.set(id, new Companion(this, sprite, spot));
+    }
+    if (!this.roamTimer && this.roamers.size)
+      this.roamTimer = this.time.addEvent({
+        delay: 2500,
+        loop: true,
+        callback: () => {
+          const spots = this.nearbyFreeTiles();
+          for (const c of this.roamers.values()) {
+            if (c.moving || !spots.length || Math.random() < 0.4) continue;
+            const t = spots[Math.floor(Math.random() * spots.length)];
+            const path = findPath(c.tile, t, this.blocked);
+            if (path.length) c.walk(path);
+          }
+        },
+      });
   }
 
   /** Brings invited companions onto the island, sends the rest home, and keeps outfits up to date. */

@@ -12,6 +12,7 @@ import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
 import ExpandModal from './ui/ExpandModal';
 import CheatsModal from './ui/CheatsModal';
+import { ArcadeModal, MinigameOverlays, useMinigameActive } from './ui/ArcadeUI';
 import TogetherModal, { BidBanner, type TogetherTab } from './ui/TogetherModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
 import type { ShopCategory } from './state/catalog';
@@ -39,6 +40,8 @@ export default function App() {
   const [view, setView] = useState<'island' | 'town'>('island');
   const [townPanel, setTownPanel] = useState(false);
   const [dream, setDream] = useState(false);
+  const [arcade, setArcade] = useState(false);
+  const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -47,6 +50,8 @@ export default function App() {
 
   useEffect(() => {
     startSync();
+    const attachTimer = setInterval(() => gameBus.emit(BUS.mgAttach), 4000);
+    gameBus.emit(BUS.mgAttach);
     gameBus.on(BUS.hover, setHover);
     gameBus.on(BUS.memoryOpen, setViewing);
     gameBus.on(BUS.viewSync, setView);
@@ -56,6 +61,7 @@ export default function App() {
     const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
     gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
+      clearInterval(attachTimer);
       gameBus.off(BUS.hover, setHover);
       gameBus.off(BUS.memoryOpen, setViewing);
       gameBus.off(BUS.viewSync, setView);
@@ -122,7 +128,7 @@ export default function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-sky">
       <GameContainer />
-      <Hud
+      {!mgActive && <Hud
         hover={hover}
         onCenter={() => gameBus.emit(BUS.center)}
         onZoom={(d) => gameBus.emit(BUS.zoom, d)}
@@ -141,7 +147,8 @@ export default function App() {
         onView={changeView}
         onTownPanel={() => setTownPanel(true)}
         onDream={() => setDream(true)}
-      />
+        onArcade={() => setArcade(true)}
+      />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
       {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} />}
@@ -163,6 +170,8 @@ export default function App() {
       {viewing && <MemoryViewer id={viewing} onClose={() => setViewing(null)} />}
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} onCheats={() => setCheats(true)} />}
       <BidBanner />
+      <MinigameOverlays />
+      {arcade && <ArcadeModal onClose={() => setArcade(false)} />}
       {together && <TogetherModal tab={together} onTab={setTogether} onClose={() => setTogether(null)} />}
       {cheats && <CheatsModal onClose={() => setCheats(false)} />}
       {modalOpen && <PathModal current={path} onPick={pick} onClose={path ? () => setModalOpen(false) : undefined} />}

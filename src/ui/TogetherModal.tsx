@@ -222,6 +222,7 @@ const KIND: Record<MessageKind, { icon: string; label: string }> = {
   memory: { icon: '📔', label: 'Memory' },
   evidence: { icon: '📋', label: 'Quest note' },
   review: { icon: '🔎', label: 'Review note' },
+  bottle: { icon: '🍾', label: 'Bottle' },
 };
 const fmtDay = (ts: number) => new Date(ts).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -236,6 +237,7 @@ function Log() {
     if (m.from === me) return true;
     if (m.kind === 'daily') return !!s.checkins[m.ref ?? '']?.paid;
     if (m.kind === 'whisper') return !!s.whispers[m.ref ?? '']?.paid;
+    if (m.kind === 'bottle') return Date.now() - m.ts > 12 * 3600 * 1000; // sealed until tomorrow
     if (m.kind === 'gratitude') return !!s.gratitude.find((n) => n.id === m.ref)?.opened;
     return true;
   };

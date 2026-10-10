@@ -10,8 +10,10 @@ const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) |
 let client: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
+  // ?localnet keeps test pages completely off the real database
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('localnet')) return null;
   if (!url || !anonKey || url.includes('YOUR-PROJECT')) return null;
-  if (!client) client = createClient(url, anonKey);
+  if (!client) client = createClient(url, anonKey, { realtime: { params: { eventsPerSecond: 30 } } }); // minigames broadcast at 30 Hz
   return client;
 }
 

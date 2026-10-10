@@ -18,3 +18,21 @@ begin
   alter publication supabase_realtime add table public.game_state;
 exception when duplicate_object then null;
 end $$;
+
+-- Minigame history. The live game itself syncs over Realtime broadcast channels, which need no table.
+-- (Adapted from the spec: this game identifies a couple by room code, so there is no players table.)
+create table if not exists public.minigame_sessions (
+  id uuid primary key default gen_random_uuid(),
+  room_code text not null,
+  game_type text not null,              -- MATCHA_MASTERS, STELLAR_FISHING, CRANE_CRAZE, ORCHARD_HARVEST
+  player_a text,
+  player_b text,
+  current_score int not null default 0,
+  stars int not null default 0,
+  sync_state jsonb,                     -- final snapshot: orders, claw positions, catches
+  status text not null default 'IN_PROGRESS',  -- IN_PROGRESS, COMPLETED, QUIT
+  created_at timestamptz not null default now()
+);
+alter table public.minigame_sessions enable row level security;
+drop policy if exists "session access" on public.minigame_sessions;
+create policy "session access" on public.minigame_sessions for all using (true) with check (true);

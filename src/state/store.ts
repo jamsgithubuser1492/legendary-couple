@@ -8,6 +8,7 @@ import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import { dateKey, questionFor, streakOf } from './questions';
+import type { MGResult } from './minigames';
 import { adventureFor, BID_WINDOW_MS, LOVE_QUESTIONS, loveSet, weekKey, whisperQuestion, type BidKind, type WhisperTier } from './together';
 
 const STATE_KEY = 'olw:state:v1';
@@ -35,6 +36,14 @@ const initial = (): GameState => ({
   approvedCount: 0,
   looks: { A: 'cream', B: 'cream' },
   messages: [],
+  arcadeTokens: 3,
+  eventTokens: 0,
+  driftwood: 0,
+  fauna: {},
+  figures: {},
+  freeFigures: [],
+  recipes: [],
+  mgBest: {},
   shells: 0,
   whispers: {},
   glowUntil: 0,
@@ -298,6 +307,7 @@ export function approveQuest(id: string, reviewer: PlayerId) {
     // quest boxes, plus a bonus box for every 5th approved quest (a milestone streak)
     blindBoxes: state.blindBoxes + (q.reward.blindBoxes ?? 0) + ((state.approvedCount + 1) % 5 === 0 ? 1 : 0),
     approvedCount: state.approvedCount + 1,
+    arcadeTokens: state.arcadeTokens + 1, // every approved quest earns an arcade token
     ingredients: state.ingredients + (q.area === 'body' || q.area === 'mind' ? 2 : 0), // healthy habits stock the café
   });
 }
@@ -573,6 +583,53 @@ export function openNote(player: PlayerId, id: string) {
     shells: state.shells + 1,
     inventory: count % 3 === 0 ? addToInventory(state.inventory, 'plant_b', 1) : state.inventory,
   });
+}
+
+// ---------- arcade ----------
+
+export function spendToken(): boolean {
+  if (state.arcadeTokens < 1) return false;
+  commit({ ...state, arcadeTokens: state.arcadeTokens - 1 });
+  return true;
+}
+
+export function buyToken(): boolean {
+  if (state.coins < 100) return false;
+  commit({ ...state, coins: state.coins - 100, arcadeTokens: state.arcadeTokens + 1 });
+  return true;
+}
+
+/** Pays out a finished minigame. Only the host's device calls this, so a shared game never pays twice. */
+export function applyMinigameReward(r: MGResult) {
+  let inventory = state.inventory;
+  for (const id of r.items) inventory = addToInventory(inventory, id, 1);
+  const figures = { ...state.figures };
+  for (const f of r.figures) figures[f] = (figures[f] ?? 0) + 1;
+  const fauna = { ...state.fauna };
+  for (const [k, n] of Object.entries(r.fauna)) fauna[k] = (fauna[k] ?? 0) + n;
+  commit({
+    ...state,
+    coins: state.coins + r.coins,
+    shells: state.shells + r.shells,
+    eventTokens: state.eventTokens + r.eventTokens,
+    ingredients: state.ingredients + r.ingredients,
+    driftwood: state.driftwood + r.driftwood,
+    xp: state.xp + Math.floor(r.score / 4),
+    inventory, figures, fauna,
+    recipes: [...state.recipes, ...r.recipes.filter((x) => !state.recipes.includes(x))],
+    mgBest: { ...state.mgBest, [r.type]: Math.max(state.mgBest[r.type] ?? 0, r.score) },
+  });
+}
+
+export function setFigureFree(id: string, free: boolean) {
+  const rest = state.freeFigures.filter((f) => f !== id);
+  commit({ ...state, freeFigures: free && (state.figures[id] ?? 0) > 0 ? [...rest, id] : rest });
+}
+
+/** A secret note from a bottle caught while fishing. Sealed from your partner until tomorrow. */
+export function addBottleNote(from: PlayerId, text: string) {
+  addMsg('bottle', from, text, 'Message in a bottle');
+  commit({ ...state });
 }
 
 export function buyBlindBoxWithShells(): boolean {

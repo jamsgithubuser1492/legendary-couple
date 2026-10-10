@@ -100,7 +100,7 @@ export interface Bid { from: PlayerId; kind: 'wave' | 'tea' | 'flower'; ts: numb
 export interface LoveRound { answers: { A?: number[]; B?: number[] }; guesses: { A?: number[]; B?: number[] } }
 export interface GratitudeNote { id: string; from: PlayerId; text: string; day: string; opened?: boolean }
 
-export type MessageKind = 'daily' | 'whisper' | 'gratitude' | 'memory' | 'evidence' | 'review';
+export type MessageKind = 'daily' | 'whisper' | 'gratitude' | 'memory' | 'evidence' | 'review' | 'bottle';
 /** Everything either partner writes, kept forever with a name and a time. */
 export interface Message { id: string; from: PlayerId; kind: MessageKind; text: string; ctx?: string; ref?: string; ts: number }
 
@@ -123,6 +123,14 @@ export interface GameState {
   approvedCount: number;
   looks: Record<PlayerId, 'cream' | 'dark'>; // which outfit set each partner wears
   messages: Message[];
+  arcadeTokens: number;
+  eventTokens: number; // seasonal event tokens
+  driftwood: number;
+  fauna: Record<string, number>; // aquarium collection
+  figures: Record<string, number>; // blind box figures owned
+  freeFigures: string[]; // figures set free to wander the island
+  recipes: string[]; // the shared Recipe Memory Book
+  mgBest: Record<string, number>;
   shells: number; // Heart Shells, earned by growing closer
   whispers: Record<string, Whisper>;
   glowUntil: number; // starry fireside glow over the island
