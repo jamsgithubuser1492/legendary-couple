@@ -4,6 +4,7 @@ import { SPRITES as BASE, WALK_SHEET } from './spriteListBase';
 import { EXTRA_SPRITES } from './spriteListExtra';
 import { ENV_SPRITES } from './spriteListEnv';
 import { FLOOR_SPRITES } from './spriteListFloors';
+import { MG_SPRITES } from './spriteListMg';
 
 export { WALK_SHEET };
-export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...ENV_SPRITES, ...FLOOR_SPRITES] as const;
+export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...ENV_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES] as const;

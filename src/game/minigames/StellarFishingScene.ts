@@ -25,6 +25,9 @@ interface Model {
 }
 
 const WATER_TOP = 200;
+const FISH = ['guppy', 'tang', 'bunny', 'bass'];
+/** Which way each painted fish faces as drawn, so the other direction can be a mirror. */
+const NATIVE: Record<string, 'e' | 'w'> = { guppy: 'e', tang: 'w', bunny: 'w', bass: 'e' };
 const RING_R = 130;
 const GREEN_FROM = 0.78, GREEN_TO = 0.95, RING_TIME = 1.8; // the green band is reached at about 1.4 to 1.7 seconds
 const PIER_X: Record<PlayerId, number> = { A: 300, B: 660 };
@@ -36,6 +39,8 @@ export class StellarFishingScene extends MinigameScene {
   }
   protected duration = 0; // endless, ends when you press Finish
   private m!: Model;
+  private fishImgs = new Map<number, Phaser.GameObjects.Image>();
+  private skyImg?: Phaser.GameObjects.Image;
   private nextFish = 0.3;
   private nextId = 1;
   private nextBottle = 25;
@@ -52,6 +57,8 @@ export class StellarFishingScene extends MinigameScene {
 
   protected build() {
     this.m = this.fresh();
+    this.fishImgs.clear();
+    this.skyImg = undefined;
     this.nextFish = 0.3;
     this.nextId = 1;
     this.nextBottle = 25;
@@ -229,16 +236,19 @@ export class StellarFishingScene extends MinigameScene {
   protected draw() {
     const m = this.m, c = this.clock, g = this.g, me = this.role;
     g.clear();
-    // sunset sky and sun
-    const bands = [0xf9c5d6, 0xfbd0d0, 0xfcdcc8, 0xfde8c4, 0xfff0d0];
-    bands.forEach((col, i) => {
-      g.fillStyle(col, 1);
-      g.fillRect(-2000, i * 36 - 10, 5000, 40);
-    });
-    g.fillStyle(0xfff3b8, 0.8);
-    g.fillCircle(760, 150, 54);
-    g.fillStyle(0xffffff, 0.9);
-    g.fillCircle(760, 150, 38);
+    // painted sky for the time of day, drawn once as an image behind the water
+    if (!this.skyImg) {
+      const h = new Date().getHours();
+      const key = h >= 20 || h < 6 ? 'mg_sky_night' : h >= 17 ? 'mg_sky_golden' : 'mg_sky_day';
+      if (this.textures.exists(key)) this.skyImg = this.add.image(-60, -4, key).setOrigin(0, 0).setDisplaySize(1080, 330).setDepth(-90);
+    }
+    if (!this.skyImg) {
+      const bands = [0xf9c5d6, 0xfbd0d0, 0xfcdcc8, 0xfde8c4, 0xfff0d0];
+      bands.forEach((col, i) => {
+        g.fillStyle(col, 1);
+        g.fillRect(-2000, i * 36 - 10, 5000, 40);
+      });
+    }
     // water
     g.fillStyle(0x6cc4dc, 1);
     g.fillRect(-2000, WATER_TOP - 20, 5000, 3000);
@@ -267,44 +277,46 @@ export class StellarFishingScene extends MinigameScene {
       g.lineTo(x, 190);
       g.strokePath();
     }
-    // fish, crates and bottles
+    // fish, crates and bottles: painted sprites, with a glow variant for the co op fish
+    const seen = new Set<number>();
     for (const f of m.fish) {
       const y = f.y + Math.sin(c * 2 + f.ph) * 3;
-      if (f.kind === 'bottle') {
-        g.fillStyle(0xffffff, 0.35 + 0.25 * Math.sin(c * 4));
-        g.fillCircle(f.x, y, 30);
-        g.fillStyle(0x7ac49a, 1);
-        g.fillRoundedRect(f.x - 10, y - 16, 20, 32, 8);
-        g.fillStyle(0xc99a62, 1);
-        g.fillRect(f.x - 4, y - 22, 8, 8);
-        g.fillStyle(0xffffff, 0.8);
-        g.fillCircle(f.x - 4, y - 4, 3);
-      } else if (f.kind === 'crate') {
-        g.fillStyle(0xffd23f, 0.25 + 0.2 * Math.sin(c * 4));
-        g.fillCircle(f.x, y, 42);
-        g.fillStyle(0xb98a5a, 1);
-        g.fillRoundedRect(f.x - 20, y - 16, 40, 32, 5);
-        g.lineStyle(2, 0x8a6a4c, 1);
-        g.strokeRoundedRect(f.x - 20, y - 16, 40, 32, 5);
-        g.beginPath();
-        g.moveTo(f.x - 20, y);
-        g.lineTo(f.x + 20, y);
-        g.strokePath();
-        this.dualTarget(f.x, y - 34);
-      } else {
-        const dir = f.vx >= 0 ? 1 : -1;
-        const col = f.kind === 'coop' ? 0x2a8a9a : 0x3a7488;
-        if (f.kind === 'coop') {
-          g.fillStyle(0x9ff3ff, 0.28 + 0.2 * Math.sin(c * 5 + f.ph));
-          g.fillCircle(f.x, y, 44);
+      seen.add(f.id);
+      let im = this.fishImgs.get(f.id);
+      if (!im) {
+        let key = f.kind === 'bottle' ? 'mg_bottle' : f.kind === 'crate' ? 'mg_crate' : '';
+        if (!key) {
+          const sp = FISH[f.id % FISH.length];
+          key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : `mg_fish_${sp}`;
         }
-        g.fillStyle(col, 0.85);
-        g.fillEllipse(f.x, y, 54, 26);
-        g.fillTriangle(f.x - dir * 24, y, f.x - dir * 42, y - 13, f.x - dir * 42, y + 13);
-        g.fillStyle(0xffffff, 0.9);
-        g.fillCircle(f.x + dir * 14, y - 3, 3);
-        if (f.kind === 'coop') this.dualTarget(f.x, y - 40);
+        if (!this.textures.exists(key)) continue;
+        im = this.add.image(f.x, y, key).setDepth(3);
+        this.fishImgs.set(f.id, im);
       }
+      const sp = FISH[f.id % FISH.length];
+      im.setPosition(f.x, y).setVisible(true);
+      if (f.kind === 'bottle') {
+        im.setScale(0.9).setAngle(Math.sin(c * 2 + f.ph) * 10);
+        g.fillStyle(0xffffff, 0.3 + 0.2 * Math.sin(c * 4));
+        g.fillCircle(f.x, y, 34);
+      } else if (f.kind === 'crate') {
+        im.setScale(0.85);
+        g.fillStyle(0xffd23f, 0.25 + 0.2 * Math.sin(c * 4));
+        g.fillCircle(f.x, y, 44);
+        this.dualTarget(f.x, y - 40);
+      } else {
+        const faces = NATIVE[sp];
+        im.setScale(f.kind === 'coop' ? 0.95 : 0.8).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
+        if (f.kind === 'coop') {
+          g.fillStyle(0x9ff3ff, 0.22 + 0.18 * Math.sin(c * 5 + f.ph));
+          g.fillCircle(f.x, y, 46);
+          this.dualTarget(f.x, y - 42);
+        }
+      }
+    }
+    for (const [id, im] of this.fishImgs) if (!seen.has(id)) {
+      im.destroy();
+      this.fishImgs.delete(id);
     }
     // lines and bobbers
     for (const r of ['A', 'B'] as PlayerId[]) {

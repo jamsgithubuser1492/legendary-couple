@@ -179,3 +179,12 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * **Shop:** 95 new items across kitchen, living, bedroom, bathroom, outdoor, wall decor, pets, café and seasonal sets. The café neon sign is now a 3 star Matcha Masters reward, and the espresso machine and pumpkin use painted art
 * Cut but not used yet: gratitude jars and notes, the love map card, the scratch card reveals, the campfire and star sprites, tea parachute frames, confetti and balloons. Sheets 36 to 39 and 45 (ground, shoreline, walls, floors, edge cases) are saved but not wired in
 * `src/game/spriteList.ts` is now a small file that joins `spriteListBase.ts` (from `tools/slice_sprites.py`) with `spriteListExtra.ts`
+
+## Build 19 status: Painted island, floors, walls and minigame art
+
+* **Island ground and sea:** your seasonal ground art (spring meadow, summer grass, autumn leaves, winter snow, with winter reused for holidays) now covers the island. A new island starts as bare dirt and greens up as your growth rises. The rim is painted sand, and the sea under the island is your painted water for the season, mirrored so it never shows a seam. `tools/slice_env.py` cuts these
+* **Floors:** 16 painted floor tiles (pink tile, café checker, 3 rugs, flower meadow, stone path, parquet, cream stone, mosaic, terracotta, 3 wood stains, tatami, plush carpet) are in the shop. `tools/slice_floors.py` cuts them
+* **Walls:** 8 new wall materials (pink, sage, brick, board and batten, wainscot, picket fence, hedge, glass), each with matching window and door where it makes sense. They are drawn by the game on its own wall shape, in your colours and surfaces, so they join, corner, T and cross automatically
+* **Minigames:** Matcha Masters has the café interior, ingredient jars, customers and drinks. Stellar Fishing has a painted sky that follows the real time of day and painted fish, crates and bottles. The Crane has the painted claw, rail and boxes (light and heavy, in three series colours). `tools/slice_minigames.py` cuts these
+* **Together:** the Fireside shows the campfire and stars, the Love Map its card and hearts, Gratitude its jar, and Adventure the scratch card icons
+* Still saved but not wired in: shoreline edge pieces, depth gradients, roofs and starter growth stages, stairs and half walls, the arcade front for the town map, and sheets 46 to 47 (arcade edge cases and cabinet views)

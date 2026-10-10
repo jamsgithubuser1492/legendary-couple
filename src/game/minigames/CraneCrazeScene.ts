@@ -34,6 +34,8 @@ export class CraneCrazeScene extends MinigameScene {
   protected duration = 0;
   private m!: Model;
   private caps = new Map<number, Phaser.GameObjects.Image>();
+  private clawImg?: Phaser.GameObjects.Image;
+  private railImg?: Phaser.GameObjects.Image;
   private nextId = 1;
   private t!: Record<string, Phaser.GameObjects.Text>;
   private btn: Record<string, ReturnType<MinigameScene['button']>> = {};
@@ -51,6 +53,8 @@ export class CraneCrazeScene extends MinigameScene {
   protected build() {
     this.nextId = 1;
     this.caps.clear();
+    this.clawImg = undefined;
+    this.railImg = undefined;
     this.m = { phase: 'x', tries: 0, cx: 0.05, dy: 0, dirX: 1, dirD: 1, locked: false, boxes: this.stock(), grabbed: null, aura: false, liftT: 0, lifted: 0, msg: '', won: [], showT: 0 };
     const mk = (x: number, y: number, size: number, color = '#6b4f4f') =>
       this.add.text(x, y, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: `${size}px`, color, align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5).setDepth(10);
@@ -170,14 +174,13 @@ export class CraneCrazeScene extends MinigameScene {
       let im = this.caps.get(b.id);
       if (!im) {
         const series = figureOf(b.fig)?.series;
-        const key = series === 'Barista' ? 'cap_barista_closed' : series === 'Sleepy Pajama' ? 'cap_pajama_closed' : series === 'Golden' ? 'cap_golden_closed' : 'cap_beach_closed';
+        const color = series === 'Barista' ? 'green' : series === 'Sleepy Pajama' ? 'blue' : 'pink';
+        const key = series === 'Golden' ? 'cap_golden_closed' : b.heavy ? `mg_heavy_${color}` : `mg_box_${color}`;
         if (!this.textures.exists(key)) continue;
         im = this.add.image(0, 0, key).setDepth(5);
         this.caps.set(b.id, im);
       }
-      im.setDisplaySize(s * 0.9, s * 1.05);
-      if (b.heavy) im.setTint(0xcfc0e8); // heavy ones carry a lilac tint
-      else im.clearTint();
+      im.setDisplaySize(s * 0.95, s * (b.heavy ? 1.2 : 0.95));
       if (m.phase === 'lift' && m.grabbed === b.id) {
         const cx = BX(m.cx);
         const cy = 96 + m.dy * (SHELF_Y - 96 - 40) * Math.max(0, 1 - m.liftT / 1.5);
@@ -201,16 +204,15 @@ export class CraneCrazeScene extends MinigameScene {
       g.fillStyle(0xfff3a0, 0.5);
       g.fillCircle(x, y + 20, 50);
     }
-    g.fillStyle(0x6b4f4f, 1);
-    g.fillRoundedRect(x - 16, y, 32, 14, 6);
-    const open = m.phase === 'lift' || m.phase === 'show' ? 6 : 18;
-    g.lineStyle(5, 0x6b4f4f, 1);
-    g.beginPath();
-    g.moveTo(x - 14, y + 12);
-    g.lineTo(x - open, y + 34);
-    g.moveTo(x + 14, y + 12);
-    g.lineTo(x + open, y + 34);
-    g.strokePath();
+    if (!this.clawImg && this.textures.exists('mg_claw_open')) this.clawImg = this.add.image(0, 0, 'mg_claw_open').setOrigin(0.5, 0.18).setDepth(26);
+    if (this.clawImg) {
+      const closed = m.phase === 'lift' || m.phase === 'show';
+      this.clawImg.setTexture(closed ? 'mg_claw_closed' : m.phase === 'drop' ? 'mg_claw_closing' : 'mg_claw_open').setPosition(x, y + 2).setScale(1.25);
+    } else {
+      g.fillStyle(0x6b4f4f, 1);
+      g.fillRoundedRect(x - 16, y, 32, 14, 6);
+    }
+    if (!this.railImg && this.textures.exists('mg_rail')) this.railImg = this.add.image(480, 62, 'mg_rail').setDisplaySize(760, 20).setDepth(24);
     // depth guide for B
     g.fillStyle(0x000000, 0.12);
     g.fillRoundedRect(880, 80, 14, 300, 7);

@@ -26,7 +26,7 @@ interface Model {
   flash: { text: string; until: number } | null;
 }
 
-const ING: [string, string][] = [['Matcha', '🍵'], ['Oat Milk', '🥛'], ['Milk', '🥛'], ['Ice', '🧊'], ['Boba', '🧋'], ['Strawberry', '🍓'], ['Espresso', '☕']];
+const ING: [string, string][] = [['Matcha', 'matcha'], ['Oat Milk', 'oatmilk'], ['Milk', 'milk'], ['Ice', 'ice'], ['Boba', 'boba'], ['Strawberry', 'strawberry'], ['Espresso', 'cocoa']];
 const MENU: { name: string; recipe: string[]; combo?: boolean }[] = [
   { name: 'Matcha Latte', recipe: ['Matcha', 'Oat Milk', 'Ice'] },
   { name: 'Boba Matcha', recipe: ['Matcha', 'Oat Milk', 'Ice', 'Boba'] },
@@ -53,6 +53,9 @@ export class MatchaMastersScene extends MinigameScene {
   private t!: Record<string, Phaser.GameObjects.Text>;
   private btn: Record<string, ReturnType<MinigameScene['button']>> = {};
   private lastEnabled = '';
+  private hasBg = false;
+  private cardImgs: Phaser.GameObjects.Image[] = [];
+  private drinkImg?: Phaser.GameObjects.Image;
   private startMult = 1;
 
   private fresh(): Model {
@@ -95,8 +98,17 @@ export class MatchaMastersScene extends MinigameScene {
     // Partner A: sous chef
     ING.forEach(([name, icon], i) => {
       const x = 80 + (i % 4) * 112, y = 212 + Math.floor(i / 4) * 54;
-      this.btn[`ing:${name}`] = this.button(x, y, 104, 46, `${icon} ${name}`, { size: 14, onDown: () => this.act('A', 'add', name) });
+      this.btn[`ing:${name}`] = this.button(x, y, 104, 46, `\u2003\u2003${name}`, { size: 13, onDown: () => this.act('A', 'add', name) });
+      if (this.textures.exists(`mg_ing_${icon}`)) this.add.image(x - 38, y, `mg_ing_${icon}`).setDisplaySize(30, 36).setDepth(25);
     });
+    if (this.textures.exists('mg_bg_cafe_day')) {
+      this.add.image(480, 270, 'mg_bg_cafe_day').setDisplaySize(960, 540).setDepth(-90);
+      this.add.rectangle(480, 270, 960, 540, 0xfff3e8, 0.4).setDepth(-80);
+      this.hasBg = true;
+    }
+    if (this.textures.exists('mg_rush_badge')) this.add.image(372, 135, 'mg_rush_badge').setDisplaySize(26, 26).setDepth(11);
+    this.cardImgs = [0, 1, 2, 3].map((i) => this.add.image(30 + i * 229 + 184, 122, 'mg_cust_1').setOrigin(0.5, 1).setDisplaySize(32, 52).setDepth(11).setVisible(false));
+    this.drinkImg = this.add.image(714, 330, 'mg_cup_1').setDisplaySize(96, 80).setDepth(12).setVisible(false);
     this.btn.clear = this.button(100, 468, 100, 44, 'Clear', { fill: 0xe8e0f0, onDown: () => this.act('A', 'clear') });
     this.btn.pass = this.button(330, 468, 180, 44, 'Pass to barista ➜', { fill: 0xbfe8b0, size: 17, onDown: () => this.act('A', 'pass') });
     // Partner B: barista
@@ -228,9 +240,11 @@ export class MatchaMastersScene extends MinigameScene {
   protected draw() {
     const m = this.m, c = this.clock, g = this.g, me = this.role;
     g.clear();
-    g.fillStyle(0xfff3e8, 1);
-    g.fillRect(-2000, -2000, 5000, 5000);
-    g.fillStyle(0xf6dcc8, 1);
+    if (!this.hasBg) {
+      g.fillStyle(0xfff3e8, 1);
+      g.fillRect(-2000, -2000, 5000, 5000);
+    }
+    g.fillStyle(0xf6dcc8, this.hasBg ? 0.6 : 1);
     g.fillRect(-2000, 0, 5000, 130);
     // ticket rail
     g.fillStyle(0xb98a5a, 1);
@@ -238,6 +252,7 @@ export class MatchaMastersScene extends MinigameScene {
     for (let i = 0; i < 4; i++) {
       const o = m.orders[i], x = 30 + i * 229;
       if (!o) {
+        this.cardImgs[i]?.setVisible(false);
         this.cards[i].name.setText('');
         this.cards[i].recipe.setText('');
         this.cards[i].hearts.setText('');
@@ -254,7 +269,10 @@ export class MatchaMastersScene extends MinigameScene {
         g.fillRoundedRect(x, 22, 210, 8, { tl: 12, tr: 12, bl: 0, br: 0 });
       }
       const hearts = Math.max(0, Math.ceil(o.patience * 5));
-      this.cards[i].name.setText(`${o.face} ${o.combo ? '💞 Couples Combo' : o.name}`);
+      this.cards[i].name.setText(o.combo ? '💞 Couples Combo' : o.name);
+      const ci = this.cardImgs[i];
+      const ck = `mg_cust_${(FACES.indexOf(o.face) % 6) + 1}`;
+      if (ci && this.textures.exists(ck)) ci.setTexture(ck).setDisplaySize(32, 52).setVisible(true);
       this.cards[i].recipe.setText(o.recipe.join(' + '));
       this.cards[i].hearts.setText('♥'.repeat(hearts) + '♡'.repeat(5 - hearts)).setColor(hearts <= 1 ? '#e8503a' : '#ff7fa1');
     }
@@ -303,6 +321,11 @@ export class MatchaMastersScene extends MinigameScene {
       });
     } else if (m.stage === 'serve') bLine = 'Looks lovely! Serve it';
     if (m.stage !== 'topping') this.dotLabels.forEach((l) => l.setText(''));
+    if (this.drinkImg) {
+      const show = (m.stage === 'serve' || m.stage === 'topping') && !!m.pass;
+      this.drinkImg.setVisible(show && this.textures.exists('mg_cup_1'));
+      if (show) this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`).setDisplaySize(96, 80).setPosition(m.stage === 'serve' ? 714 : 540, m.stage === 'serve' ? 330 : 250);
+    }
     this.t.bState.setText(bLine);
     // text
     this.t.score.setText(`⭐ ${m.score}`);
