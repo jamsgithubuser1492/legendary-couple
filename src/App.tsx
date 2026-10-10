@@ -12,6 +12,7 @@ import BlindBoxModal, { RevealModal } from './ui/BlindBoxModal';
 import CheckinModal from './ui/CheckinModal';
 import ExpandModal from './ui/ExpandModal';
 import CheatsModal from './ui/CheatsModal';
+import { BottleReader, FocusOverlay, RitualsModal, SynergyBanner, TeaPrompt } from './ui/QuadrantUI';
 import { ArcadeModal, MinigameOverlays, useMinigameActive } from './ui/ArcadeUI';
 import TogetherModal, { BidBanner, type TogetherTab } from './ui/TogetherModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
@@ -21,6 +22,15 @@ import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import { startSync } from './lib/sync';
 import type { Quest, StartingPath } from './types';
+
+function SynergyBannerWrap() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-14 z-10 flex flex-col">
+      <SynergyBanner />
+      <TeaPrompt />
+    </div>
+  );
+}
 
 export default function App() {
   const state = useGameState();
@@ -41,6 +51,7 @@ export default function App() {
   const [townPanel, setTownPanel] = useState(false);
   const [dream, setDream] = useState(false);
   const [arcade, setArcade] = useState(false);
+  const [rituals, setRituals] = useState(false);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
@@ -148,6 +159,7 @@ export default function App() {
         onTownPanel={() => setTownPanel(true)}
         onDream={() => setDream(true)}
         onArcade={() => setArcade(true)}
+        onRituals={() => setRituals(true)}
       />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
@@ -171,6 +183,10 @@ export default function App() {
       {usOpen && <PairingModal onClose={() => setUsOpen(false)} onChangePath={() => setModalOpen(true)} onCheats={() => setCheats(true)} />}
       <BidBanner />
       <MinigameOverlays />
+      {!mgActive && <SynergyBannerWrap />}
+      {rituals && <RitualsModal onClose={() => setRituals(false)} />}
+      <BottleReader />
+      <FocusOverlay />
       {arcade && <ArcadeModal onClose={() => setArcade(false)} />}
       {together && <TogetherModal tab={together} onTab={setTogether} onClose={() => setTogether(null)} />}
       {cheats && <CheatsModal onClose={() => setCheats(false)} />}

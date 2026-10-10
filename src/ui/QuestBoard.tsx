@@ -5,6 +5,8 @@ import { THEMES, useTheme } from '../state/season';
 import { approveQuest, createQuest, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
 import { CATALOG, itemOf } from '../state/catalog';
+import { QUADRANTS, quadrantInfo, quadrantOf } from '../state/quadrants';
+import type { Quadrant } from '../types';
 
 type Tab = 'active' | 'verify' | 'done';
 
@@ -36,6 +38,8 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
   const me = useMe();
   const [title, setTitle] = useState('');
   const [area, setArea] = useState<LifeArea>('romance');
+  const [quadrant, setQuadrant] = useState<Quadrant>('romance');
+  const [ifThen, setIfThen] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState<PlayerId>(me);
   const [coins, setCoins] = useState(25);
@@ -48,6 +52,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
   const applyTemplate = (t: QuestTemplate) => {
     setTitle(t.title);
     setArea(t.area);
+    setQuadrant(quadrantOf({ area: t.area }));
     setDescription(t.description);
     setCoins(t.reward.coins);
     setGems(t.reward.gems);
@@ -71,12 +76,14 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
         <input className={field} placeholder="Quest title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <textarea className={field} rows={2} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
         <div className="flex flex-wrap gap-2">
-          {AREAS.map((a) => (
-            <button key={a.id} onClick={() => setArea(a.id)} className={`rounded-full px-3 py-1 text-sm text-cocoa ${a.color} ${area === a.id ? 'ring-4 ring-pink-300' : 'opacity-70'}`}>
-              {a.icon} {a.label}
+          {QUADRANTS.map((q) => (
+            <button key={q.id} onClick={() => { setQuadrant(q.id); setArea(q.area); }} className={`rounded-full px-3 py-1 text-sm text-cocoa ${q.color} ${quadrant === q.id ? 'ring-4 ring-pink-300' : 'opacity-70'}`}>
+              {q.icon} {q.label}
             </button>
           ))}
         </div>
+        <p className="-mt-1 text-xs text-cocoa/70">{quadrantInfo(quadrant).icon} {quadrantInfo(quadrant).mechanic}: {quadrantInfo(quadrant).hook}</p>
+        <input className={field} placeholder="If-Then plan (optional): IF it is 7 AM, THEN I will walk for 20 mins" value={ifThen} onChange={(e) => setIfThen(e.target.value)} />
         <div className="flex items-center gap-2 text-sm text-cocoa">
           <span className="font-bold">Assigned to</span>
           {(['A', 'B'] as PlayerId[]).map((p) => (
@@ -105,7 +112,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
             className={primary}
             disabled={!title.trim()}
             onClick={() => {
-              createQuest({ title: title.trim(), area, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined, blindBoxes: boxes || undefined }, recurring, milestone });
+              createQuest({ title: title.trim(), area, quadrant, ifThen: ifThen.trim() || undefined, description: description.trim() || undefined, assignedTo, reward: { coins, gems, itemId: itemId || undefined, blindBoxes: boxes || undefined }, recurring, milestone });
               onClose();
             }}
           >
@@ -124,13 +131,17 @@ function SubmitModal({ quest, onClose }: { quest: Quest; onClose: () => void }) 
   const [note, setNote] = useState(quest.evidenceNote ?? '');
   const [photo, setPhoto] = useState<string | undefined>(quest.evidencePhoto);
   const partner = s.names[otherPlayer(quest.assignedTo)];
+  const quad = quadrantOf(quest);
+  const needsTakeaway = quad === 'learning';
   return (
     <Sheet title="Mark as done" onClose={onClose}>
       <p className="mb-3 text-cocoa">
         <b>{quest.title}</b> will wait for {partner} to approve it before the reward unlocks.
       </p>
       {quest.reviewNote && <p className="mb-3 rounded-xl bg-peach p-3 text-sm text-cocoa">💬 {partner} asked: {quest.reviewNote}</p>}
-      <textarea className={field} rows={3} placeholder="Optional note, e.g. what you did" value={note} onChange={(e) => setNote(e.target.value)} />
+      {needsTakeaway && <p className="mb-2 rounded-xl bg-sky/60 p-3 text-sm text-cocoa">📚 Share your Key Takeaway in one sentence. Once approved it becomes a book on your shared Wisdom Bookshelf.</p>}
+      {quad === 'health' && <p className="mb-2 rounded-xl bg-green-100 p-3 text-sm text-cocoa">💪 A quick post workout photo or a smartwatch screenshot helps your partner say yes. If you both finish a health goal today, you earn a Synergy Aura (1.5x coins for 24 hours).</p>}
+      <textarea className={field} rows={3} placeholder={needsTakeaway ? 'Key Takeaway (required): the one thing you learned' : 'Optional note, e.g. what you did'} value={note} onChange={(e) => setNote(e.target.value)} />
       <div className="mt-3 flex items-center gap-3">
         <label className={`${soft} cursor-pointer`}>
           📷 Add photo
@@ -140,7 +151,7 @@ function SubmitModal({ quest, onClose }: { quest: Quest; onClose: () => void }) 
       </div>
       <div className="mt-4 flex justify-end gap-2">
         <button className={soft} onClick={onClose}>Cancel</button>
-        <button className={primary} onClick={() => { submitQuest(quest.id, { note, photo }); onClose(); }}>Send for approval</button>
+        <button className={primary} disabled={needsTakeaway && !note.trim()} onClick={() => { submitQuest(quest.id, { note, photo }); onClose(); }}>Send for approval</button>
       </div>
     </Sheet>
   );
@@ -184,16 +195,17 @@ function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onS
   const s = useGameState();
   const captured = s.memories.some((m) => m.questId === quest.id);
   const me = useMe();
-  const a = areaOf(quest.area);
+  const qd = quadrantInfo(quadrantOf(quest));
   const mine = quest.assignedTo === me;
   const who = s.names[quest.assignedTo];
   return (
     <div className="rounded-2xl bg-white p-3 shadow">
       <div className="flex items-start gap-2">
-        <span className={`rounded-full px-2 py-1 text-lg ${a.color}`}>{a.icon}</span>
+        <span className={`rounded-full px-2 py-1 text-lg ${qd.color}`}>{qd.icon}</span>
         <div className="min-w-0 flex-1">
           <div className="font-display font-bold text-cocoa">{quest.title}{quest.recurring && <span className="ml-1 text-xs font-normal text-cocoa/60">↻ repeats</span>}</div>
           {quest.description && <div className="text-sm text-cocoa/70">{quest.description}</div>}
+          {quest.ifThen && <div className="text-xs italic text-cocoa/70">🎯 {quest.ifThen}</div>}
           <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}{quest.reward.blindBoxes ? ` · 📦 ${quest.reward.blindBoxes} blind box` : ''}</div>
           {quest.status === 'REJECTED' && quest.reviewNote && <div className="mt-1 rounded-lg bg-peach px-2 py-1 text-xs text-cocoa">💬 {quest.reviewNote}</div>}
         </div>

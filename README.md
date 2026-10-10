@@ -147,3 +147,16 @@ See [docs/HOSTING.md](docs/HOSTING.md) for putting it online, linking both phone
 * `src/ui/` React HUD, modal, canvas container
 * `src/types/` shared TypeScript types
 * `public/assets/` future sprites and tilemaps
+
+
+## Build 16 status: Minigames and Quadrant mechanics
+
+* **Minigames** (`src/game/minigames/`): a MinigameManager launches Matcha Masters, Stellar Fishing, Blind Box Crane Craze and Orchard Harvest as overlay Phaser scenes. Partner A's device runs the simulation and broadcasts at 30 Hz over Supabase Realtime, partner B predicts its own inputs. Practice mode plays against the Mochi bot. Open the 🎮 Arcade button
+* **Quadrant goals:** every quest carries one of 8 quadrants (Health, Career, Learning, Finance, Romance, Social, Home, Fun) and an optional If Then plan. Finishing one plays a pastel aura burst over the avatar
+* **Pebble's Energy Sync:** a health goal gives both of you a Vitality Glow. When you both finish a health goal in one day, a Synergy Aura gives 1.5x coins for 24 hours, shown in a banner under the top bar
+* **Focus Beacon:** start a 45 minute Deep Work session from 🌟 Our Rituals. A lantern glows over you, the game locks until the timer ends, and your partner can tap the lantern to send a tea worth +5 coins
+* **Wisdom Bookshelf:** learning goals need a Key Takeaway. Each approved one adds a book or scroll, and tapping it reads the takeaway aloud
+* **Dream Vault:** finance goals put half their coins in the vault, and you can add more. Fill it to build the Glass Café, Rooftop Deck or the next island expansion
+* **Love Letters:** a romance goal earns a sealed bottle. Write it, and your partner finds it on the island shore (walk next to it) for 3 shells
+* **Town Square:** a plaza with a fountain appears after your first approved quest. Social goals fly a celebration banner and gather visitors for 24 hours
+* The full list of art still needed, and how to swap my placeholders for yours, is in `art/ASSET_WISHLIST.md`

@@ -97,8 +97,9 @@ export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
 }
 
 /** Finds an open tile for a new memory plaque, preferring the island's shoreline. */
-export function freeShoreTile(s: GameState): { x: number; y: number } | null {
+export function freeShoreTile(s: GameState, extra: { x: number; y: number }[] = []): { x: number; y: number } | null {
   const taken = blockedTiles(s, true);
+  for (const t of extra) taken.add(`${t.x},${t.y}`);
   for (const a of Object.values(s.avatars)) taken.add(`${a.x},${a.y}`);
   const ring: { x: number; y: number }[] = [];
   const G = s.islandSize;

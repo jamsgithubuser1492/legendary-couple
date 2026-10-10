@@ -32,7 +32,7 @@ export function regionOf(x: number, y: number): RegionId {
   return 'coast';
 }
 
-export type LotKind = 'sprite' | 'house' | 'tower' | 'tree' | 'pine' | 'barn';
+export type LotKind = 'sprite' | 'house' | 'tower' | 'tree' | 'pine' | 'barn' | 'plaza';
 
 export interface Lot {
   id: string;
@@ -56,6 +56,8 @@ function add(region: RegionId, x: number, y: number, w: number, d: number, kind:
 }
 
 // ---- Cozy Town & Coast: open from day one, a few places at first ----
+// The Town Square is one of the very first things to appear: your first approved quest builds it.
+add('coast', 0, 15, 3, 3, 'plaza', 2, 'Town Square', { blurb: 'Where celebrations and visitors gather.' });
 add('coast', 4, 28, 2, 2, 'sprite', 1, 'Palm Grove', { sprite: 'palm_grove', blurb: 'Shade on the sand.' });
 add('coast', 7, 19, 2, 2, 'sprite', 0, 'Bistro & Patisserie', { sprite: 'shop_bistro', blurb: 'Matcha, croissants and a table for two.' });
 add('coast', 9, 21, 2, 2, 'house', 3, 'Cozy Cottage', { variant: 0 });

@@ -9,6 +9,7 @@ import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import { dateKey, questionFor, streakOf } from './questions';
 import type { MGResult } from './minigames';
+import { BANNER_MS, BLUEPRINTS, BOTTLE_SHELLS, FINANCE_VAULT_SHARE, FOCUS_COINS, FOCUS_MS, otherP, quadrantOf, SYNERGY_MS, SYNERGY_MULT, TEA_COINS, VITALITY_MS } from './quadrants';
 import { adventureFor, BID_WINDOW_MS, LOVE_QUESTIONS, loveSet, weekKey, whisperQuestion, type BidKind, type WhisperTier } from './together';
 
 const STATE_KEY = 'olw:state:v1';
@@ -58,6 +59,16 @@ const initial = (): GameState => ({
   starterRemoved: false,
   ingredients: 2, // a welcome batch for the café
   townAvatars: { A: { x: 2, y: 24 }, B: { x: 3, y: 24 } },
+  healthDays: {},
+  vitalityUntil: { A: 0, B: 0 },
+  synergyUntil: 0,
+  focus: {},
+  library: [],
+  vault: { coins: 0, built: [] },
+  bottleCredits: { A: 0, B: 0 },
+  bottles: [],
+  banners: [],
+  celebration: null,
 });
 
 function load(): GameState {
@@ -82,6 +93,9 @@ function withDefaults(saved: Partial<GameState>): GameState {
     ...saved,
     townAvatars,
     looks: { ...base.looks, ...(saved.looks ?? {}) },
+    vitalityUntil: { ...base.vitalityUntil, ...(saved.vitalityUntil ?? {}) },
+    bottleCredits: { ...base.bottleCredits, ...(saved.bottleCredits ?? {}) },
+    vault: { ...base.vault, ...(saved.vault ?? {}) },
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -297,10 +311,14 @@ export function approveQuest(id: string, reviewer: PlayerId) {
       reviewedAt: undefined,
     });
   }
-  commit({
+  const quad = quadrantOf(q);
+  const now = Date.now();
+  const today = dateKey();
+  const mult = coinMultiplier(now); // Synergy Aura, decided before this goal can start a new one
+  const coins = Math.round(q.reward.coins * mult);
+  let next: GameState = {
     ...state,
     quests,
-    coins: state.coins + q.reward.coins,
     gems: state.gems + q.reward.gems,
     xp: state.xp + q.reward.coins,
     inventory: q.reward.itemId ? addToInventory(state.inventory, q.reward.itemId, 1) : state.inventory,
@@ -308,8 +326,32 @@ export function approveQuest(id: string, reviewer: PlayerId) {
     blindBoxes: state.blindBoxes + (q.reward.blindBoxes ?? 0) + ((state.approvedCount + 1) % 5 === 0 ? 1 : 0),
     approvedCount: state.approvedCount + 1,
     arcadeTokens: state.arcadeTokens + 1, // every approved quest earns an arcade token
-    ingredients: state.ingredients + (q.area === 'body' || q.area === 'mind' ? 2 : 0), // healthy habits stock the café
-  });
+    ingredients: state.ingredients + (quad === 'health' || quad === 'learning' ? 2 : 0), // healthy habits stock the café
+    celebration: { id: uid(), quadrant: quad, by: q.assignedTo, ts: now },
+  };
+  next.coins = state.coins + coins;
+
+  if (quad === 'health') {
+    // Pebble's Energy Sync: a Vitality Glow for both, and a Synergy Aura once you have both moved today
+    const done = [...new Set([...(state.healthDays[today] ?? []), q.assignedTo])];
+    next.healthDays = { ...state.healthDays, [today]: done };
+    next.vitalityUntil = { A: now + VITALITY_MS, B: now + VITALITY_MS };
+    if (done.length === 2 && now >= state.synergyUntil) next.synergyUntil = now + SYNERGY_MS;
+  } else if (quad === 'learning' && q.evidenceNote) {
+    // Wisdom Bookshelf: every approved takeaway becomes a book or scroll
+    const n = state.library.length;
+    next.library = [...state.library, { id: uid(), from: q.assignedTo, title: q.title, text: q.evidenceNote, ts: now, kind: n % 3 === 2 ? 'scroll' : 'book', hue: (n * 47) % 360 }];
+  } else if (quad === 'finance') {
+    // Dream Vault: a chunk of what you saved goes straight into the shared vault
+    const chunk = Math.round(coins * FINANCE_VAULT_SHARE);
+    next.coins -= chunk;
+    next.vault = { ...state.vault, coins: state.vault.coins + chunk };
+  } else if (quad === 'romance') {
+    next.bottleCredits = { ...state.bottleCredits, [q.assignedTo]: state.bottleCredits[q.assignedTo] + 1 };
+  } else if (quad === 'social') {
+    next.banners = [...state.banners.filter((b) => b.until > now), { id: uid(), by: q.assignedTo, title: q.title, ts: now, until: now + BANNER_MS }];
+  }
+  commit(next);
 }
 
 export function requestEdit(id: string, reviewer: PlayerId, note: string) {
@@ -609,7 +651,7 @@ export function applyMinigameReward(r: MGResult) {
   for (const [k, n] of Object.entries(r.fauna)) fauna[k] = (fauna[k] ?? 0) + n;
   commit({
     ...state,
-    coins: state.coins + r.coins,
+    coins: state.coins + Math.round(r.coins * coinMultiplier()),
     shells: state.shells + r.shells,
     eventTokens: state.eventTokens + r.eventTokens,
     ingredients: state.ingredients + r.ingredients,
@@ -675,3 +717,91 @@ export const levelOf = (xp: number) => 1 + Math.floor(xp / 100);
 export const pendingFor = (s: GameState, p: PlayerId) =>
   s.quests.filter((q) => q.status === 'PENDING_VERIFICATION' && q.assignedTo === other(p));
 export { other as otherPlayer };
+
+
+// ---------- quadrant mechanics ----------
+
+/** 1.5x while a Synergy Aura is active. */
+export const coinMultiplier = (now = Date.now()) => (now < state.synergyUntil ? SYNERGY_MULT : 1);
+
+/** Focus Beacon: 45 minutes of deep work. */
+export function startFocus(p: PlayerId) {
+  if (state.focus[p] && !state.focus[p]!.paid) return;
+  const now = Date.now();
+  commit({ ...state, focus: { ...state.focus, [p]: { start: now, until: now + FOCUS_MS, teas: 0 } } });
+}
+
+/** The partner taps the lantern: a silent warm cup of tea, paid when the session ends. */
+export function sendTea(from: PlayerId) {
+  const to = otherP(from);
+  const f = state.focus[to];
+  if (!f || f.paid || Date.now() >= f.until || f.teas >= 1) return false;
+  commit({ ...state, focus: { ...state.focus, [to]: { ...f, teas: f.teas + 1 } } });
+  return true;
+}
+
+export function focusActive(p: PlayerId, now = Date.now()) {
+  const f = state.focus[p];
+  return !!f && !f.paid && now < f.until;
+}
+
+/** Called by the worker's own device once the timer runs out. */
+export function finishFocus(p: PlayerId) {
+  const f = state.focus[p];
+  if (!f || f.paid || Date.now() < f.until) return null;
+  const coins = FOCUS_COINS + f.teas * TEA_COINS;
+  commit({ ...state, coins: state.coins + coins, xp: state.xp + coins, focus: { ...state.focus, [p]: { ...f, paid: true } } });
+  return { coins, teas: f.teas };
+}
+
+export function cancelFocus(p: PlayerId) {
+  const rest = { ...state.focus };
+  delete rest[p];
+  commit({ ...state, focus: rest });
+}
+
+/** Wisdom Bookshelf needs a takeaway before a learning goal can be sent. */
+export const libraryOf = () => state.library;
+
+/** Dream Vault */
+export function depositVault(amount: number): boolean {
+  if (amount <= 0 || state.coins < amount) return false;
+  commit({ ...state, coins: state.coins - amount, vault: { ...state.vault, coins: state.vault.coins + amount } });
+  return true;
+}
+
+export function buildBlueprint(id: string): boolean {
+  if (id === 'expand') {
+    const step = nextExpansion();
+    if (!step || state.vault.coins < step.coins) return false;
+    commit({ ...state, islandSize: step.size, vault: { ...state.vault, coins: state.vault.coins - step.coins, built: [...state.vault.built, `expand${step.size}`] } });
+    return true;
+  }
+  const bp = BLUEPRINTS.find((b) => b.id === id);
+  if (!bp || state.vault.built.includes(id) || state.vault.coins < bp.cost) return false;
+  let inventory = state.inventory;
+  for (const [item, n] of Object.entries(bp.items)) inventory = addToInventory(inventory, item, n);
+  commit({ ...state, inventory, blindBoxes: state.blindBoxes + bp.boxes, vault: { coins: state.vault.coins - bp.cost, built: [...state.vault.built, id] } });
+  return true;
+}
+
+/** Love letters: write a sealed bottle that washes up on the island shore. */
+export function sealBottle(from: PlayerId, text: string, photo?: string): boolean {
+  if (state.bottleCredits[from] < 1 || !text.trim()) return false;
+  const tile = freeShoreTile(state, state.bottles.filter((b) => !b.opened).map((b) => ({ x: b.tileX, y: b.tileY }))) ?? { x: state.islandSize - 1, y: 0 };
+  commit({
+    ...state,
+    bottleCredits: { ...state.bottleCredits, [from]: state.bottleCredits[from] - 1 },
+    bottles: [...state.bottles, { id: uid(), from, text: text.trim(), photo, ts: Date.now(), tileX: tile.x, tileY: tile.y }],
+  });
+  return true;
+}
+
+/** Your partner walks to the shore and unwraps it. */
+export function openBottle(id: string, reader: PlayerId) {
+  const b = state.bottles.find((x) => x.id === id);
+  if (!b || b.opened || b.from === reader) return null;
+  addMsg('bottle', b.from, b.text, 'Love letter in a bottle');
+  commit({ ...state, shells: state.shells + BOTTLE_SHELLS, bottles: state.bottles.map((x) => (x.id === id ? { ...x, opened: true } : x)) });
+  return b;
+}

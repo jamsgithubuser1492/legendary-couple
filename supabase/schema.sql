@@ -36,3 +36,42 @@ create table if not exists public.minigame_sessions (
 alter table public.minigame_sessions enable row level security;
 drop policy if exists "session access" on public.minigame_sessions;
 create policy "session access" on public.minigame_sessions for all using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Quadrant goals and the daily synergy tracker.
+-- The game currently keeps all of this inside game_state (healthDays, synergyUntil, vault, library,
+-- bottles and banners), so it syncs with no extra setup. These tables are the relational shape of the
+-- same data, keyed by room_code like everything else, ready for reporting or a future server side check.
+-- ---------------------------------------------------------------------------
+create table if not exists quadrant_goals (
+  id uuid primary key default gen_random_uuid(),
+  room_code text not null,
+  player text not null check (player in ('A', 'B')),
+  quadrant text not null check (quadrant in ('health', 'career', 'learning', 'finance', 'romance', 'social', 'environment', 'recreation')),
+  title text not null,
+  if_then_plan text,                  -- e.g. IF it is 7 AM, THEN I will walk for 20 mins
+  coin_value int default 20,
+  shell_value int default 0,
+  status text default 'IN_PROGRESS',  -- IN_PROGRESS, WAITING_FOR_VERIFY, APPROVED
+  proof_type text,                    -- PHOTO, NOTE, VOICE_MEMO
+  proof_data text,
+  created_at timestamptz default now()
+);
+
+create table if not exists daily_synergy (
+  id uuid primary key default gen_random_uuid(),
+  room_code text not null,
+  day date default current_date,
+  a_completed_health boolean default false,
+  b_completed_health boolean default false,
+  synergy_multiplier_active boolean default false,
+  shared_vault_coins int default 0,
+  unique (room_code, day)
+);
+
+alter table quadrant_goals enable row level security;
+alter table daily_synergy enable row level security;
+drop policy if exists "open quadrant_goals" on quadrant_goals;
+drop policy if exists "open daily_synergy" on daily_synergy;
+create policy "open quadrant_goals" on quadrant_goals for all using (true) with check (true);
+create policy "open daily_synergy" on daily_synergy for all using (true) with check (true);

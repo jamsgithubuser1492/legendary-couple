@@ -39,6 +39,7 @@ interface Props {
   onWardrobe: () => void;
   onTogether: () => void;
   onArcade: () => void;
+  onRituals: () => void;
 }
 
 const btn =
@@ -83,6 +84,7 @@ export default function Hud(p: Props) {
           <button className={side} onClick={p.onDream} aria-label="Dream map">🖼️</button>
           <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
           <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
+          <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
         </div>
       )}
@@ -91,6 +93,7 @@ export default function Hud(p: Props) {
           <button className={side} onClick={() => p.onView('town')} aria-label="Town map">🌍</button>
           <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
           <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
+          <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
           <button className={side} onClick={p.onBoxes} aria-label="Blind boxes"><CurrencyIcon kind="box" size={28} />{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
           <button className={side} onClick={p.onWardrobe} aria-label="Wardrobe">👗</button>

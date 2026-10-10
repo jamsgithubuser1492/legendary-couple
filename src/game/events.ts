@@ -22,6 +22,7 @@ export const BUS = {
   mgInvite: 'mgInvite',         // manager -> React: your partner invited you
   mgBottle: 'mgBottle',         // scene -> React: you caught a bottle, write a note
   mgAttach: 'mgAttach',         // React -> manager: (re)join the room lobby
+  bottleOpen: 'bottleOpen',     // Phaser -> React: you reached a sealed bottle on the shore
   presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
   hover: 'hover',               // Phaser -> React: {x, y} | null

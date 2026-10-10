@@ -14,7 +14,9 @@ import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
 import { drawWall } from '../walls';
 import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
 import { Companion } from '../Companion';
+import { focusActive } from '../../state/store';
 import { figureOf } from '../../state/minigames';
+import { QuadrantFx } from '../quadrantFx';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { IslandEffects } from '../effects';
@@ -47,6 +49,8 @@ export class MainScene extends Phaser.Scene {
   private lastHover: { x: number; y: number } | null = null;
   private companions = new Map<CompanionId, Companion>();
   private roamers = new Map<string, Companion>();
+  private fx!: QuadrantFx;
+  private bottleObjs = new Map<string, Phaser.GameObjects.Container>();
   private roamTimer?: Phaser.Time.TimerEvent;
   private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private stateOverride?: GameState; // lets a ghost preview see its own walls
@@ -78,6 +82,9 @@ export class MainScene extends Phaser.Scene {
     this.renderPlaced();
     this.syncCompanions();
     this.syncRoamers();
+    this.fx = new QuadrantFx(this, () => this.avatars);
+    this.syncBottles();
+    this.time.addEvent({ delay: 300, loop: true, callback: () => this.checkBottles() });
 
     this.centerCamera();
     // WASD and the arrow keys. Capture is off so typing in text boxes still works.
@@ -118,6 +125,7 @@ export class MainScene extends Phaser.Scene {
       this.syncPartner();
       this.syncCompanions();
       this.syncRoamers();
+      this.syncBottles();
     });
     const offTheme = onThemeChange(() => this.ambient.apply(getTheme()));
     gameBus.on(BUS.edit, onEdit);
@@ -160,7 +168,7 @@ export class MainScene extends Phaser.Scene {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     const me = getMe();
     const av = this.avatars[me];
-    if (av.moving) return;
+    if (av.moving || focusActive(me)) return;
     const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
     const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
     const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
@@ -193,6 +201,7 @@ export class MainScene extends Phaser.Scene {
 
   private moveAvatarTo(tx: number, ty: number): void {
     const me = getMe();
+    if (focusActive(me)) return; // the Focus Beacon locks movement
     const av = this.avatars[me];
     const path = findPath(av.tile, { x: tx, y: ty }, this.pathingBlocked(me));
     if (!path.length) return;
@@ -246,6 +255,44 @@ export class MainScene extends Phaser.Scene {
       if (path.length) comp.walk(path);
       else comp.snap(spot.x, spot.y);
     }
+  }
+
+  /** Sealed love letters washed up on the shore. */
+  private syncBottles(): void {
+    const live = new Map(getState().bottles.filter((b) => !b.opened).map((b) => [b.id, b]));
+    for (const [id, c] of this.bottleObjs) {
+      if (!live.has(id)) {
+        c.destroy();
+        this.bottleObjs.delete(id);
+      }
+    }
+    for (const [id, b] of live) {
+      if (this.bottleObjs.has(id)) continue;
+      const g = this.add.graphics();
+      g.fillStyle(0xffffff, 0.35);
+      g.fillCircle(0, -12, 18);
+      g.fillStyle(0x7ac49a, 1);
+      g.fillRoundedRect(-6, -26, 12, 24, 5);
+      g.fillStyle(0xc99a62, 1);
+      g.fillRect(-3, -31, 6, 6);
+      g.fillStyle(0xffe4ec, 1);
+      g.fillRect(-3, -18, 6, 9);
+      const heart = this.add.text(0, -44, '💌', { fontSize: '16px' }).setOrigin(0.5);
+      const p = tileCenter(b.tileX, b.tileY);
+      const c = this.add.container(p.x, p.y + 6, [g, heart]).setDepth(b.tileX + b.tileY + 0.3);
+      this.tweens.add({ targets: c, y: c.y - 5, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.bottleObjs.set(id, c);
+    }
+  }
+
+  /** Walking up to a bottle your partner sealed opens it. */
+  private checkBottles(): void {
+    if (!this.scene.isActive()) return;
+    const me = getMe();
+    const av = this.avatars[me];
+    if (av.moving) return;
+    const b = getState().bottles.find((x) => !x.opened && x.from !== me && Math.max(Math.abs(x.tileX - av.tile.x), Math.abs(x.tileY - av.tile.y)) <= 1);
+    if (b) gameBus.emit(BUS.bottleOpen, b.id);
   }
 
   /** Collectible figures that were set free wander the island on their own. */
@@ -585,6 +632,7 @@ export class MainScene extends Phaser.Scene {
     this.pinchDist = 0;
     const wasDrag = this.dragging;
     this.dragging = false;
+    if (this.fx.tappedRecently()) return; // that tap was on a lantern
     this.dragStart = undefined;
     if (wasDrag) return;
     const t = this.pointerTile(p);

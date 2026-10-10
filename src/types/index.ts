@@ -10,6 +10,8 @@ export type LifeArea =
   | 'money'
   | 'mission';
 
+export type Quadrant = 'health' | 'career' | 'learning' | 'finance' | 'romance' | 'social' | 'environment' | 'recreation';
+
 export type QuestStatus = 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED';
 
 export type PlayerId = 'A' | 'B';
@@ -29,6 +31,8 @@ export interface Quest {
   assignedTo: PlayerId;
   status: QuestStatus;
   reward: QuestReward;
+  quadrant?: Quadrant; // which of the 8 quadrants this goal builds
+  ifThen?: string; // implementation intention: IF it is 7 AM, THEN I will walk for 20 mins
   recurring?: boolean;
   milestone?: boolean; // approved milestones can be captured in the Memory Journal
   createdAt: number;
@@ -104,6 +108,12 @@ export type MessageKind = 'daily' | 'whisper' | 'gratitude' | 'memory' | 'eviden
 /** Everything either partner writes, kept forever with a name and a time. */
 export interface Message { id: string; from: PlayerId; kind: MessageKind; text: string; ctx?: string; ref?: string; ts: number }
 
+export interface FocusSession { start: number; until: number; teas: number; paid?: boolean }
+export interface Takeaway { id: string; from: PlayerId; title: string; text: string; ts: number; kind: 'book' | 'scroll'; hue: number }
+export interface SealedBottle { id: string; from: PlayerId; text: string; photo?: string; ts: number; tileX: number; tileY: number; opened?: boolean }
+export interface TownBanner { id: string; by: PlayerId; title: string; ts: number; until: number }
+export interface Celebration { id: string; quadrant: Quadrant; by: PlayerId; ts: number }
+
 export interface GameState {
   startingPath: StartingPath | null;
   coins: number;
@@ -145,4 +155,14 @@ export interface GameState {
   starterRemoved: boolean; // the starter structure has been picked up
   ingredients: number; // café brewing ingredients
   townAvatars: Record<PlayerId, { x: number; y: number }>;
+  healthDays: Record<string, PlayerId[]>; // who finished a health goal on each date
+  vitalityUntil: Record<PlayerId, number>; // Vitality Glow
+  synergyUntil: number; // Synergy Aura: 1.5x coins while active
+  focus: Partial<Record<PlayerId, FocusSession>>; // Focus Beacon lantern
+  library: Takeaway[]; // Wisdom Bookshelf
+  vault: { coins: number; built: string[] }; // Dream Vault
+  bottleCredits: Record<PlayerId, number>; // sealed bottles earned by romance goals, still to write
+  bottles: SealedBottle[]; // washed up on the shore
+  banners: TownBanner[]; // town celebration banners from social goals
+  celebration: Celebration | null; // the last quadrant goal finished, for the aura effect
 }

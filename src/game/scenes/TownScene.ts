@@ -16,6 +16,10 @@ import { Boats } from '../town/boats';
 import { cartesianToIso as iso } from '../iso';
 import { Backdrop, REGION_RECTS, drawTerrain, regionAt } from '../town/world';
 import { feather } from '../town/nature';
+import { QuadrantFx } from '../quadrantFx';
+import { focusActive } from '../../state/store';
+import { FIGURES } from '../../state/minigames';
+import { Companion } from '../Companion';
 
 const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 const HOUSES = ['house_terracotta', 'house_bluedoor', 'house_pink', 'house_balcony', 'house_coastal', 'house_modern'];
@@ -48,6 +52,10 @@ export class TownScene extends Phaser.Scene {
   private lotObjs = new Map<string, Phaser.GameObjects.GameObject[]>();
   private seenRegions = new Set<RegionId>();
   private npcs: Npc[] = [];
+  private fx!: QuadrantFx;
+  private visitors: Companion[] = [];
+  private bunting: Phaser.GameObjects.GameObject[] = [];
+  private bannerKey = '';
   private pin?: Phaser.GameObjects.Container;
   private occupied = new Set<string>();
   private dragStart?: { x: number; y: number; camX: number; camY: number };
@@ -69,6 +77,7 @@ export class TownScene extends Phaser.Scene {
     const ta = getState().townAvatars;
     const lk = getState().looks;
     this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7, lk.A), B: new Avatar(this, 'B', ta.B, 0.7, lk.B) };
+    this.fx = new QuadrantFx(this, () => this.avatars);
     this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
     this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
     this.fitAll();
@@ -105,7 +114,8 @@ export class TownScene extends Phaser.Scene {
     gameBus.on(BUS.zoom, onZoom);
     gameBus.on(BUS.view, onView);
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.refresh(true));
-    this.time.addEvent({ delay: 1700, loop: true, callback: () => this.wander() });
+    this.time.addEvent({ delay: 1700, loop: true, callback: () => { this.wander(); this.roamVisitors(); } });
+    this.time.addEvent({ delay: 20000, loop: true, callback: () => this.refresh(false) });
     this.events.on(Phaser.Scenes.Events.UPDATE, (time: number) => this.waterTick(time));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offs.forEach((o) => o());
@@ -175,6 +185,34 @@ export class TownScene extends Phaser.Scene {
     else if (l.kind === 'barn') key = 'house_barn';
     else if (l.kind === 'tree') key = treeKey(l.variant);
     else if (l.kind === 'pine') key = theme === 'winter' || theme === 'holidays' ? 'pine_snow' : ['pine_a', 'pine_b', 'pine_c'][l.variant % 3];
+    if (l.kind === 'plaza') {
+      const g = this.add.graphics().setDepth(l.x + l.y + 0.05);
+      const P = (x: number, y: number) => cartesianToIso(x, y);
+      const quad = (x0: number, y0: number, x1: number, y1: number, color: number, alpha = 1) => {
+        const a = P(x0, y0), b = P(x1, y0), c = P(x1, y1), d = P(x0, y1);
+        g.fillStyle(color, alpha);
+        g.fillPoints([new Phaser.Math.Vector2(a.x, a.y), new Phaser.Math.Vector2(b.x, b.y), new Phaser.Math.Vector2(c.x, c.y), new Phaser.Math.Vector2(d.x, d.y)], true);
+      };
+      quad(l.x, l.y, l.x + l.w, l.y + l.d, 0xe9d8c4);
+      for (let i = 0; i < l.w; i++) for (let j = 0; j < l.d; j++) if ((i + j) % 2 === 0) quad(l.x + i + 0.04, l.y + j + 0.04, l.x + i + 0.96, l.y + j + 0.96, 0xf6e9d8);
+      quad(l.x + 0.1, l.y + 0.1, l.x + l.w - 0.1, l.y + l.d - 0.1, 0xffffff, 0.06);
+      out.push(g);
+      // the fountain in the middle
+      const f = this.add.graphics().setDepth(depth);
+      const c0 = iso(cx, cy);
+      f.fillStyle(0xcfc3b4, 1);
+      f.fillEllipse(c0.x, c0.y, 62, 32);
+      f.fillStyle(0x8fd3e8, 1);
+      f.fillEllipse(c0.x, c0.y - 2, 52, 26);
+      f.fillStyle(0xcfc3b4, 1);
+      f.fillRect(c0.x - 4, c0.y - 24, 8, 22);
+      f.fillStyle(0xbfe6f2, 0.9);
+      f.fillEllipse(c0.x, c0.y - 26, 26, 12);
+      f.fillStyle(0xffffff, 0.8);
+      f.fillCircle(c0.x - 7, c0.y - 33, 3);
+      f.fillCircle(c0.x + 8, c0.y - 30, 3);
+      out.push(f);
+    }
     if (key && this.textures.exists(key)) {
       const front = cartesianToIso(l.x + l.w, l.y + l.d);
       const small = l.kind === 'tree' || l.kind === 'pine';
@@ -245,6 +283,10 @@ export class TownScene extends Phaser.Scene {
     this.occupied = new Set();
     for (const l of LOTS) {
       if (!(open.has(l.region) && growth >= l.at)) continue; // only built places block the way
+      if (l.kind === 'plaza') {
+        this.occupied.add(`${l.x + 1},${l.y + 1}`); // only the fountain blocks, the square itself is for walking
+        continue;
+      }
       for (let i = 0; i < l.w; i++) for (let j = 0; j < l.d; j++) this.occupied.add(`${l.x + i},${l.y + j}`);
     }
     this.blockedTown = new Set(this.occupied);
@@ -261,6 +303,7 @@ export class TownScene extends Phaser.Scene {
     this.drawFog(open, growth);
     this.drawPin();
     this.syncNpcs(growth, open);
+    this.syncBanners(growth);
     this.firstRender = false;
   }
 
@@ -305,6 +348,62 @@ export class TownScene extends Phaser.Scene {
     g.strokeRoundedRect(-30, -62, 60, 28, 8);
     const t = this.add.text(0, -48, '🏝️ Home', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#6b4f4f' }).setOrigin(0.5);
     this.pin = this.add.container(c.x, c.y, [g, t]).setDepth(HOME_PIN.x + HOME_PIN.y + 1);
+  }
+
+  /** Town Square Hospitality: a celebration banner flies over the square and cute visitors gather. */
+  private syncBanners(growth: number): void {
+    const plaza = LOTS.find((l) => l.kind === 'plaza');
+    const now = Date.now();
+    const live = getState().banners.filter((b) => b.until > now);
+    const key = `${growth >= (plaza?.at ?? 1e9)}|${live.map((b) => b.id).join(',')}`;
+    if (key === this.bannerKey || !plaza) return;
+    this.bannerKey = key;
+    this.bunting.forEach((o) => o.destroy());
+    this.bunting = [];
+    this.visitors.forEach((v) => v.destroy());
+    this.visitors = [];
+    if (growth < plaza.at || !live.length) return;
+    // bunting strung between two poles
+    const a = cartesianToIso(plaza.x, plaza.y + plaza.d), b = cartesianToIso(plaza.x + plaza.w, plaza.y);
+    const g = this.add.graphics().setDepth(plaza.x + plaza.w + plaza.y + plaza.d + 5);
+    g.lineStyle(3, 0x8a5a44, 1);
+    g.beginPath();
+    g.moveTo(a.x, a.y);
+    g.lineTo(a.x, a.y - 70);
+    g.moveTo(b.x, b.y);
+    g.lineTo(b.x, b.y - 70);
+    g.strokePath();
+    const colors = [0xff9ebb, 0xffd23f, 0x8fd3e8, 0xb9e8a8, 0xc9a7ff];
+    for (let i = 0; i < 9; i++) {
+      const t = (i + 0.5) / 9;
+      const x = a.x + (b.x - a.x) * t;
+      const y = a.y - 70 + (b.y - a.y) * t + Math.sin(t * Math.PI) * 18;
+      g.fillStyle(colors[i % colors.length], 1);
+      g.fillTriangle(x - 8, y, x + 8, y, x, y + 16);
+    }
+    const label = this.add.text((a.x + b.x) / 2, (a.y + b.y) / 2 - 104, `🎉 ${live[0].title}`, { fontFamily: '"Baloo 2", system-ui', fontSize: '15px', color: '#6b4f4f', backgroundColor: '#fff3e8', padding: { x: 8, y: 3 } }).setOrigin(0.5).setDepth(plaza.x + plaza.w + plaza.y + plaza.d + 6);
+    this.bunting.push(g, label);
+    // visitors: blind box characters come to celebrate
+    const sprites = FIGURES.map((f) => f.sprite).filter((k) => this.textures.exists(k));
+    const count = Math.min(6, 2 + live.length * 2);
+    for (let i = 0; i < count && sprites.length; i++) {
+      const spot = { x: plaza.x + (i % plaza.w), y: plaza.y + Math.floor(i / plaza.w) % plaza.d };
+      const v = new Companion(this, sprites[(i * 3 + live.length) % sprites.length], spot);
+      v.container.setScale(0.7);
+      this.visitors.push(v);
+    }
+  }
+
+  private roamVisitors(): void {
+    const plaza = LOTS.find((l) => l.kind === 'plaza');
+    if (!plaza) return;
+    for (const v of this.visitors) {
+      if (v.moving || Math.random() < 0.4) continue;
+      const t = { x: plaza.x + Math.floor(Math.random() * plaza.w), y: plaza.y + Math.floor(Math.random() * plaza.d) };
+      if (this.blockedTown.has(`${t.x},${t.y}`)) continue;
+      const path = findPath(v.tile, t, this.blockedTown, TOWN);
+      if (path.length) v.walk(path);
+    }
   }
 
   private walkable(x: number, y: number, open: Set<RegionId>): boolean {
@@ -381,6 +480,7 @@ export class TownScene extends Phaser.Scene {
 
   private walkTo(t: { x: number; y: number }, then?: () => void): boolean {
     const me = getMe();
+    if (focusActive(me)) return false; // the Focus Beacon locks movement
     const av = this.avatars[me];
     const path = findPath(av.tile, t, this.pathBlocked(me), TOWN);
     if (!path.length) return false;
@@ -427,6 +527,7 @@ export class TownScene extends Phaser.Scene {
     const tag = (document.activeElement as HTMLElement | null)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     const me = getMe();
+    if (focusActive(me)) return;
     const av = this.avatars[me];
     if (av.moving) return;
     const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
@@ -502,7 +603,7 @@ export class TownScene extends Phaser.Scene {
     const was = this.dragging;
     this.dragging = false;
     this.dragStart = undefined;
-    if (was) return;
+    if (was || this.fx.tappedRecently()) return;
     const t = this.tileAt(p);
     if (!t) return;
     const growth = growthOf(getState());
