@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Amount, CurrencyIcon, Price } from './Currency';
+import { DAILY_QUEST_COINS, DAILY_TOKENS, DUO_DAY_COINS, MILESTONE_MAX, REWARD_MAX, SELF_MAX } from '../state/economy';
 import type { LifeArea, PlayerId, Quest } from '../types';
 import { AREAS, areaOf, SEASON_EVENTS, TEMPLATES, type QuestTemplate } from '../state/areas';
 import { THEMES, useTheme } from '../state/season';
-import { approveQuest, createQuest, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
+import { approveQuest, createQuest, todayStats, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
 import { QuadIcon } from './ItemIcon';
 import { CATALOG, itemOf } from '../state/catalog';
@@ -32,6 +33,23 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 const field = 'w-full rounded-xl border-2 border-blush bg-white px-3 py-2 text-cocoa outline-none focus:border-pink-400';
 const primary = 'rounded-full bg-pink-400 px-5 py-2 font-display font-bold text-white shadow active:scale-95 disabled:opacity-40';
 const soft = 'rounded-full bg-blush px-4 py-2 font-display font-bold text-cocoa active:scale-95';
+
+/** Shows how much of today's full pay is left, so effort stays meaningful. */
+function TodayStrip() {
+  useGameState();
+  const t = todayStats();
+  const pct = Math.min(1, t.questCoins / DAILY_QUEST_COINS);
+  return (
+    <div className="mx-4 mt-3 rounded-2xl bg-white p-2.5 text-xs text-cocoa shadow">
+      <div className="flex items-center justify-between font-bold">
+        <span>Today's full pay</span>
+        <span className="flex items-center gap-2"><Amount kind="coin" n={`${t.questCoins} / ${DAILY_QUEST_COINS}`} size={13} /><Amount kind="token" n={`${t.tokens} / ${DAILY_TOKENS}`} size={13} /></span>
+      </div>
+      <div className="mt-1 h-1.5 rounded-full bg-blush"><div className={`h-full rounded-full ${pct >= 1 ? 'bg-amber-400' : 'bg-pink-400'}`} style={{ width: `${pct * 100}%` }} /></div>
+      <p className="mt-1 text-cocoa/70">{pct >= 1 ? 'You have earned plenty today. More goals still grow your town, but pay a quarter.' : `Finish goals together: when you both get one approved today, you each feel it and earn +${DUO_DAY_COINS} bonus coins.`}</p>
+    </div>
+  );
+}
 
 // ---------- create ----------
 
@@ -101,6 +119,9 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
           <label className="flex items-center gap-1"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeats</label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={milestone} onChange={(e) => setMilestone(e.target.checked)} /> Milestone</label>
         </div>
+        <p className="rounded-xl bg-white p-2 text-xs text-cocoa/70">
+          Rewards up to {REWARD_MAX} coins ({MILESTONE_MAX} for a milestone). A goal you set for yourself pays at most {SELF_MAX.coins} coins and {SELF_MAX.gems} gems, so the best rewards are the ones you set for each other.
+        </p>
         <label className="flex items-center gap-2 text-sm text-cocoa">
           🎁 Bonus item
           <select className={field} value={itemId} onChange={(e) => setItemId(e.target.value)}>
@@ -215,7 +236,7 @@ function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onS
       </div>
       <div className="mt-2 flex justify-end">
         {(quest.status === 'IN_PROGRESS' || quest.status === 'REJECTED') &&
-          (mine ? <button className={primary} onClick={onSubmit}>{quest.status === 'REJECTED' ? 'Resubmit' : 'Mark done'}</button> : <span className="text-xs text-cocoa/60">Waiting on {who}</span>)}
+          (mine ? ((quest.notBefore ?? 0) > Date.now() ? <span className="text-xs text-cocoa/60">🌙 Back tomorrow. Habits count once a day</span> : <button className={primary} onClick={onSubmit}>{quest.status === 'REJECTED' ? 'Resubmit' : 'Mark done'}</button>) : <span className="text-xs text-cocoa/60">Waiting on {who}</span>)}
         {quest.status === 'PENDING_VERIFICATION' &&
           (mine ? <span className="text-xs text-cocoa/60">⏳ Waiting for {s.names[otherPlayer(me)]} to approve</span> : <button className={primary} onClick={onReview}>Review ✓</button>)}
         {quest.status === 'APPROVED' && (
@@ -253,7 +274,7 @@ function SeasonalStrip() {
               </div>
               <button
                 className={soft}
-                onClick={() => createQuest({ title: t.title, area: t.area, description: t.description, assignedTo: me, reward: t.reward, milestone: t.milestone })}
+                onClick={() => createQuest({ title: t.title, area: t.area, description: t.description, assignedTo: me, reward: t.reward, milestone: t.milestone }, { trusted: true })}
               >
                 ＋ Add
               </button>
@@ -304,6 +325,7 @@ export default function QuestBoard({ onClose, onCaptureMemory }: { onClose: () =
           {tabBtn('verify', 'Verify', toVerify)}
           {tabBtn('done', 'Done')}
         </div>
+        <TodayStrip />
         <div className="flex shrink-0 gap-2 overflow-x-auto px-4 py-3">
           <button onClick={() => setArea('all')} className={`shrink-0 rounded-full px-3 py-1 text-sm text-cocoa ${area === 'all' ? 'bg-cocoa text-cream' : 'bg-white'}`}>All</button>
           {AREAS.map((a) => (

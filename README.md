@@ -211,3 +211,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * **No stretching:** every image the minigames draw is now fitted by its own proportions (`fitBox` and `coverBox` in `src/game/minigames/base.ts`), and the crane rail tiles instead of stretching
 * **Town roads** are painted: warm asphalt, a pale sidewalk and a brick curb from your road sheet's colours, and your painted cobblestone texture on the seaside promenade. They replace the old flat grey lines but follow the same curved routes
 * Sheet 57 (the original start path sheet) and sheet 53 are saved in `art/source/`
+
+### Build 23 status: Balanced economy
+
+* All limits in `src/state/economy.ts`, explained in `docs/ECONOMY.md`. Quest coins are paid in full up to 180 a day and a quarter after that. Goals you set for yourself pay at most 30 coins, so the big rewards come from each other. Habits count once a day. 3 arcade tokens a day from quests, 120 coins per minigame (240 a day), 3 wishing well tosses a day
+* Duo Day: when you both get a goal approved on the same day you earn a bonus together
+* The Quest Board shows today's full pay left. New games start with 600 coins instead of 1,000

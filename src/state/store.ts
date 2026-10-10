@@ -9,6 +9,7 @@ import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import { dateKey, questionFor, streakOf } from './questions';
 import type { MGResult } from './minigames';
+import { clampReward, DAILY_MG_COINS, DAILY_QUEST_COINS, DAILY_TOKENS, DAILY_WELL_TOSSES, DUO_DAY_COINS, DUO_DAY_SHELLS, emptyDay, MG_COINS_PER_GAME, OVER_CAP_SHARE, START_COINS } from './economy';
 import { BANNER_MS, BLUEPRINTS, BOTTLE_SHELLS, FINANCE_VAULT_SHARE, FOCUS_COINS, FOCUS_MS, otherP, quadrantOf, SYNERGY_MS, SYNERGY_MULT, TEA_COINS, VITALITY_MS } from './quadrants';
 import { adventureFor, BID_WINDOW_MS, LOVE_QUESTIONS, loveSet, weekKey, whisperQuestion, type BidKind, type WhisperTier } from './together';
 
@@ -17,7 +18,7 @@ const ME_KEY = 'olw:me';
 
 const initial = (): GameState => ({
   startingPath: null,
-  coins: 1000,
+  coins: START_COINS,
   gems: 50,
   xp: 0,
   names: { A: 'James', B: 'Rachel' },
@@ -69,6 +70,8 @@ const initial = (): GameState => ({
   bottles: [],
   banners: [],
   celebration: null,
+  today: emptyDay(''),
+  questDays: {},
 });
 
 function load(): GameState {
@@ -262,12 +265,24 @@ export function setNames(names: Record<PlayerId, string>) {
   commit({ ...state, names });
 }
 
-export function createQuest(input: Omit<Quest, 'id' | 'status' | 'createdAt'>) {
+/**
+ * Adds a quest. The reward is limited by who sets it: a goal you give yourself pays less than one your partner gives you,
+ * so you cannot simply write yourself a huge reward. `trusted` is for built in templates and town ideas, which are already balanced.
+ */
+export function createQuest(input: Omit<Quest, 'id' | 'status' | 'createdAt'>, opts: { trusted?: boolean } = {}) {
+  const reward = opts.trusted ? input.reward : clampReward(input.reward, { milestone: input.milestone, self: input.assignedTo === me });
   commit({
     ...state,
-    quests: [{ ...input, id: uid(), status: 'IN_PROGRESS', createdAt: Date.now() }, ...state.quests],
+    quests: [{ ...input, reward, id: uid(), status: 'IN_PROGRESS', createdAt: Date.now() }, ...state.quests],
   });
 }
+
+/** Today's running totals, reset when the date changes. */
+function dayStats(now = Date.now()) {
+  const day = dateKey(new Date(now));
+  return state.today.day === day ? state.today : emptyDay(day);
+}
+export const todayStats = () => dayStats();
 
 export function deleteQuest(id: string) {
   commit({ ...state, quests: state.quests.filter((q) => q.id !== id) });
@@ -304,6 +319,7 @@ export function approveQuest(id: string, reviewer: PlayerId) {
       id: uid(),
       status: 'IN_PROGRESS',
       createdAt: Date.now(),
+      notBefore: startOfTomorrow(), // a habit can be approved once a day
       completedAt: undefined,
       evidenceNote: undefined,
       evidencePhoto: undefined,
@@ -315,21 +331,30 @@ export function approveQuest(id: string, reviewer: PlayerId) {
   const now = Date.now();
   const today = dateKey();
   const mult = coinMultiplier(now); // Synergy Aura, decided before this goal can start a new one
-  const coins = Math.round(q.reward.coins * mult);
+  const ds = dayStats(now);
+  const full = Math.max(0, DAILY_QUEST_COINS - ds.questCoins); // coins still paid in full today
+  const wanted = Math.round(q.reward.coins * mult);
+  const coins = wanted <= full ? wanted : full + Math.round((wanted - full) * OVER_CAP_SHARE);
+  const gotToken = ds.tokens < DAILY_TOKENS;
+  const duoDone = [...new Set([...(state.questDays[today] ?? []), q.assignedTo])];
+  const duoBonus = duoDone.length === 2 && !ds.duoPaid;
   let next: GameState = {
     ...state,
     quests,
     gems: state.gems + q.reward.gems,
-    xp: state.xp + q.reward.coins,
+    xp: state.xp + coins,
     inventory: q.reward.itemId ? addToInventory(state.inventory, q.reward.itemId, 1) : state.inventory,
     // quest boxes, plus a bonus box for every 5th approved quest (a milestone streak)
     blindBoxes: state.blindBoxes + (q.reward.blindBoxes ?? 0) + ((state.approvedCount + 1) % 5 === 0 ? 1 : 0),
     approvedCount: state.approvedCount + 1,
-    arcadeTokens: state.arcadeTokens + 1, // every approved quest earns an arcade token
+    arcadeTokens: state.arcadeTokens + (gotToken ? 1 : 0), // approved quests earn arcade tokens, a few a day
     ingredients: state.ingredients + (quad === 'health' || quad === 'learning' ? 2 : 0), // healthy habits stock the café
     celebration: { id: uid(), quadrant: quad, by: q.assignedTo, ts: now },
   };
-  next.coins = state.coins + coins;
+  next.coins = state.coins + coins + (duoBonus ? DUO_DAY_COINS : 0);
+  next.shells = state.shells + (duoBonus ? DUO_DAY_SHELLS : 0);
+  next.questDays = { ...state.questDays, [today]: duoDone };
+  next.today = { ...ds, questCoins: ds.questCoins + coins, quests: ds.quests + 1, tokens: ds.tokens + (gotToken ? 1 : 0), duoPaid: ds.duoPaid || duoBonus };
 
   if (quad === 'health') {
     // Pebble's Energy Sync: a Vitality Glow for both, and a Synergy Aura once you have both moved today
@@ -353,6 +378,11 @@ export function approveQuest(id: string, reviewer: PlayerId) {
   }
   commit(next);
 }
+
+const startOfTomorrow = () => {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+};
 
 export function requestEdit(id: string, reviewer: PlayerId, note: string) {
   const q = state.quests.find((x) => x.id === id);
@@ -643,6 +673,8 @@ export function buyToken(): boolean {
 
 /** Pays out a finished minigame. Only the host's device calls this, so a shared game never pays twice. */
 export function applyMinigameReward(r: MGResult) {
+  const mgDay = dayStats();
+  const mgCoins = Math.max(0, Math.min(Math.round(Math.min(r.coins, MG_COINS_PER_GAME) * coinMultiplier()), DAILY_MG_COINS - mgDay.mgCoins));
   let inventory = state.inventory;
   for (const id of r.items) inventory = addToInventory(inventory, id, 1);
   const figures = { ...state.figures };
@@ -651,7 +683,8 @@ export function applyMinigameReward(r: MGResult) {
   for (const [k, n] of Object.entries(r.fauna)) fauna[k] = (fauna[k] ?? 0) + n;
   commit({
     ...state,
-    coins: state.coins + Math.round(r.coins * coinMultiplier()),
+    coins: state.coins + mgCoins,
+    today: { ...mgDay, mgCoins: mgDay.mgCoins + mgCoins },
     shells: state.shells + r.shells,
     eventTokens: state.eventTokens + r.eventTokens,
     ingredients: state.ingredients + r.ingredients,
@@ -809,11 +842,13 @@ export function openBottle(id: string, reader: PlayerId) {
 /** The Wishing Well in the Town Square: 10 coins for a wish. */
 export function tossWell(): string | null {
   if (state.coins < 10) return null;
+  const wd = dayStats();
+  if (wd.wells >= DAILY_WELL_TOSSES) return 'The well is quiet for today. Come back tomorrow for more wishes.';
   const r = Math.random();
   let shells = 1, gems = 0, boxes = 0, text = '✨ Your wish drifts down… a Heart Shell glints in the water.';
   if (r > 0.97) { boxes = 1; text = '🌟 The well glows gold! A blind box floats up.'; }
   else if (r > 0.85) { gems = 3; shells = 2; text = '💎 A sparkle in the water: 2 shells and 3 gems.'; }
   else if (r > 0.6) { shells = 3; text = '🐚 A lucky one! 3 Heart Shells.'; }
-  commit({ ...state, coins: state.coins - 10, shells: state.shells + shells, gems: state.gems + gems, blindBoxes: state.blindBoxes + boxes });
+  commit({ ...state, coins: state.coins - 10, shells: state.shells + shells, gems: state.gems + gems, blindBoxes: state.blindBoxes + boxes, today: { ...wd, wells: wd.wells + 1 } });
   return text;
 }

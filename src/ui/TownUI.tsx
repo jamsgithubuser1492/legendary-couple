@@ -208,7 +208,7 @@ export function TownInteract({ lotId, onClose, onShop, onTogether, onOpen }: { l
       <button
         className={`${primaryBtn} mt-4 w-full`}
         onClick={() => {
-          createQuest({ title: act.title.replace(/ [^\w\s]+$/u, ''), area: 'romance', description: idea, assignedTo: me, reward: { coins: 15, gems: 0 } });
+          createQuest({ title: act.title.replace(/ [^\w\s]+$/u, ''), area: 'romance', description: idea, assignedTo: me, reward: { coins: 15, gems: 0 } }, { trusted: true });
           onClose();
           gameBus.emit(BUS.townToast, { text: '📋 Added to your Quest Board' });
         }}

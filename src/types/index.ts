@@ -34,6 +34,7 @@ export interface Quest {
   quadrant?: Quadrant; // which of the 8 quadrants this goal builds
   ifThen?: string; // implementation intention: IF it is 7 AM, THEN I will walk for 20 mins
   recurring?: boolean;
+  notBefore?: number; // a repeating habit that came back: it can be done again from this time
   milestone?: boolean; // approved milestones can be captured in the Memory Journal
   createdAt: number;
   completedAt?: number;
@@ -164,5 +165,7 @@ export interface GameState {
   bottleCredits: Record<PlayerId, number>; // sealed bottles earned by romance goals, still to write
   bottles: SealedBottle[]; // washed up on the shore
   banners: TownBanner[]; // town celebration banners from social goals
-  celebration: Celebration | null; // the last quadrant goal finished, for the aura effect
+  celebration: Celebration | null;
+  today: { day: string; questCoins: number; quests: number; tokens: number; mgCoins: number; wells: number; duoPaid: boolean }; // daily limits
+  questDays: Record<string, PlayerId[]>; // who had a goal approved on each date // the last quadrant goal finished, for the aura effect
 }
