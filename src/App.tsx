@@ -109,6 +109,11 @@ export default function App() {
     gameBus.emit(BUS.view, v);
   };
 
+  // When a partner's saved game arrives with a starting path already chosen, do not ask again.
+  useEffect(() => {
+    if (path) setModalOpen(false);
+  }, [path]);
+
   const pick = (p: StartingPath) => {
     setStartingPath(p);
     setModalOpen(false);

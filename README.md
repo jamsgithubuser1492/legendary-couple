@@ -123,6 +123,12 @@ Open the new 💞 Together button (or tap the Gratitude Tree on your island).
 * **Gratitude Tree** (Gable, capitalization): one thank you per person per day. Each note grows leaves and blossoms on the tree standing on your island. Opening your partner's note earns a shell, and every third unlocks floral decor
 * Heart Shells can be traded 10 for a blind box
 
+### Build 15 status: Invite link and message log
+
+* Your Supabase project is wired in. Run `supabase/schema.sql` once in its SQL editor to create the shared table
+* **Invite link:** after you connect a room, "Copy invite link" makes a link that opens the game connected to your room and signed in as your partner. The first time screens no longer appear when a saved game arrives
+* **Message log:** Together, Log lists everything either of you wrote (daily answers, whispers, thank yous, memories, quest notes and review notes) with names and dates, filterable by person and type. Sealed messages stay hidden until unlocked, and the log merges between phones so a simultaneous save cannot drop a message
+
 ## Run it
 
 ```bash

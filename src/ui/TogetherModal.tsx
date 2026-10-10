@@ -6,16 +6,18 @@ import {
   submitLoveAnswers, submitLoveGuesses, turnToward, useGameState, useMe,
 } from '../state/store';
 import { itemOf } from '../state/catalog';
+import type { MessageKind, PlayerId } from '../types';
 import ItemIcon from './ItemIcon';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 
-export type TogetherTab = 'whisper' | 'reach' | 'adventure' | 'lovemap' | 'gratitude';
+export type TogetherTab = 'whisper' | 'reach' | 'adventure' | 'lovemap' | 'gratitude' | 'log';
 const TABS: { id: TogetherTab; icon: string; label: string }[] = [
   { id: 'whisper', icon: '🔥', label: 'Fireside' },
   { id: 'reach', icon: '👋', label: 'Reach out' },
   { id: 'adventure', icon: '🧭', label: 'Adventure' },
   { id: 'lovemap', icon: '🗺️', label: 'Love map' },
   { id: 'gratitude', icon: '🌳', label: 'Gratitude' },
+  { id: 'log', icon: '📜', label: 'Log' },
 ];
 
 const card = 'rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 font-display text-lg font-bold text-cocoa';
@@ -213,6 +215,75 @@ function Gratitude() {
   );
 }
 
+const KIND: Record<MessageKind, { icon: string; label: string }> = {
+  daily: { icon: '💬', label: 'Daily question' },
+  whisper: { icon: '🔥', label: 'Fireside' },
+  gratitude: { icon: '🌳', label: 'Thank you' },
+  memory: { icon: '📔', label: 'Memory' },
+  evidence: { icon: '📋', label: 'Quest note' },
+  review: { icon: '🔎', label: 'Review note' },
+};
+const fmtDay = (ts: number) => new Date(ts).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+/** Everything either of you has written, newest first. Sealed messages stay hidden until they are unlocked. */
+function Log() {
+  const s = useGameState();
+  const me = useMe();
+  const [who, setWho] = useState<'all' | PlayerId>('all');
+  const [kind, setKind] = useState<'all' | MessageKind>('all');
+  const visible = (m: (typeof s.messages)[number]) => {
+    if (m.from === me) return true;
+    if (m.kind === 'daily') return !!s.checkins[m.ref ?? '']?.paid;
+    if (m.kind === 'whisper') return !!s.whispers[m.ref ?? '']?.paid;
+    if (m.kind === 'gratitude') return !!s.gratitude.find((n) => n.id === m.ref)?.opened;
+    return true;
+  };
+  const list = s.messages
+    .filter(visible)
+    .filter((m) => (who === 'all' || m.from === who) && (kind === 'all' || m.kind === kind))
+    .slice()
+    .reverse();
+  const groups: { day: string; items: typeof list }[] = [];
+  for (const m of list) {
+    const day = fmtDay(m.ts);
+    const g = groups[groups.length - 1];
+    if (g && g.day === day) g.items.push(m);
+    else groups.push({ day, items: [m] });
+  }
+  const chip = (on: boolean) => `shrink-0 rounded-full px-3 py-1 text-xs font-bold ${on ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`;
+  return (
+    <>
+      <div className="flex gap-1 overflow-x-auto">
+        <button className={chip(who === 'all')} onClick={() => setWho('all')}>Both</button>
+        {(['A', 'B'] as const).map((p) => <button key={p} className={chip(who === p)} onClick={() => setWho(p)}>{s.names[p]}</button>)}
+      </div>
+      <div className="mt-1 flex gap-1 overflow-x-auto">
+        <button className={chip(kind === 'all')} onClick={() => setKind('all')}>All</button>
+        {(Object.keys(KIND) as MessageKind[]).map((k) => <button key={k} className={chip(kind === k)} onClick={() => setKind(k)}>{KIND[k].icon} {KIND[k].label}</button>)}
+      </div>
+      {list.length === 0 && <p className="py-8 text-center text-cocoa/60">Nothing here yet. Answer a daily question, whisper by the fire or leave a thank you, and it will be kept here. 💞</p>}
+      {groups.map((g) => (
+        <div key={g.day} className="mt-3">
+          <div className="text-xs font-bold uppercase text-cocoa/50">{g.day}</div>
+          <div className="mt-1 space-y-2">
+            {g.items.map((m) => (
+              <div key={m.id} className={`rounded-2xl p-3 shadow ${m.from === 'A' ? 'bg-white' : 'bg-pink-50'}`}>
+                <div className="flex items-center justify-between text-xs text-cocoa/60">
+                  <span className="font-bold text-cocoa">{s.names[m.from]}</span>
+                  <span>{KIND[m.kind].icon} {KIND[m.kind].label} · {fmtTime(m.ts)}</span>
+                </div>
+                {m.ctx && <div className="mt-0.5 text-xs italic text-cocoa/60">{m.ctx}</div>}
+                <p className="mt-1 text-cocoa">{m.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export default function TogetherModal({ tab, onTab, onClose }: { tab: TogetherTab; onTab: (t: TogetherTab) => void; onClose: () => void }) {
   const s = useGameState();
   return (
@@ -228,6 +299,7 @@ export default function TogetherModal({ tab, onTab, onClose }: { tab: TogetherTa
       {tab === 'adventure' && <Adventure />}
       {tab === 'lovemap' && <LoveMap />}
       {tab === 'gratitude' && <Gratitude />}
+      {tab === 'log' && <Log />}
     </Sheet>
   );
 }

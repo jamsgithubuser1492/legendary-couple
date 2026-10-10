@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { generateRoomCode, getRoom, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
-import { setNames, setMe, useGameState, useMe } from '../state/store';
+import { generateRoomCode, getRoom, inviteLink, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
+import { otherPlayer, setNames, setMe, useGameState, useMe } from '../state/store';
 import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
 
 const STATUS: Record<string, string> = {
@@ -18,6 +18,8 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
   const choice = useSeasonChoice();
   const theme = useTheme();
   const [code, setCode] = useState(getRoom() ?? '');
+  const [copied, setCopied] = useState(false);
+  const link = inviteLink(otherPlayer(me));
   const field = 'w-full rounded-xl border-2 border-blush bg-white px-3 py-2 text-cocoa outline-none focus:border-pink-400';
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-cocoa/30 p-4 backdrop-blur-sm" onClick={onClose}>
@@ -43,6 +45,27 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
               <button className="rounded-full bg-blush px-3 font-bold text-cocoa" onClick={() => setCode(generateRoomCode())}>New</button>
             </div>
             <button className="mt-2 w-full rounded-full bg-pink-400 py-2 font-display font-bold text-white" onClick={() => joinRoom(code)}>Connect</button>
+            {link && getRoom() === code && (
+              <div className="mt-3 rounded-2xl bg-white p-3 shadow">
+                <div className="font-display text-sm font-bold text-cocoa">💌 Invite {s.names[otherPlayer(me)]}</div>
+                <p className="text-xs text-cocoa/60">Send this link. When {s.names[otherPlayer(me)]} opens it, they join your room signed in as themselves.</p>
+                <input readOnly value={link} onFocus={(e) => e.target.select()} className="mt-1 w-full rounded-lg border border-blush bg-cream px-2 py-1 text-xs text-cocoa" />
+                <button
+                  className="mt-2 w-full rounded-full bg-peach py-1.5 font-display text-sm font-bold text-cocoa"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(link);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      /* the box above can be selected and copied by hand */
+                    }
+                  }}
+                >
+                  {copied ? 'Copied ✓' : 'Copy invite link'}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <p className="mt-1 rounded-xl bg-peach p-3 text-xs text-cocoa">

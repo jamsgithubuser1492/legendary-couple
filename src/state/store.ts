@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { CompanionId, GameState, Memory, PlayerId, Quest, StartingPath } from '../types';
+import type { CompanionId, GameState, Memory, MessageKind, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
 import { setGridSize } from '../game/iso';
@@ -7,7 +7,7 @@ import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
-import { dateKey, streakOf } from './questions';
+import { dateKey, questionFor, streakOf } from './questions';
 import { adventureFor, BID_WINDOW_MS, LOVE_QUESTIONS, loveSet, weekKey, whisperQuestion, type BidKind, type WhisperTier } from './together';
 
 const STATE_KEY = 'olw:state:v1';
@@ -34,6 +34,7 @@ const initial = (): GameState => ({
   checkins: {},
   approvedCount: 0,
   looks: { A: 'cream', B: 'cream' },
+  messages: [],
   shells: 0,
   whispers: {},
   glowUntil: 0,
@@ -112,7 +113,12 @@ function commit(next: GameState) {
 
 /** Used by the sync layer to apply a remote snapshot without echoing it back. */
 export function applyRemote(next: GameState) {
-  state = withDefaults(next);
+  const merged = withDefaults(next);
+  // never lose a message because two phones saved at the same moment: union by id
+  const byId = new Map(merged.messages.map((m) => [m.id, m]));
+  for (const m of state.messages) if (!byId.has(m.id)) byId.set(m.id, m);
+  merged.messages = [...byId.values()].sort((a, b) => a.ts - b.ts);
+  state = merged;
   setGridSize(state.islandSize);
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -162,6 +168,12 @@ export function setMe(p: PlayerId) {
 
 const other = (p: PlayerId): PlayerId => (p === 'A' ? 'B' : 'A');
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Adds to the message log. Call just before the commit that saves the action. */
+function addMsg(kind: MessageKind, from: PlayerId, text: string, ctx?: string, ref?: string) {
+  if (!text.trim()) return;
+  state = { ...state, messages: [...state.messages, { id: uid(), from, kind, text: text.trim(), ctx, ref, ts: Date.now() }] };
+}
 
 function patchQuest(id: string, fn: (q: Quest) => Quest) {
   commit({ ...state, quests: state.quests.map((q) => (q.id === id ? fn(q) : q)) });
@@ -240,6 +252,8 @@ export function deleteQuest(id: string) {
 
 /** Assignee says "I did it". Waits for the partner. */
 export function submitQuest(id: string, evidence: { note?: string; photo?: string }) {
+  const qq = state.quests.find((x) => x.id === id);
+  if (qq && (qq.status === 'IN_PROGRESS' || qq.status === 'REJECTED') && evidence.note?.trim()) addMsg('evidence', qq.assignedTo, evidence.note, qq.title, id);
   patchQuest(id, (q) =>
     q.status === 'IN_PROGRESS' || q.status === 'REJECTED'
       ? {
@@ -291,6 +305,7 @@ export function approveQuest(id: string, reviewer: PlayerId) {
 export function requestEdit(id: string, reviewer: PlayerId, note: string) {
   const q = state.quests.find((x) => x.id === id);
   if (!q || q.status !== 'PENDING_VERIFICATION' || q.assignedTo === reviewer) return;
+  addMsg('review', reviewer, note.trim() || 'Please add more detail.', q.title, id);
   patchQuest(id, (x) => ({ ...x, status: 'REJECTED', reviewNote: note.trim() || 'Please add more detail.', reviewedAt: Date.now() }));
 }
 
@@ -423,6 +438,7 @@ export function answerCheckin(player: PlayerId, text: string) {
   const key = dateKey();
   const today = state.checkins[key] ?? {};
   if (today[player] || !text.trim()) return;
+  addMsg('daily', player, text, questionFor(key), key);
   const next = { ...today, [player]: text.trim() };
   const both = next.A && next.B;
   const checkins = { ...state.checkins, [key]: { ...next, paid: both ? true : today.paid } };
@@ -451,6 +467,7 @@ export function answerWhisper(player: PlayerId, text: string) {
   const day = dateKey();
   const w = state.whispers[day];
   if (!w || w[player] || !text.trim()) return;
+  addMsg('whisper', player, text, w.q, day);
   const next = { ...w, [player]: text.trim() };
   const both = !!(next.A && next.B);
   const whispers = { ...state.whispers, [day]: { ...next, paid: both || w.paid } };
@@ -538,7 +555,9 @@ export function submitLoveGuesses(guesser: PlayerId, guesses: number[]) {
 export function dropNote(player: PlayerId, text: string): boolean {
   const day = dateKey();
   if (!text.trim() || state.gratitude.some((n) => n.from === player && n.day === day)) return false;
-  commit({ ...state, gratitude: [...state.gratitude, { id: uid(), from: player, text: text.trim().slice(0, 140), day }] });
+  const id = uid();
+  addMsg('gratitude', player, text.trim().slice(0, 140), undefined, id);
+  commit({ ...state, gratitude: [...state.gratitude, { id, from: player, text: text.trim().slice(0, 140), day }] });
   return true;
 }
 
@@ -584,6 +603,7 @@ export function createMemory(input: { title: string; note?: string; photo?: stri
     tileX: tile.x,
     tileY: tile.y,
   };
+  addMsg('memory', input.author, memory.note ?? memory.title, memory.title, memory.id);
   commit({ ...state, memories: [memory, ...state.memories] });
   return memory;
 }
