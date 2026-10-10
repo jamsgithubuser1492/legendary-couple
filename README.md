@@ -182,9 +182,16 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 
 ## Build 19 status: Painted island, floors, walls and minigame art
 
-* **Island ground and sea:** your seasonal ground art (spring meadow, summer grass, autumn leaves, winter snow, with winter reused for holidays) now covers the island. A new island starts as bare dirt and greens up as your growth rises. The rim is painted sand, and the sea under the island is your painted water for the season, mirrored so it never shows a seam. `tools/slice_env.py` cuts these
+* **Island ground and sea:** your seasonal ground art (spring meadow, summer grass, autumn leaves, winter snow, with winter reused for holidays) now covers the island. The lawn is grassed from day one, with a patch of bare dirt only under the starter structure. The rim is painted sand, and the ground fades from one season to the next, and the sea under the island is your painted water for the season, mirrored so it never shows a seam. `tools/slice_env.py` cuts these
 * **Floors:** 16 painted floor tiles (pink tile, café checker, 3 rugs, flower meadow, stone path, parquet, cream stone, mosaic, terracotta, 3 wood stains, tatami, plush carpet) are in the shop. `tools/slice_floors.py` cuts them
 * **Walls:** 8 new wall materials (pink, sage, brick, board and batten, wainscot, picket fence, hedge, glass), each with matching window and door where it makes sense. They are drawn by the game on its own wall shape, in your colours and surfaces, so they join, corner, T and cross automatically
 * **Minigames:** Matcha Masters has the café interior, ingredient jars, customers and drinks. Stellar Fishing has a painted sky that follows the real time of day and painted fish, crates and bottles. The Crane has the painted claw, rail and boxes (light and heavy, in three series colours). `tools/slice_minigames.py` cuts these
 * **Together:** the Fireside shows the campfire and stars, the Love Map its card and hearts, Gratitude its jar, and Adventure the scratch card icons
 * Still saved but not wired in: shoreline edge pieces, depth gradients, roofs and starter growth stages, stairs and half walls, the arcade front for the town map, and sheets 46 to 47 (arcade edge cases and cabinet views)
+
+### Build 20 status: Starter growth, seasonal walls, flatter floors
+
+* **Starter structures grow:** the RV, Shop and Café and Home Foundation use your three stage art. Day one shows stage 1, stage 2 appears after 2 approved quests and the finished stage 3 after 6 (`starterStage` in `src/state/town.ts`). Cut by `tools/slice_starters.py`
+* **Seasonal wall:** a wall, window and door that follow the season (soft green, golden, warm ochre, frosty white) and change on their own when the season changes. The 8 material walls stay as separate shop choices
+* **Floors:** only the decorative pieces (rugs, mosaic, stone path, flower meadow, wood stains, tatami, carpet) use sprites. Pink tile, café checker, parquet, cream stone and terracotta are drawn by the game so they join with no seam
+* Walls join into runs, corners, T junctions and crosses automatically. Roofs, stairs and the sheet 38 blend mats are not used

@@ -231,3 +231,6 @@ export const nextMilestone = (growth: number): { label: string; at: number } | n
   ].sort((a, b) => a.at - b.at);
   return upcoming[0] ?? null;
 };
+
+/** The starter structure grows as you approve quests: day one, mid growth, finished. */
+export const starterStage = (s: GameState): 1 | 2 | 3 => (s.approvedCount >= 6 ? 3 : s.approvedCount >= 2 ? 2 : 1);

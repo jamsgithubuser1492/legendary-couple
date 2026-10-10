@@ -20,6 +20,7 @@ import { QuadrantFx } from '../quadrantFx';
 import { preloadNpcStrips } from '../town/npcs';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
+import { starterStage } from '../../state/town';
 import { FLOOR_FY } from '../floorOrigins';
 import { IslandEffects } from '../effects';
 import { TREE } from '../../state/placement';
@@ -122,7 +123,7 @@ export class MainScene extends Phaser.Scene {
       this.avatars.A.setLook(st.looks.A);
       this.avatars.B.setLook(st.looks.B);
       if (st.islandSize !== this.drawnSize) this.resizeIsland();
-      const key = `${st.startingPath}:${st.starterRemoved}`;
+      const key = `${st.startingPath}:${st.starterRemoved}:${starterStage(st)}`;
       if (key !== this.starterKey) this.setStartingPath(st.startingPath);
       this.renderPlaced();
       this.ambient.refreshGround();
@@ -131,7 +132,10 @@ export class MainScene extends Phaser.Scene {
       this.syncRoamers();
       this.syncBottles();
     });
-    const offTheme = onThemeChange(() => this.ambient.apply(getTheme()));
+    const offTheme = onThemeChange(() => {
+      this.ambient.apply(getTheme());
+      this.renderPlaced(); // seasonal walls follow the season
+    });
     gameBus.on(BUS.edit, onEdit);
     gameBus.on(BUS.startingPath, onPath);
     gameBus.on(BUS.center, onCenter);
@@ -371,7 +375,7 @@ export class MainScene extends Phaser.Scene {
   private setStartingPath(p: PathPayload): void {
     this.structure.forEach((o) => o.destroy());
     this.structure = [];
-    this.starterKey = `${p}:${getState().starterRemoved}`;
+    this.starterKey = `${p}:${getState().starterRemoved}:${starterStage(getState())}`;
     this.hasStarter = !!p && !getState().starterRemoved;
     this.blocked = blockedTiles(getState(), this.hasStarter);
     if (!p || getState().starterRemoved) return;
@@ -384,16 +388,26 @@ export class MainScene extends Phaser.Scene {
     }
     const depth = PLOT.x + PLOT.y + 0.5;
     const front = cartesianToIso(PLOT.x + 1, PLOT.y + 1);
-    if (p === 'shop' && this.textures.exists('cafe_exterior')) {
-      this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));
-    } else if (p === 'rv' && this.textures.exists('rv_b')) {
-      this.structure.push(this.img('rv_b', front.x, front.y - 4, 0.5, 1).setDepth(depth));
-    } else if (p === 'home') {
-      const c = tileCenter(PLOT.x, PLOT.y);
-      this.structure.push(this.add.image(c.x, c.y, floorKey('floor_wood', 1)).setScale(0.5).setDepth(-29));
-      const wg = this.add.graphics().setDepth(depth);
-      drawWall(wg, PLOT.x, PLOT.y, 'wall', 0, { W: false, E: true, N: false, S: true });
-      this.structure.push(wg);
+    const stage = starterStage(getState());
+    // bare dirt under the starter, so the building sits on a worked patch of ground
+    const dirt = this.add.graphics().setDepth(-48);
+    const quad = [cartesianToIso(PLOT.x - 0.6, PLOT.y - 0.6), cartesianToIso(PLOT.x + 1.6, PLOT.y - 0.6), cartesianToIso(PLOT.x + 1.6, PLOT.y + 1.6), cartesianToIso(PLOT.x - 0.6, PLOT.y + 1.6)];
+    for (const [shrink, alpha] of [[0, 0.35], [0.25, 0.45], [0.5, 0.55]] as const) {
+      dirt.fillStyle(0xb98f62, alpha);
+      dirt.beginPath();
+      const c = cartesianToIso(PLOT.x + 0.5, PLOT.y + 0.5);
+      quad.forEach((q, i) => {
+        const x = c.x + (q.x - c.x) * (1 - shrink), y = c.y + (q.y - c.y) * (1 - shrink);
+        if (i) dirt.lineTo(x, y);
+        else dirt.moveTo(x, y);
+      });
+      dirt.closePath();
+      dirt.fillPath();
+    }
+    this.structure.push(dirt);
+    const stageKey = `starter_${p}_${stage}`;
+    if (this.textures.exists(stageKey)) {
+      this.structure.push(this.img(stageKey, front.x, front.y - 4, 0.5, 1).setDepth(depth));
     } else {
       const g = this.add.graphics().setDepth(depth);
       const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;

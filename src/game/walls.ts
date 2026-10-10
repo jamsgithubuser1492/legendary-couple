@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { cartesianToIso } from './iso';
 import { shade } from './draw';
+import { getTheme } from '../state/season';
 
 type P = { x: number; y: number };
 type G = Phaser.GameObjects.Graphics;
@@ -39,12 +40,19 @@ export interface Neighbours {
   S: boolean;
 }
 
-export type WallMaterial = 'plaster' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
+export type WallMaterial = 'seasonal' | 'plaster' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
 type Pattern = 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
 interface Mat { plaster: number; trim: number; wood: number; h: number; pattern?: Pattern; accent?: number; opening: boolean }
 
 /** Wall materials from the painted sheet: the colours and surfaces are yours, drawn on the game's own isometric wall shape. */
-const MATS: Record<WallMaterial, Mat> = {
+type FixedMat = Exclude<WallMaterial, 'seasonal'>;
+const SEASON_MATS: Record<'spring' | 'summer' | 'autumn' | 'winter', Mat> = {
+  spring: { plaster: 0xcbe3b6, trim: 0xb2d49a, wood: 0x9cc084, h: WALL_H, opening: true },
+  summer: { plaster: 0xf4d78a, trim: 0xe9c066, wood: 0xd4a44a, h: WALL_H, opening: true },
+  autumn: { plaster: 0xdc9a5c, trim: 0xc7803f, wood: 0xa8652e, h: WALL_H, opening: true },
+  winter: { plaster: 0xeef3f8, trim: 0xd6e1ec, wood: 0xbccbdb, h: WALL_H, opening: true },
+};
+const MATS: Record<FixedMat, Mat> = {
   plaster: { plaster: PLASTER, trim: TRIM, wood: WOOD, h: WALL_H, opening: true },
   pink: { plaster: 0xf8cfdc, trim: 0xf2b5c8, wood: 0xe7a3b8, h: WALL_H, opening: true },
   sage: { plaster: 0xbcd6aa, trim: 0xa4c492, wood: 0x8fb27f, h: WALL_H, opening: true },
@@ -68,7 +76,8 @@ const hash2 = (a: number, b: number) => {
 export function drawWall(
   g: G, x: number, y: number, variant: 'wall' | 'window' | 'door', rotation: number, n: Neighbours, alpha = 1, tint?: number, material: WallMaterial = 'plaster',
 ): void {
-  const mat = MATS[material] ?? MATS.plaster;
+  const th = getTheme();
+  const mat = material === 'seasonal' ? SEASON_MATS[th === 'holidays' ? 'winter' : th] : MATS[material] ?? MATS.plaster;
   const H = mat.h;
   const col = (c: number) => (tint === undefined ? c : mix(c, tint, 0.55));
   const hasX = n.W || n.E, hasY = n.N || n.S;
