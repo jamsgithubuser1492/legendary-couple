@@ -239,3 +239,19 @@ export abstract class MinigameScene extends Phaser.Scene {
     return this.button(900, 24, 96, 36, 'Exit ✕', { fill: 0xe8e0f0, size: 16, onUp: () => this.quit() });
   }
 }
+
+/** Fits an image inside a box without changing its proportions ("contain"). */
+export function fitBox<T extends Phaser.GameObjects.Image>(im: T, w: number, h: number): T {
+  const f = im.frame;
+  const k = Math.min(w / f.realWidth, h / f.realHeight);
+  im.setScale(k);
+  return im;
+}
+
+/** Fills a box without changing proportions, cropping nothing: the image may overhang the box ("cover"). */
+export function coverBox<T extends Phaser.GameObjects.Image>(im: T, w: number, h: number): T {
+  const f = im.frame;
+  const k = Math.max(w / f.realWidth, h / f.realHeight);
+  im.setScale(k);
+  return im;
+}

@@ -50,6 +50,11 @@ def main():
         jobs.append((f'town_{k}', s51.cutbox('o', *b), 22 if k.startswith('pigeons') else 50 if k.startswith(('bulletin', 'icecream')) else 40))
     for k, b in P52.items():
         jobs.append((f'town_{k}', s52.cutbox('o', *b), 26 if k == 'clock' else 40 if k in ('fountain_dry', 'bench_straight') else 56))
+    # the painted cobblestone texture, used to fill the seaside promenade
+    def sh(x0, y0, x1, y1):
+        return (round(10 + x0 / 3), round(95 + y0 / 3), round(10 + x1 / 3), round(95 + y1 / 3))
+    cob = s54.img.crop(sh(580, 470, 780, 630))
+    cob.resize((cob.width * 3, cob.height * 3), Image.LANCZOS).save(os.path.join(OUT, 'road_cobble.png'), optimize=True)
     entries = []
     for key, im, dw in jobs:
         bb = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()

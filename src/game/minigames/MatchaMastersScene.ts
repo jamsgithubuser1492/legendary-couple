@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { PlayerId } from '../../types';
 import { CAFE_DECOR, emptyResult, RECIPES, type MGResult } from '../../state/minigames';
 import { getState } from '../../state/store';
-import { FONT, MinigameScene } from './base';
+import { FONT, MinigameScene, coverBox, fitBox } from './base';
 
 interface Order { id: number; name: string; recipe: string[]; patience: number; combo: boolean; claimed: boolean; face: string }
 interface Model {
@@ -99,16 +99,16 @@ export class MatchaMastersScene extends MinigameScene {
     ING.forEach(([name, icon], i) => {
       const x = 80 + (i % 4) * 112, y = 212 + Math.floor(i / 4) * 54;
       this.btn[`ing:${name}`] = this.button(x, y, 104, 46, `\u2003\u2003${name}`, { size: 13, onDown: () => this.act('A', 'add', name) });
-      if (this.textures.exists(`mg_ing_${icon}`)) this.add.image(x - 38, y, `mg_ing_${icon}`).setDisplaySize(30, 36).setDepth(25);
+      if (this.textures.exists(`mg_ing_${icon}`)) fitBox(this.add.image(x - 38, y, `mg_ing_${icon}`).setDepth(25), 32, 38);
     });
     if (this.textures.exists('mg_bg_cafe_day')) {
-      this.add.image(480, 270, 'mg_bg_cafe_day').setDisplaySize(960, 540).setDepth(-90);
+      coverBox(this.add.image(480, 270, 'mg_bg_cafe_day').setDepth(-90), 960, 540);
       this.add.rectangle(480, 270, 960, 540, 0xfff3e8, 0.4).setDepth(-80);
       this.hasBg = true;
     }
-    if (this.textures.exists('mg_rush_badge')) this.add.image(372, 135, 'mg_rush_badge').setDisplaySize(26, 26).setDepth(11);
-    this.cardImgs = [0, 1, 2, 3].map((i) => this.add.image(30 + i * 229 + 184, 122, 'mg_cust_1').setOrigin(0.5, 1).setDisplaySize(32, 52).setDepth(11).setVisible(false));
-    this.drinkImg = this.add.image(714, 330, 'mg_cup_1').setDisplaySize(96, 80).setDepth(12).setVisible(false);
+    if (this.textures.exists('mg_rush_badge')) fitBox(this.add.image(372, 135, 'mg_rush_badge').setDepth(11), 26, 26);
+    this.cardImgs = [0, 1, 2, 3].map((i) => fitBox(this.add.image(30 + i * 229 + 184, 122, 'mg_cust_1').setOrigin(0.5, 1).setDepth(11).setVisible(false), 34, 56));
+    this.drinkImg = fitBox(this.add.image(714, 330, 'mg_cup_1').setDepth(12).setVisible(false), 96, 90);
     this.btn.clear = this.button(100, 468, 100, 44, 'Clear', { fill: 0xe8e0f0, onDown: () => this.act('A', 'clear') });
     this.btn.pass = this.button(330, 468, 180, 44, 'Pass to barista ➜', { fill: 0xbfe8b0, size: 17, onDown: () => this.act('A', 'pass') });
     // Partner B: barista
@@ -272,7 +272,7 @@ export class MatchaMastersScene extends MinigameScene {
       this.cards[i].name.setText(o.combo ? '💞 Couples Combo' : o.name);
       const ci = this.cardImgs[i];
       const ck = `mg_cust_${(FACES.indexOf(o.face) % 6) + 1}`;
-      if (ci && this.textures.exists(ck)) ci.setTexture(ck).setDisplaySize(32, 52).setVisible(true);
+      if (ci && this.textures.exists(ck)) fitBox(ci.setTexture(ck).setVisible(true), 34, 56);
       this.cards[i].recipe.setText(o.recipe.join(' + '));
       this.cards[i].hearts.setText('♥'.repeat(hearts) + '♡'.repeat(5 - hearts)).setColor(hearts <= 1 ? '#e8503a' : '#ff7fa1');
     }
@@ -324,7 +324,7 @@ export class MatchaMastersScene extends MinigameScene {
     if (this.drinkImg) {
       const show = (m.stage === 'serve' || m.stage === 'topping') && !!m.pass;
       this.drinkImg.setVisible(show && this.textures.exists('mg_cup_1'));
-      if (show) this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`).setDisplaySize(96, 80).setPosition(m.stage === 'serve' ? 714 : 540, m.stage === 'serve' ? 330 : 250);
+      if (show) fitBox(this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`), 96, 90).setPosition(m.stage === 'serve' ? 714 : 540, m.stage === 'serve' ? 330 : 250);
     }
     this.t.bState.setText(bLine);
     // text

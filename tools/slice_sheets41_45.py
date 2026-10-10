@@ -63,7 +63,7 @@ class Sheet:
         im.putalpha(a)
         return im
 
-    def cutbox(self, half, dx0, dy0, dx1, dy1):
+    def cutbox(self, half, dx0, dy0, dx1, dy1, keep_all=False):
         """For objects that touch a caption or have pale outlines: crop a box and flood the background away from its edges."""
         if half == 'o':
             x0, y0, x1, y1 = dx0, dy0, dx1, dy1
@@ -89,7 +89,11 @@ class Sheet:
         l2, n = ndimage.label(fg)
         if n > 1:
             sizes = ndimage.sum(fg, l2, range(1, n + 1))
-            fg = l2 == (1 + int(np.argmax(sizes)))
+            if keep_all:
+                keep = [i + 1 for i, z in enumerate(sizes) if z >= 0.04 * sizes.max()]
+                fg = np.isin(l2, keep)
+            else:
+                fg = l2 == (1 + int(np.argmax(sizes)))
         al = Image.fromarray((fg * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.6))
         im = crop.convert('RGBA')
         im.putalpha(al)

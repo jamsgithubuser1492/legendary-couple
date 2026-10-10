@@ -65,6 +65,7 @@ export class MainScene extends Phaser.Scene {
   preload(): void {
     this.load.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
     for (const s of SPRITES) this.load.image(s.key, s.file);
+    this.load.image('road_cobble', 'road_cobble.png');
     preloadWalkStrips(this);
     preloadNpcStrips(this);
     // water effect sprites (cut by tools/slice_water.py)
@@ -126,7 +127,6 @@ export class MainScene extends Phaser.Scene {
       const key = `${st.startingPath}:${st.starterRemoved}:${starterStage(st)}`;
       if (key !== this.starterKey) this.setStartingPath(st.startingPath);
       this.renderPlaced();
-      this.ambient.refreshGround();
       this.syncPartner();
       this.syncCompanions();
       this.syncRoamers();
@@ -406,8 +406,19 @@ export class MainScene extends Phaser.Scene {
     }
     this.structure.push(dirt);
     const stageKey = `starter_${p}_${stage}`;
-    if (this.textures.exists(stageKey)) {
+    if (stage > 1 && this.textures.exists(stageKey)) {
       this.structure.push(this.img(stageKey, front.x, front.y - 4, 0.5, 1).setDepth(depth));
+    } else if (p === 'shop' && this.textures.exists('cafe_exterior')) {
+      // day one is your original starter art, then it grows into the later stages
+      this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));
+    } else if (p === 'rv' && this.textures.exists('rv_b')) {
+      this.structure.push(this.img('rv_b', front.x, front.y - 4, 0.5, 1).setDepth(depth));
+    } else if (p === 'home') {
+      const c = tileCenter(PLOT.x, PLOT.y);
+      this.structure.push(this.add.image(c.x, c.y, floorKey('floor_wood', 1)).setScale(0.5).setDepth(-29));
+      const wg = this.add.graphics().setDepth(depth);
+      drawWall(wg, PLOT.x, PLOT.y, 'wall', 0, { W: false, E: true, N: false, S: true });
+      this.structure.push(wg);
     } else {
       const g = this.add.graphics().setDepth(depth);
       const cx = PLOT.x + 0.5, cy = PLOT.y + 0.5;

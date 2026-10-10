@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { PlayerId } from '../../types';
 import { COMMON_FIGURES, RARE_FIGURES, emptyResult, figureOf, type MGResult } from '../../state/minigames';
-import { MinigameScene } from './base';
+import { MinigameScene, fitBox } from './base';
 
 type Phase = 'x' | 'depth' | 'drop' | 'lift' | 'show';
 interface Box { id: number; x: number; heavy: boolean; fig: string; taken: boolean }
@@ -180,7 +180,7 @@ export class CraneCrazeScene extends MinigameScene {
         im = this.add.image(0, 0, key).setDepth(5);
         this.caps.set(b.id, im);
       }
-      im.setDisplaySize(s * 0.95, s * (b.heavy ? 1.2 : 0.95));
+      fitBox(im, s * 0.95, s * (b.heavy ? 1.25 : 0.95));
       if (m.phase === 'lift' && m.grabbed === b.id) {
         const cx = BX(m.cx);
         const cy = 96 + m.dy * (SHELF_Y - 96 - 40) * Math.max(0, 1 - m.liftT / 1.5);
@@ -212,7 +212,12 @@ export class CraneCrazeScene extends MinigameScene {
       g.fillStyle(0x6b4f4f, 1);
       g.fillRoundedRect(x - 16, y, 32, 14, 6);
     }
-    if (!this.railImg && this.textures.exists('mg_rail')) this.railImg = this.add.image(480, 62, 'mg_rail').setDisplaySize(760, 20).setDepth(24);
+    if (!this.railImg && this.textures.exists('mg_rail')) {
+      const fr = this.textures.getFrame('mg_rail');
+      const ts = this.add.tileSprite(480, 62, 760, 22, 'mg_rail').setDepth(24);
+      ts.setTileScale(22 / fr.realHeight, 22 / fr.realHeight);
+      this.railImg = ts as unknown as Phaser.GameObjects.Image;
+    }
     // depth guide for B
     g.fillStyle(0x000000, 0.12);
     g.fillRoundedRect(880, 80, 14, 300, 7);

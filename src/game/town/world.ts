@@ -357,29 +357,58 @@ export function drawTerrain(scene: Phaser.Scene, theme: Theme): TerrainResult {
     }
   });
 
-  // ----- roads: smooth ribbons with soft edges -----
-  const roads = gfx(-52);
-  const road = (pts: Pt[], width: number, main = false) => {
-    const sp = splinePts(pts, Math.max(24, pts.length * 14)).map(proj);
-    strokePoly(roads, sp, width + 6, tint(0xaaa49e, 0.2), 0.8);
-    strokePoly(roads, sp, width, tint(0xd8d3cd, 0.2), 1);
-    if (main) {
-      roads.lineStyle(1.4, 0xffffff, 0.55);
-      for (let i = 0; i + 1 < sp.length; i += 2) {
-        roads.beginPath();
-        roads.moveTo(sp[i].x, sp[i].y);
-        roads.lineTo(sp[i + 1].x, sp[i + 1].y);
-        roads.strokePath();
-      }
-    }
-  };
-  road([{ x: 3.4, y: 13 }, { x: 4.6, y: 18 }, { x: 4.2, y: 23 }, { x: 5.4, y: 27 }], 15, true); // seaside promenade
+  // ----- roads: painted ribbons. Warm asphalt with a pale sidewalk and a brick curb, and your painted cobblestone for the promenade -----
+  const roadPaths: { pts: Pt[]; width: number; main: boolean; cobble: boolean }[] = [];
+  const road = (pts: Pt[], width: number, main = false, cobble = false) => roadPaths.push({ pts, width, main, cobble });
+  road([{ x: 3.4, y: 13 }, { x: 4.6, y: 18 }, { x: 4.2, y: 23 }, { x: 5.4, y: 27 }], 15, true, true); // seaside promenade
   for (const y of [18, 24]) road([{ x: 3.5, y }, { x: 9, y: y + 0.2 }, { x: 15, y: y - 0.2 }, { x: 18, y }], 12);
   for (const x of [6, 12]) road([{ x, y: 14 }, { x: x + 0.2, y: 20 }, { x, y: 27 }], 12);
   road([{ x: 18, y: 17.5 }, { x: 24, y: 17.2 }, { x: 31, y: 17.8 }], 12, true); // campus avenue
   for (const x of [21, 24, 27, 30]) road([{ x, y: 22 }, { x: x + 0.1, y: 27 }, { x, y: 33 }], 11);
   for (const y of [24, 27, 30]) road([{ x: 18, y }, { x: 25, y: y + 0.1 }, { x: 33, y }], 11);
   road([{ x: 8, y: -0.5 }, { x: 8.6, y: 7 }, { x: 9, y: 14 }], 10); // country lane
+  const splines = roadPaths.map((r) => splinePts(r.pts, Math.max(24, r.pts.length * 14)).map(proj));
+  const rx0 = Math.min(...splines.flat().map((p) => p.x)) - 40, rx1 = Math.max(...splines.flat().map((p) => p.x)) + 40;
+  const ry0 = Math.min(...splines.flat().map((p) => p.y)) - 40, ry1 = Math.max(...splines.flat().map((p) => p.y)) + 40;
+  const rkey = `town_roads_${theme}`;
+  if (scene.textures.exists(rkey)) scene.textures.remove(rkey);
+  const rtex = scene.textures.createCanvas(rkey, Math.ceil(rx1 - rx0), Math.ceil(ry1 - ry0));
+  if (rtex) {
+    const c = rtex.getContext();
+    const css = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
+    const cobbleImg = scene.textures.exists('road_cobble') ? (scene.textures.get('road_cobble').getSourceImage() as HTMLImageElement) : null;
+    const cobblePat = cobbleImg ? c.createPattern(cobbleImg, 'repeat') : null;
+    const stroke = (sp: Pt[], w: number, style: string | CanvasPattern, alpha = 1) => {
+      c.save();
+      c.globalAlpha = alpha;
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+      c.lineWidth = w;
+      c.strokeStyle = style;
+      c.beginPath();
+      sp.forEach((p, i) => (i ? c.lineTo(p.x - rx0, p.y - ry0) : c.moveTo(p.x - rx0, p.y - ry0)));
+      c.stroke();
+      c.restore();
+    };
+    // sidewalks and curbs first, so every junction joins cleanly, then the road surface over them
+    roadPaths.forEach((r, i) => {
+      stroke(splines[i], r.width + 12, css(tint(0xb5624f, 0.25)), 0.9); // brick curb
+      stroke(splines[i], r.width + 9, css(tint(0xdabc99, 0.25))); // sidewalk
+    });
+    roadPaths.forEach((r, i) => {
+      stroke(splines[i], r.width + 1, css(tint(0xa88a78, 0.2))); // road edge
+      stroke(splines[i], r.width - 1, r.cobble && cobblePat ? cobblePat : css(tint(0x84716a, 0.2)));
+    });
+    roadPaths.forEach((r, i) => {
+      if (!r.main || r.cobble) return;
+      c.save();
+      c.setLineDash([7, 9]);
+      stroke(splines[i], 1.6, 'rgba(255,248,230,0.8)');
+      c.restore();
+    });
+    rtex.refresh();
+    objects.push(scene.add.image(rx0, ry0, rkey).setOrigin(0, 0).setDepth(-52));
+  }
 
   // ----- waves: crests roll in from the open sea, the surf breathes, and sparkles twinkle -----
   const foam = gfx(-49);

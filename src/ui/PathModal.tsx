@@ -1,4 +1,5 @@
 import type { StartingPath } from '../types';
+import { ArtImg } from './ItemIcon';
 
 const OPTIONS: { id: StartingPath; icon: string; title: string; blurb: string; bg: string }[] = [
   { id: 'rv', icon: '🚐', title: 'The RV Life', blurb: 'Simple. Cozy. Mobile.', bg: 'bg-sky' },
@@ -29,7 +30,7 @@ export default function PathModal({ current, onPick, onClose }: Props) {
                 current === o.id ? 'ring-4 ring-pink-300' : ''
               }`}
             >
-              <div className="text-5xl">{o.icon}</div>
+              <div className="flex h-24 items-center justify-center"><ArtImg name={`path_card_${o.id}`} size={96} /></div>
               <div className="mt-2 font-display text-lg font-bold text-cocoa">{o.title}</div>
               <div className="text-sm text-cocoa/70">{o.blurb}</div>
             </button>

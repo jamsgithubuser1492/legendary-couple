@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { PlayerId } from '../../types';
 import { FAUNA, emptyResult, type MGResult } from '../../state/minigames';
 import { BUS, gameBus } from '../events';
-import { H, MinigameScene, W } from './base';
+import { H, MinigameScene, W, coverBox } from './base';
 
 type Kind = 'normal' | 'coop' | 'crate' | 'bottle';
 interface Fish { id: number; x: number; y: number; vx: number; kind: Kind; ph: number }
@@ -240,7 +240,7 @@ export class StellarFishingScene extends MinigameScene {
     if (!this.skyImg) {
       const h = new Date().getHours();
       const key = h >= 20 || h < 6 ? 'mg_sky_night' : h >= 17 ? 'mg_sky_golden' : 'mg_sky_day';
-      if (this.textures.exists(key)) this.skyImg = this.add.image(-60, -4, key).setOrigin(0, 0).setDisplaySize(1080, 330).setDepth(-90);
+      if (this.textures.exists(key)) this.skyImg = coverBox(this.add.image(480, -4, key).setOrigin(0.5, 0).setDepth(-90), 1080, 330);
     }
     if (!this.skyImg) {
       const bands = [0xf9c5d6, 0xfbd0d0, 0xfcdcc8, 0xfde8c4, 0xfff0d0];

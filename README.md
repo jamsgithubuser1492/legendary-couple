@@ -203,3 +203,11 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * **Town Square:** a painted fountain, plus a bulletin board (opens the Quest Board), wishing well (10 coins for a wish), newspaper rack (opens the message log), ice cream cart, benches, clock, flower bed, drinking fountain and trash bin. Pigeons peck around the square and scatter when you walk up
 * 18 of these pieces (well, stage, stalls, benches, pavilion and more) are also in the shop under Park, for your own island
 * Not used yet: sheet 53 (town edge cases), sidewalk and road sprites, terrain tiles, map markers, stage states and seasonal plaza overlays
+
+### Build 22 status: Back to the bare look, original paths, painted roads
+
+* **Reverted** the painted leaf ground and the painted water texture. The island and the sea are the original soft pastel surfaces again, with the code's ripple lines and the plain blue water, and no deep blue halo
+* **Starting paths** use your original art: the three path cards on the choice screen, and your original RV, café and home foundation as the day one starter. The later growth stages are the sheet 36 pieces
+* **No stretching:** every image the minigames draw is now fitted by its own proportions (`fitBox` and `coverBox` in `src/game/minigames/base.ts`), and the crane rail tiles instead of stretching
+* **Town roads** are painted: warm asphalt, a pale sidewalk and a brick curb from your road sheet's colours, and your painted cobblestone texture on the seaside promenade. They replace the old flat grey lines but follow the same curved routes
+* Sheet 57 (the original start path sheet) and sheet 53 are saved in `art/source/`
