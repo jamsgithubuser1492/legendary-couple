@@ -216,7 +216,7 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 
 * All limits in `src/state/economy.ts`, explained in `docs/ECONOMY.md`. Quest coins are paid in full up to 180 a day and a quarter after that. Goals you set for yourself pay at most 30 coins, so the big rewards come from each other. Habits count once a day. 3 arcade tokens a day from quests, 120 coins per minigame (240 a day), 3 wishing well tosses a day
 * Duo Day: when you both get a goal approved on the same day you earn a bonus together
-* The Quest Board shows today's full pay left. New games start with 600 coins instead of 1,000
+* The Quest Board shows today's full pay left. New games start with 2,000 shared coins (1,000 each)
 
 ### Build 24 status: The 50 day question journey
 

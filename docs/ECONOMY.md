@@ -9,7 +9,7 @@ question and a game or two, which pays about 100 to 160 coins.
 ## Limits
 | Rule | Value |
 |---|---|
-| Starting coins (new games) | 600 |
+| Starting coins (new games) | 2,000 shared (1,000 each) |
 | Full pay for quests per day | 180 coins, then 25 percent |
 | Arcade tokens from quests per day | 3 |
 | Biggest normal quest reward | 60 coins (150 for a milestone) |

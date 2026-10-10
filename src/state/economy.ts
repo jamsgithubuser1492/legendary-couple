@@ -5,7 +5,7 @@
  * Prices then land like this: small items about one day, mid pieces two to four days, big pieces
  * (greenhouse, gazebo, piano) one to two weeks, the 2,500 coin island about five weeks.
  */
-export const START_COINS = 600;
+export const START_COINS = 2000; // the wallet is shared, so this is 1,000 for each of you
 
 // ---- quests ----
 export const DAILY_QUEST_COINS = 180; // full pay up to this many quest coins a day...
