@@ -25,7 +25,7 @@ export default function PathModal({ current, onPick, onClose }: Props) {
             <button
               key={o.id}
               onClick={() => onPick(o.id)}
-              className={`overflow-hidden rounded-2xl bg-white text-left shadow transition hover:scale-[1.03] active:scale-95 ${current === o.id ? 'ring-4 ring-pink-300' : ''}`}
+              className={`flex flex-col justify-start overflow-hidden rounded-2xl bg-white text-left shadow transition hover:scale-[1.03] active:scale-95 ${current === o.id ? 'ring-4 ring-pink-300' : ''}`}
             >
               <img src={`${import.meta.env.BASE_URL}assets/sprites/path_card_${o.id}.png`} alt={o.title} className="block aspect-[1.12] w-full object-cover" draggable={false} />
               <div className="p-3">

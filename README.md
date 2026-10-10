@@ -231,3 +231,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * The path cards on the choice screen are cut cleanly from your original sheet (`tools/slice_paths.py`): rounded, with the tinted panel, no cut-off edges or stray hearts
 * Day one on the island is your original building from each card (RV, Shop and Café, Home Foundation), cut out cleanly. It then grows into the later stages
 * **See on Island:** tap the top right label ("The Shop & Café · See on island") to open your path's big island picture, the four step Build Up Over Time strip showing where you are, and a "Zoom to my build" button that flies the camera to your build
+
+### Build 26 status: Your detailed starter designs
+
+* The RV, the Shop & Café and the Home Foundation now use your detailed sheet (sheet 59, cut by `tools/slice_starters2.py`; the characters are ignored). The path cards, the day one building on the island and the See on Island view all use them
+* They grow with the stages: stage 2 (2 approved goals) adds campfire, stools and packs for the RV, a café table and umbrella for the shop, and lumber and frames for the home. Stage 3 (6 goals) adds the duffel and toolbox, the shelf and menu board, or the wall unit and toolbox
+* See on Island now draws your actual starter and its props, and lets you preview all three stages

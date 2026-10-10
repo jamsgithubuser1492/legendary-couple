@@ -20,7 +20,7 @@ import { QuadrantFx } from '../quadrantFx';
 import { preloadNpcStrips } from '../town/npcs';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
-import { starterStage } from '../../state/town';
+import { starterStage, STARTER_PROPS } from '../../state/town';
 import { FLOOR_FY } from '../floorOrigins';
 import { IslandEffects } from '../effects';
 import { TREE } from '../../state/placement';
@@ -405,9 +405,16 @@ export class MainScene extends Phaser.Scene {
       dirt.fillPath();
     }
     this.structure.push(dirt);
-    const stageKey = stage === 1 ? `starter_day1_${p}` : `starter_${p}_${stage}`; // day one is cut from your original path card
-    if (this.textures.exists(stageKey)) {
-      this.structure.push(this.img(stageKey, front.x, front.y - 4, 0.5, 1).setDepth(depth));
+    const bkey = `start_${p}`; // your detailed starter art
+    if (this.textures.exists(bkey)) {
+      this.structure.push(this.img(bkey, front.x, front.y - 4, 0.5, 1).setDepth(depth));
+      // it settles in as you grow: props appear around it at stage 2 and stage 3
+      for (const pr of STARTER_PROPS[p].filter((q) => q.stage <= stage)) {
+        if (!this.textures.exists(pr.key)) continue;
+        const t = tileCenter(PLOT.x + pr.dx, PLOT.y + pr.dy);
+        if (!inBounds(PLOT.x + pr.dx, PLOT.y + pr.dy)) continue;
+        this.structure.push(this.img(pr.key, t.x, t.y + 6, 0.5, 1).setDepth(PLOT.x + pr.dx + PLOT.y + pr.dy + 0.4));
+      }
     } else if (p === 'shop' && this.textures.exists('cafe_exterior')) {
       // day one is your original starter art, then it grows into the later stages
       this.structure.push(this.img('cafe_exterior', front.x, front.y - 6, 0.5, 1).setDepth(depth));

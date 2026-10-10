@@ -293,3 +293,20 @@ export const nextMilestone = (growth: number): { label: string; at: number } | n
 
 /** The starter structure grows as you approve quests: day one, mid growth, finished. */
 export const starterStage = (s: GameState): 1 | 2 | 3 => (s.approvedCount >= 6 ? 3 : s.approvedCount >= 2 ? 2 : 1);
+
+/** The props that appear around the starter as it grows: stage 2 settles in, stage 3 is finished. Offsets are tiles from the plot. */
+export const STARTER_PROPS: Record<'rv' | 'shop' | 'home', { stage: 2 | 3; key: string; dx: number; dy: number }[]> = {
+  rv: [
+    { stage: 2, key: 'start_campfire', dx: 2, dy: 1 }, { stage: 2, key: 'start_stool_a', dx: 1, dy: 2 }, { stage: 2, key: 'start_stool_b', dx: 3, dy: 2 }, { stage: 2, key: 'start_stool_c', dx: 2, dy: 3 },
+    { stage: 2, key: 'start_packs', dx: -1, dy: 2 },
+    { stage: 3, key: 'start_duffel', dx: -1, dy: 1 }, { stage: 3, key: 'start_toolbox_rv', dx: 3, dy: 0 },
+  ],
+  shop: [
+    { stage: 2, key: 'start_cafe_table', dx: 2, dy: 1 }, { stage: 2, key: 'start_cafe_umbrella', dx: 1, dy: 3 },
+    { stage: 3, key: 'start_cafe_shelf', dx: -1, dy: 2 }, { stage: 3, key: 'start_menu_board', dx: 2, dy: -1 },
+  ],
+  home: [
+    { stage: 2, key: 'start_lumber', dx: 2, dy: 1 }, { stage: 2, key: 'start_frames', dx: -1, dy: 2 },
+    { stage: 3, key: 'start_wall_unit', dx: 1, dy: 3 }, { stage: 3, key: 'start_toolbox_home', dx: 3, dy: 1 },
+  ],
+};
