@@ -75,3 +75,32 @@ drop policy if exists "open quadrant_goals" on quadrant_goals;
 drop policy if exists "open daily_synergy" on daily_synergy;
 create policy "open quadrant_goals" on quadrant_goals for all using (true) with check (true);
 create policy "open daily_synergy" on daily_synergy for all using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- The 50 day question journey. The game keeps the bank in code and the answers inside game_state,
+-- so it syncs with no extra setup. These tables are the relational shape of the same data, keyed by room_code.
+-- ---------------------------------------------------------------------------
+create table if not exists question_bank (
+  day_number int primary key,
+  theme text not null,
+  prompt_text text not null
+);
+
+create table if not exists daily_question_responses (
+  id uuid primary key default gen_random_uuid(),
+  room_code text not null,
+  day_number int not null,
+  day date not null default current_date,
+  player text not null check (player in ('A', 'B')),
+  response_text text,
+  voice_memo_url text,
+  created_at timestamptz default now(),
+  unique (room_code, day, player)
+);
+
+alter table question_bank enable row level security;
+alter table daily_question_responses enable row level security;
+drop policy if exists "open question_bank" on question_bank;
+drop policy if exists "open daily_question_responses" on daily_question_responses;
+create policy "open question_bank" on question_bank for all using (true) with check (true);
+create policy "open daily_question_responses" on daily_question_responses for all using (true) with check (true);

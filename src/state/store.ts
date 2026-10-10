@@ -7,7 +7,7 @@ import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
-import { dateKey, questionFor, streakOf } from './questions';
+import { dateKey, journeyFor, streakOf, tomorrowKey } from './questions';
 import type { MGResult } from './minigames';
 import { clampReward, DAILY_MG_COINS, DAILY_QUEST_COINS, DAILY_TOKENS, DAILY_WELL_TOSSES, DUO_DAY_COINS, DUO_DAY_SHELLS, emptyDay, MG_COINS_PER_GAME, OVER_CAP_SHARE, START_COINS } from './economy';
 import { BANNER_MS, BLUEPRINTS, BOTTLE_SHELLS, FINANCE_VAULT_SHARE, FOCUS_COINS, FOCUS_MS, otherP, quadrantOf, SYNERGY_MS, SYNERGY_MULT, TEA_COINS, VITALITY_MS } from './quadrants';
@@ -71,6 +71,7 @@ const initial = (): GameState => ({
   banners: [],
   celebration: null,
   today: emptyDay(''),
+  customPrompts: {},
   questDays: {},
 });
 
@@ -520,20 +521,31 @@ export function answerCheckin(player: PlayerId, text: string) {
   const key = dateKey();
   const today = state.checkins[key] ?? {};
   if (today[player] || !text.trim()) return;
-  addMsg('daily', player, text, questionFor(key), key);
-  const next = { ...today, [player]: text.trim() };
+  const jq = journeyFor(key, state.checkins, state.customPrompts);
+  addMsg('daily', player, text, jq.prompt, key);
+  const next = { ...today, [player]: text.trim(), q: today.q ?? jq.prompt, theme: today.theme ?? jq.theme, n: today.n ?? jq.n, custom: today.custom ?? !!jq.custom };
   const both = next.A && next.B;
   const checkins = { ...state.checkins, [key]: { ...next, paid: both ? true : today.paid } };
   if (!both || today.paid) return commit({ ...state, checkins });
   const streak = streakOf(checkins, key);
+  const milestone = !jq.custom && jq.n === 50; // the day 50 celebration
   commit({
     ...state,
     checkins,
     coins: state.coins + 15,
-    gems: state.gems + 2,
+    gems: state.gems + 2 + (milestone ? 10 : 0),
+    shells: state.shells + (milestone ? 10 : 0),
     xp: state.xp + 15,
-    blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0), // a week of check-ins earns a box
+    blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0) + (milestone ? 1 : 0), // a week of check-ins earns a box, and so does finishing day 50
   });
+}
+
+/** Secret Prompt Drop: write tomorrow's question for your partner and yourself. It stays hidden until tomorrow. */
+export function dropPrompt(from: PlayerId, text: string): boolean {
+  const key = tomorrowKey();
+  if (!text.trim() || state.customPrompts[key]) return false;
+  commit({ ...state, customPrompts: { ...state.customPrompts, [key]: { from, text: text.trim().slice(0, 160) } } });
+  return true;
 }
 
 // ---------- Together: whispers, bids, adventures, love map, gratitude ----------

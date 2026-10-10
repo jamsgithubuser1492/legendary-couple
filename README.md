@@ -217,3 +217,11 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * All limits in `src/state/economy.ts`, explained in `docs/ECONOMY.md`. Quest coins are paid in full up to 180 a day and a quarter after that. Goals you set for yourself pay at most 30 coins, so the big rewards come from each other. Habits count once a day. 3 arcade tokens a day from quests, 120 coins per minigame (240 a day), 3 wishing well tosses a day
 * Duo Day: when you both get a goal approved on the same day you earn a bonus together
 * The Quest Board shows today's full pay left. New games start with 600 coins instead of 1,000
+
+### Build 24 status: The 50 day question journey
+
+* The daily question now follows a 50 day journey built on research: seven rotating themes (Gratitude from Gable, Fondness and Love Maps from Gottman, Self-Expansion and Vulnerability from Aron, Playfulness, and Alignment from Johnson's attachment work). The bank is in `src/state/questions.ts`
+* A day you miss does not use up a question, so you never skip one. After day 50 the journey continues in the same weekly rhythm from a deeper pool of 56 more questions, with no repeats for about 8 weeks. Finishing day 50 earns a bonus box, 10 gems and 10 Heart Shells
+* Answers stay hidden until you both answer, then open together. Every answer is kept in "Our Love Map library", where you can filter by theme
+* Secret Prompt Drop: write tomorrow's question for the two of you. It stays hidden until tomorrow
+* Voice answers are not built yet. `supabase/schema.sql` has `question_bank` and `daily_question_responses` tables, optional because the game syncs the answers already
