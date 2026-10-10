@@ -29,7 +29,7 @@ const FISH = ['guppy', 'tang', 'bunny', 'bass'];
 /** Which way each painted fish faces as drawn, so the other direction can be a mirror. */
 const NATIVE: Record<string, 'e' | 'w'> = { guppy: 'e', tang: 'w', bunny: 'w', bass: 'e' };
 const RING_R = 130;
-const GREEN_FROM = 0.72, GREEN_TO = 0.98, RING_TIME = 2.6; // a wider green band and a slower ring, so it is a shared moment, not a reflex test
+const GREEN_FROM = 0.74, GREEN_TO = 0.97, RING_TIME = 2.0; // a wider green band and a slower ring, so it is a shared moment, not a reflex test
 const PIER_X: Record<PlayerId, number> = { A: 300, B: 660 };
 const inGreen = (t: number) => t / RING_TIME >= GREEN_FROM && t / RING_TIME <= GREEN_TO;
 
@@ -149,7 +149,7 @@ export class StellarFishingScene extends MinigameScene {
       try { localStorage.setItem('olw:fishTutorial', '1'); } catch { /* ignore */ }
       if (this.host && !this.started) {
         this.started = true;
-        this.nextFish = this.clock + 1.2;
+        this.nextFish = this.clock + 0.8;
         this.nextBottle = this.clock + 30;
       }
     };
@@ -170,12 +170,12 @@ export class StellarFishingScene extends MinigameScene {
     const m = this.m, c = this.clock;
     // fish swim in from the sides
     const busy = !!m.ring || !!m.tension;
-    if (c >= this.nextFish && m.fish.length < (busy ? 3 : 5)) {
+    if (c >= this.nextFish && m.fish.length < (busy ? 4 : 7)) {
       const r = Math.random();
       const kind: Kind = r < 0.1 ? 'crate' : r < 0.45 ? 'coop' : 'normal';
       const left = Math.random() < 0.5;
-      m.fish.push({ id: this.nextId++, x: left ? -30 : W + 30, y: WATER_TOP + 60 + Math.random() * 180, vx: (left ? 1 : -1) * (16 + Math.random() * 18), kind, ph: Math.random() * 6 });
-      this.nextFish = c + 2.4 + Math.random() * 1.6;
+      m.fish.push({ id: this.nextId++, x: left ? -30 : W + 30, y: WATER_TOP + 60 + Math.random() * 180, vx: (left ? 1 : -1) * (30 + Math.random() * 26), kind, ph: Math.random() * 6 });
+      this.nextFish = c + 1.3 + Math.random() * 1.1;
     }
     if (c >= this.nextBottle && !m.fish.some((f) => f.kind === 'bottle')) {
       m.fish.push({ id: this.nextId++, x: 120 + Math.random() * 700, y: WATER_TOP + 70 + Math.random() * 160, vx: 8, kind: 'bottle', ph: 0 });
@@ -189,8 +189,8 @@ export class StellarFishingScene extends MinigameScene {
     // the sync ring
     if (m.ring) {
       const t = c - m.ring.t0;
-      for (const r of ['A', 'B'] as PlayerId[]) if (this.isBot(r) && m.ring.taps[r] === undefined && t >= 1.95 + this.botTapAt) this.onInput(r, 'tap', 1.98 + this.botTapAt);
-      if (m.ring && t > RING_TIME + 1.2) {
+      for (const r of ['A', 'B'] as PlayerId[]) if (this.isBot(r) && m.ring.taps[r] === undefined && t >= 1.55 + this.botTapAt) this.onInput(r, 'tap', 1.58 + this.botTapAt);
+      if (m.ring && t > RING_TIME + 0.9) {
         m.fish = m.fish.filter((f) => f.id !== m.ring!.fishId);
         m.flash = { text: 'It got away!', until: c + 1.4 };
         m.ring = null;
@@ -207,7 +207,7 @@ export class StellarFishingScene extends MinigameScene {
       tn.dirT -= dt;
       if (tn.dirT <= 0) {
         tn.dir = Math.random() < 0.5 ? -1 : 1;
-        tn.dirT = 1.0 + Math.random() * 1.0;
+        tn.dirT = 0.8 + Math.random() * 0.8;
       }
       for (const r of ['A', 'B'] as PlayerId[]) {
         if (!this.isBot(r)) continue;
@@ -215,12 +215,12 @@ export class StellarFishingScene extends MinigameScene {
         if (r === 'A') tn.holdA = want;
         else tn.holdB = want;
       }
-      tn.v += tn.dir * 0.16 * dt + ((tn.holdB ? 1 : 0) - (tn.holdA ? 1 : 0)) * 0.4 * dt;
+      tn.v += tn.dir * 0.22 * dt + ((tn.holdB ? 1 : 0) - (tn.holdA ? 1 : 0)) * 0.4 * dt;
       if (tn.v > 0.3 && tn.v < 0.7) tn.good += dt;
       if (tn.v <= 0.02 || tn.v >= 0.98 || c > tn.until) {
         m.flash = { text: 'The critter slipped away', until: c + 1.6 };
         m.tension = null;
-      } else if (tn.good >= 3) {
+      } else if (tn.good >= 2.5) {
         const f = FAUNA[Math.floor(Math.random() * FAUNA.length)];
         m.fauna[f.id] = (m.fauna[f.id] ?? 0) + 1;
         m.shells += 3;
@@ -269,8 +269,8 @@ export class StellarFishingScene extends MinigameScene {
       m.ring.taps[from] = v as number;
       const { A, B } = m.ring.taps;
       if (A === undefined || B === undefined) return;
-      const perfect = inGreen(A) && inGreen(B) && Math.abs(A - B) <= 0.25;
-      const good = A > 1.5 && A < 2.7 && B > 1.5 && B < 2.7 && Math.abs(A - B) <= 0.55;
+      const perfect = inGreen(A) && inGreen(B) && Math.abs(A - B) <= 0.18;
+      const good = A > 1.2 && A < 2.1 && B > 1.2 && B < 2.1 && Math.abs(A - B) <= 0.4;
       const ring = m.ring;
       m.ring = null;
       m.fish = m.fish.filter((f) => f.id !== ring.fishId);
@@ -288,7 +288,7 @@ export class StellarFishingScene extends MinigameScene {
       } else {
         m.shells += perfect ? 3 : 2;
         m.flash = { text: `${perfect ? '✨ Perfect catch! ' : 'Nice catch! '}+${perfect ? 3 : 2} 🐚`, until: c + 2 };
-        if (Math.random() < 0.4) m.tension = { v: 0.5, good: 0, until: c + 14, holdA: false, holdB: false, dir: 1, dirT: 0.8, x: ring.x, y: ring.y };
+        if (Math.random() < 0.45) m.tension = { v: 0.5, good: 0, until: c + 11, holdA: false, holdB: false, dir: 1, dirT: 0.8, x: ring.x, y: ring.y };
       }
       if (m.meter >= 100) {
         m.meter = 0;
@@ -439,7 +439,7 @@ export class StellarFishingScene extends MinigameScene {
       g.fillStyle(0xff7fa1, 1);
       g.fillCircle(bx + tn.v * bw, by + 13, 9);
       g.fillStyle(0xffffff, 0.9);
-      g.fillRoundedRect(bx, by + 36, bw * Math.min(1, tn.good / 3), 8, 4);
+      g.fillRoundedRect(bx, by + 36, bw * Math.min(1, tn.good / 2.5), 8, 4);
     }
     // text
     const fa = Object.entries(m.fauna).map(([k, n]) => `${FAUNA.find((f) => f.id === k)?.icon ?? ''}${n}`).join(' ');
