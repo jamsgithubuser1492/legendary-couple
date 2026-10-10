@@ -195,3 +195,11 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * **Seasonal wall:** a wall, window and door that follow the season (soft green, golden, warm ochre, frosty white) and change on their own when the season changes. The 8 material walls stay as separate shop choices
 * **Floors:** only the decorative pieces (rugs, mosaic, stone path, flower meadow, wood stains, tatami, carpet) use sprites. Pink tile, café checker, parquet, cream stone and terracotta are drawn by the game so they join with no seam
 * Walls join into runs, corners, T junctions and crosses automatically. Roofs, stairs and the sheet 38 blend mats are not used
+
+### Build 21 status: Civic buildings and a living Town Square
+
+* **14 new buildings** from sheet 54 along the town's south street and downtown: bakery, school, library, pet shop, yoga studio, town hall, train station, hospital, cinema, bank, gym and fire station. Each has a date idea when you visit. Cut by `tools/slice_town.py`
+* **Downtown Arcade:** opens only at town growth 150 AND player level 4 (`arcadeOpen` in `src/state/town.ts`). It is where the Crane game lives, so that game uses the same rule. Before then the building shows as a faint preview
+* **Town Square:** a painted fountain, plus a bulletin board (opens the Quest Board), wishing well (10 coins for a wish), newspaper rack (opens the message log), ice cream cart, benches, clock, flower bed, drinking fountain and trash bin. Pigeons peck around the square and scatter when you walk up
+* 18 of these pieces (well, stage, stalls, benches, pavilion and more) are also in the shop under Park, for your own island
+* Not used yet: sheet 53 (town edge cases), sidewalk and road sprites, terrain tiles, map markers, stage states and seasonal plaza overlays

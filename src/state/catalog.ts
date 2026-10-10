@@ -422,3 +422,16 @@ CATALOG.push(
   { id: 'wall_seasonal_window', name: 'Seasonal Window', icon: '🪟', category: 'wall', layer: 'wall', price: c(110), w: 1, d: 1, h: 36, color: 0xcbe3b6, variant: 'window', material: 'seasonal' },
   { id: 'wall_seasonal_door', name: 'Seasonal Door', icon: '🚪', category: 'wall', layer: 'wall', price: c(120), w: 1, d: 1, h: 36, color: 0xcbe3b6, variant: 'door', material: 'seasonal' },
 );
+
+// ---- Build 21: Town Square pieces you can also place on your island (sheets 51 and 52) ----
+for (const [id, name, icon, coins, w, d, sprite] of [
+  ['plaza_well', 'Wishing Well', '🪙', 260, 1, 1, 'town_well_2'], ['plaza_bulletin', 'Bulletin Board', '📌', 200, 2, 1, 'town_bulletin_1'],
+  ['plaza_news', 'Newspaper Rack', '📰', 120, 1, 1, 'town_news_1'], ['plaza_icecream', 'Ice Cream Cart', '🍦', 320, 2, 1, 'town_icecream_1'],
+  ['plaza_bench_a', 'Plaza Bench', '🪑', 90, 1, 1, 'town_bench_straight'], ['plaza_bench_b', 'Curved Plaza Bench', '🪑', 140, 2, 1, 'town_bench_curved'],
+  ['plaza_clock', 'Plaza Clock', '🕰️', 180, 1, 1, 'town_clock'], ['plaza_planter', 'Brick Planter', '🌸', 100, 1, 1, 'town_planter'],
+  ['plaza_flowerbed', 'Flower Beds', '🌷', 130, 1, 1, 'town_flowerbed'], ['plaza_trash', 'Trash Bin', '🗑️', 40, 1, 1, 'town_trash_1'],
+  ['plaza_drink', 'Drinking Fountain', '💧', 110, 1, 1, 'town_drink_1'], ['plaza_fountain', 'Plaza Fountain', '⛲', 500, 2, 2, 'town_fountain_flow'],
+  ['plaza_stage', 'Town Stage', '🎤', 600, 2, 2, 'town_stage'], ['plaza_stalls', 'Market Stalls', '🧺', 450, 2, 2, 'town_stalls'],
+  ['plaza_stall_fruit', 'Fruit Stall', '🍎', 220, 1, 1, 'town_stall_fruit'], ['plaza_stall_crafts', 'Crafts Stall', '🧵', 220, 1, 1, 'town_stall_crafts'],
+  ['plaza_stall_bakery', 'Bakery Stall', '🥐', 220, 1, 1, 'town_stall_bakery'], ['plaza_pavilion', 'Park Pavilion', '🏛️', 700, 3, 3, 'town_pavilion'],
+] as const) add(id, name, icon, 'park', 'object', coins, 0, w, d, sprite);

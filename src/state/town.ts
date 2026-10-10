@@ -45,14 +45,15 @@ export interface Lot {
   sprite?: string;
   variant: number;
   at: number; // growth needed before it appears
+  minLevel?: number; // player level needed as well (milestone buildings)
   name: string;
   blurb: string;
 }
 
 export const LOTS: Lot[] = [];
 let n = 0;
-function add(region: RegionId, x: number, y: number, w: number, d: number, kind: LotKind, at: number, name: string, o: { sprite?: string; variant?: number; blurb?: string } = {}) {
-  LOTS.push({ id: `lot${n++}`, region, x, y, w, d, kind, at, name, variant: o.variant ?? 0, sprite: o.sprite, blurb: o.blurb ?? '' });
+function add(region: RegionId, x: number, y: number, w: number, d: number, kind: LotKind, at: number, name: string, o: { sprite?: string; variant?: number; blurb?: string; minLevel?: number } = {}) {
+  LOTS.push({ id: `lot${n++}`, region, x, y, w, d, kind, at, name, variant: o.variant ?? 0, sprite: o.sprite, blurb: o.blurb ?? '', minLevel: o.minLevel });
 }
 
 // ---- Cozy Town & Coast: open from day one, a few places at first ----
@@ -145,11 +146,48 @@ add('campus', 19, 18, 1, 1, 'tree', 184, 'Tree', { variant: 0 });
 add('campus', 24, 19, 1, 1, 'tree', 192, 'Tree', { variant: 1 });
 add('campus', 30, 16, 1, 1, 'tree', 200, 'Tree', { variant: 2 });
 
+// ---- Build 21: civic and commercial buildings (sheet 54) and the Town Square extras (sheets 51 and 52) ----
+const lvl = (xp: number) => 1 + Math.floor(xp / 100); // same as levelOf in the store, kept here so this file stays free of store imports
+/** The Downtown Arcade opens at a growth milestone AND a player level. */
+export const ARCADE_GROWTH = 150;
+export const ARCADE_LEVEL = 4;
+export const arcadeOpen = (s: GameState) => growthOf(s) >= ARCADE_GROWTH && lvl(s.xp) >= ARCADE_LEVEL;
+/** Whether a lot has been built yet. */
+export const lotOpen = (l: Lot, growth: number, xp: number) => growth >= l.at && (l.minLevel === undefined || lvl(xp) >= l.minLevel);
+
+// along the south street of the coast
+add('coast', 5, 30, 2, 2, 'sprite', 6, 'Daily Bread Bakery', { sprite: 'town_bakery', blurb: 'Warm loaves and a table for two.' });
+add('coast', 0, 30, 3, 2, 'sprite', 14, 'Happy Learners School', { sprite: 'town_school', blurb: 'Where you keep learning together.' });
+add('coast', 3, 30, 2, 2, 'sprite', 20, 'The Lending Nook Library', { sprite: 'town_library', blurb: 'Quiet shelves and shared stories.' });
+add('coast', 7, 30, 2, 2, 'sprite', 26, 'The Furry Friend Pet Shop', { sprite: 'town_petshop', blurb: 'Say hi to every pup and kitten.' });
+add('coast', 9, 30, 2, 2, 'sprite', 32, 'Serenity Yoga Studio', { sprite: 'town_yoga', blurb: 'Stretch and breathe together.' });
+add('coast', 11, 30, 3, 2, 'sprite', 60, 'Town Hall', { sprite: 'town_hall', blurb: 'The civic center of your little town.' });
+add('coast', 14, 30, 3, 2, 'sprite', 70, 'Coastal Junction Station', { sprite: 'town_station', blurb: 'Trains to everywhere you want to go next.' });
+// downtown
+add('downtown', 18, 30, 2, 2, 'sprite', 125, 'Coastal Care Hospital', { sprite: 'town_hospital', blurb: 'Look after each other.' });
+add('downtown', 20, 30, 2, 2, 'sprite', ARCADE_GROWTH, 'Downtown Arcade', { sprite: 'town_arcade', minLevel: ARCADE_LEVEL, blurb: 'The Crane lives here. Opens at growth 150 and level 4.' });
+add('downtown', 22, 30, 2, 2, 'sprite', 135, 'Spotlight Films Cinema', { sprite: 'town_cinema', blurb: 'Pick a film and share the popcorn.' });
+add('downtown', 24, 30, 2, 2, 'sprite', 130, 'Coastal Savings Bank', { sprite: 'town_bank', blurb: 'Where saving together begins.' });
+add('downtown', 26, 30, 2, 2, 'sprite', 140, 'Coastal Wellness Gym', { sprite: 'town_gym', blurb: 'Workout buddies for life.' });
+add('downtown', 28, 30, 2, 2, 'sprite', 128, 'Engine 3 Fire Station', { sprite: 'town_fire', blurb: 'Ready for anything.' });
+// the Town Square and the little things around it
+add('coast', 3, 17, 2, 1, 'sprite', 3, 'Bulletin Board', { sprite: 'town_bulletin_1', blurb: 'Quests and notes for the whole town.' });
+add('coast', 5, 17, 1, 1, 'sprite', 4, 'Wishing Well', { sprite: 'town_well_2', blurb: 'Toss a coin and make a wish.' });
+add('coast', 6, 17, 1, 1, 'sprite', 5, 'Newspaper Rack', { sprite: 'town_news_1', blurb: 'Everything you have written to each other.' });
+add('coast', 2, 18, 1, 1, 'sprite', 4, 'Plaza Bench', { sprite: 'town_bench_straight' });
+add('coast', 3, 18, 1, 1, 'sprite', 7, 'Trash Bin', { sprite: 'town_trash_1' });
+add('coast', 4, 18, 1, 1, 'sprite', 8, 'Drinking Fountain', { sprite: 'town_drink_1' });
+add('coast', 5, 18, 1, 1, 'sprite', 9, 'Plaza Clock', { sprite: 'town_clock' });
+add('coast', 6, 16, 2, 1, 'sprite', 10, 'Ice Cream Cart', { sprite: 'town_icecream_1', blurb: 'A scoop for the walk home.' });
+add('coast', 8, 16, 1, 1, 'sprite', 12, 'Flower Bed', { sprite: 'town_flowerbed' });
+add('coast', 9, 16, 1, 1, 'sprite', 12, 'Curved Bench', { sprite: 'town_bench_curved' });
+
 export type Activity =
   | { kind: 'brew' }
   | { kind: 'shop'; cat: string; line: string }
   | { kind: 'together'; tab: string; title: string; line: string }
-  | { kind: 'tip'; title: string; ideas: string[] };
+  | { kind: 'tip'; title: string; ideas: string[] }
+  | { kind: 'open'; what: 'quests' | 'arcade' | 'log' | 'well' | 'rituals'; title: string; line: string };
 
 const tip = (title: string, ...ideas: string[]): Activity => ({ kind: 'tip', title, ideas });
 
@@ -178,6 +216,27 @@ export const ACTIVITIES: Record<string, Activity> = {
   'The Farmstead': tip('Grow something 🌱', 'Plant something together, even a herb on the windowsill.', 'Plan a dinner using only things you grew or picked.'),
   'The Mountain Cabin': tip('A cozy cabin day ⛰️', 'Plan a zero agenda cozy day: blankets, tea, no chores.', 'Pick a trail to walk together soon.'),
 };
+Object.assign(ACTIVITIES, {
+  'Bulletin Board': { kind: 'open', what: 'quests', title: 'Bulletin Board 📌', line: 'Every goal you are working on, pinned where the whole town can see.' },
+  'Wishing Well': { kind: 'open', what: 'well', title: 'Wishing Well 🪙', line: 'Toss a coin together and make a wish.' },
+  'Newspaper Rack': { kind: 'open', what: 'log', title: 'The Town Paper 📰', line: 'Read back everything you have written to each other.' },
+  'Downtown Arcade': { kind: 'open', what: 'arcade', title: 'Downtown Arcade 🎮', line: 'The Crane and the rest of your games live here.' },
+  'Ice Cream Cart': tip('Share a scoop 🍨', 'Pick the same flavor, then each take a bite of the other one.', 'Walk the long way home with your cones.'),
+  'Happy Learners School': tip('Learn something together 🎒', 'Pick one new skill and practice it for 15 minutes tonight.', 'Teach each other one thing you know that the other does not.'),
+  'The Lending Nook Library': tip('Pick a book for each other 📚', 'Choose a book for each other and tell them why.', 'Read the first page out loud.'),
+  'Daily Bread Bakery': tip('Bake or buy something warm 🥖', 'Bring home one pastry to share and rate it together.', 'Plan a baking date this weekend.'),
+  'The Furry Friend Pet Shop': tip('Name every pet 🐾', 'Name three pets and the owners they would love.', 'Imagine the pet you would adopt together.'),
+  'Serenity Yoga Studio': tip('Stretch together 🧘', 'Do ten minutes of stretching side by side.', 'Take three slow breaths together before bed.'),
+  'Spotlight Films Cinema': tip('Movie night 🎬', 'Pick a film neither of you has seen.', 'Rate it out of five and say why.'),
+  'Coastal Savings Bank': tip('Money date 💰', 'Look at your savings goal together and update it.', 'Pick one small thing to skip this week and put it in the vault.'),
+  'Coastal Wellness Gym': tip('Move together 🏋️', 'Book a workout for the two of you this week.', 'Walk or run the same route and compare.'),
+  'Coastal Care Hospital': tip('Look after each other 💗', 'Ask how your body and mind are really doing today.', 'Book any check up you have been putting off.'),
+  'Engine 3 Fire Station': tip('Be ready together 🚒', 'Make a simple plan for an emergency and save it somewhere safe.', 'Check the batteries in your smoke alarm.'),
+  'Coastal Junction Station': tip('Plan a trip 🚆', 'Pick a place you could reach by train and look at dates.', 'Tell each other the first place you want to see.'),
+  'Town Hall': tip('Make a promise 🏛️', 'Write one promise to each other for this season.', 'Choose a tradition to start this year.'),
+  'Drinking Fountain': tip('Take a sip 💧', 'Drink a glass of water together.'),
+  'Trash Bin': tip('Tidy up 🧹', 'Spend ten minutes tidying one shared space.'),
+} as Record<string, Activity>);
 export const activityOf = (name: string): Activity | undefined => ACTIVITIES[name];
 
 /** Where the "Your Home Island" marker stands, on the west beach. */

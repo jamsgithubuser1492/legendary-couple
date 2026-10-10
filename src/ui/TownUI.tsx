@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BUS, gameBus } from '../game/events';
-import { brewDrink, createQuest, useGameState, useMe } from '../state/store';
-import { activityOf } from '../state/town';
+import { brewDrink, createQuest, levelOf, tossWell, useGameState, useMe } from '../state/store';
+import { activityOf, arcadeOpen } from '../state/town';
 import { itemOf } from '../state/catalog';
 import { dateKey } from '../state/questions';
 import ItemIcon from './ItemIcon';
@@ -37,7 +37,7 @@ export function TownPanel({ onClose, onDream }: { onClose: () => void; onDream: 
   const preview = useGrowthPreview();
   const growth = growthOf(s);
   const next = nextMilestone(growth);
-  const built = LOTS.filter((l) => growth >= l.at && growth >= REGIONS.find((r) => r.id === l.region)!.unlockAt && l.kind !== 'tree' && l.kind !== 'pine').length;
+  const built = LOTS.filter((l) => growth >= l.at && (l.minLevel === undefined || levelOf(s.xp) >= l.minLevel) && growth >= REGIONS.find((r) => r.id === l.region)!.unlockAt && l.kind !== 'tree' && l.kind !== 'pine').length;
   const total = LOTS.filter((l) => l.kind !== 'tree' && l.kind !== 'pine').length;
 
   return (
@@ -127,12 +127,25 @@ const pick = <T,>(arr: T[], seed: string): T => {
 };
 
 /** What you can do at a place in town: brew drinks, browse a shop, or pick up a date idea. */
-export function TownInteract({ lotId, onClose, onShop, onTogether }: { lotId: string; onClose: () => void; onShop: (cat: string) => void; onTogether: (tab: string) => void }) {
+export function TownInteract({ lotId, onClose, onShop, onTogether, onOpen }: { lotId: string; onClose: () => void; onShop: (cat: string) => void; onTogether: (tab: string) => void; onOpen: (what: string) => void }) {
   const s = useGameState();
   const me = useMe();
   const lot = LOTS.find((l) => l.id === lotId);
   const act = lot ? activityOf(lot.name) : undefined;
   if (!lot || !act) return null;
+
+  if (act.kind === 'open' && act.what === 'well') return <WishingWell title={act.title} line={act.line} onClose={onClose} />;
+  if (act.kind === 'open') {
+    const locked = act.what === 'arcade' && !arcadeOpen(s);
+    return (
+      <Sheet title={act.title} onClose={onClose}>
+        <p className="text-cocoa">{act.line}</p>
+        {locked && <p className="mt-2 rounded-xl bg-white p-3 text-sm font-bold text-cocoa">🔒 The Arcade opens at town growth 150 and player level 4.</p>}
+        <button className={`${primaryBtn} mt-4 w-full`} disabled={locked} onClick={() => { onClose(); onOpen(act.what); }}>Open</button>
+        <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Not now</button>
+      </Sheet>
+    );
+  }
 
   if (act.kind === 'brew') {
     return (
@@ -202,6 +215,20 @@ export function TownInteract({ lotId, onClose, onShop, onTogether }: { lotId: st
         Add as a quest
       </button>
       <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Close</button>
+    </Sheet>
+  );
+}
+
+function WishingWell({ title, line, onClose }: { title: string; line: string; onClose: () => void }) {
+  const s = useGameState();
+  const [result, setResult] = useState<string | null>(null);
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <p className="text-cocoa">{line}</p>
+      <p className="mt-2 text-sm text-cocoa/70">Each toss costs 10 coins. Most wishes bring a Heart Shell, and some bring a lot more.</p>
+      {result && <p className="animate-pop mt-3 rounded-2xl bg-gradient-to-r from-amber-100 to-pink-100 p-3 text-center font-display font-bold text-cocoa">{result}</p>}
+      <button className={`${primaryBtn} mt-4 w-full`} disabled={s.coins < 10} onClick={() => setResult(tossWell())}>Toss a coin (10 coins)</button>
+      <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Done</button>
     </Sheet>
   );
 }

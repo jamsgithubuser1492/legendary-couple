@@ -1,5 +1,5 @@
 import type { GameState } from '../types';
-import { growthOf } from './town';
+import { arcadeOpen, growthOf } from './town';
 
 export type MGType = 'MATCHA_MASTERS' | 'STELLAR_FISHING' | 'CRANE_CRAZE' | 'ORCHARD_HARVEST';
 
@@ -42,7 +42,7 @@ export const GAMES: GameInfo[] = [
     type: 'CRANE_CRAZE', name: 'Blind Box Crane Craze', icon: '🧸', where: 'Downtown Arcade', duration: '3 tries',
     blurb: 'One steers across, one steers deep and drops. Cheer to keep the grip.',
     roles: ['Moves the claw across, then locks it. Cheers on the lift', 'Moves the claw deep and presses DROP'],
-    lockedText: 'Grow your town to 120 so Downtown opens and the Arcade is built.', unlocked: (s) => growthOf(s) >= 120,
+    lockedText: 'The Downtown Arcade opens at town growth 150 and player level 4.', unlocked: (s) => arcadeOpen(s),
   },
   {
     type: 'ORCHARD_HARVEST', name: 'Orchard Harvest', icon: '🍏', where: 'Town Park', duration: '1:15',

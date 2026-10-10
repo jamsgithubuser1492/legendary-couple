@@ -8,7 +8,7 @@ import { getMe, getState, onStateChange, setTownPos } from '../../state/store';
 import type { PlayerId } from '../../types';
 import { getTheme, onThemeChange } from '../../state/season';
 import {
-  HOME_PIN, LOTS, REGIONS, TOWN, activityOf, growthOf, onGrowthPreviewChange, regionById, unlockedRegions,
+  HOME_PIN, LOTS, lotOpen, REGIONS, TOWN, activityOf, growthOf, onGrowthPreviewChange, regionById, unlockedRegions,
   type Lot, type RegionId,
 } from '../../state/town';
 import { SPRITES } from '../spriteList';
@@ -50,6 +50,7 @@ export class TownScene extends Phaser.Scene {
   private visitors: Companion[] = [];
   private bunting: Phaser.GameObjects.GameObject[] = [];
   private bannerKey = '';
+  private pigeons: { img: Phaser.GameObjects.Image; home: { x: number; y: number }; away: boolean }[] = [];
   private pin?: Phaser.GameObjects.Container;
   private occupied = new Set<string>();
   private dragStart?: { x: number; y: number; camX: number; camY: number };
@@ -111,6 +112,7 @@ export class TownScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.refresh(true));
     this.time.addEvent({ delay: 1700, loop: true, callback: () => this.roamVisitors() });
     this.time.addEvent({ delay: 20000, loop: true, callback: () => this.refresh(false) });
+    this.time.addEvent({ delay: 350, loop: true, callback: () => this.updatePigeons() });
     this.events.on(Phaser.Scenes.Events.UPDATE, (time: number) => this.waterTick(time));
     this.events.on(Phaser.Scenes.Events.UPDATE, this.updateNpcs, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -194,8 +196,13 @@ export class TownScene extends Phaser.Scene {
       quad(l.x + 0.1, l.y + 0.1, l.x + l.w - 0.1, l.y + l.d - 0.1, 0xffffff, 0.06);
       out.push(g);
       // the fountain in the middle
-      const f = this.add.graphics().setDepth(depth);
       const c0 = iso(cx, cy);
+      if (this.textures.exists('town_fountain_flow')) {
+        const im = this.add.image(c0.x, c0.y + 10, 'town_fountain_flow').setOrigin(0.5, 0.78).setDepth(depth);
+        im.setScale(100 / im.width);
+        out.push(im);
+      } else {
+      const f = this.add.graphics().setDepth(depth);
       f.fillStyle(0xcfc3b4, 1);
       f.fillEllipse(c0.x, c0.y, 62, 32);
       f.fillStyle(0x8fd3e8, 1);
@@ -208,6 +215,7 @@ export class TownScene extends Phaser.Scene {
       f.fillCircle(c0.x - 7, c0.y - 33, 3);
       f.fillCircle(c0.x + 8, c0.y - 30, 3);
       out.push(f);
+      }
     }
     if (key && this.textures.exists(key)) {
       const front = cartesianToIso(l.x + l.w, l.y + l.d);
@@ -252,7 +260,7 @@ export class TownScene extends Phaser.Scene {
     // every planned building exists; it turns solid once the region is open and the growth is there
     const fresh: Lot[] = [];
     for (const l of LOTS) {
-      const solid = open.has(l.region) && growth >= l.at;
+      const solid = open.has(l.region) && lotOpen(l, growth, getState().xp);
       let objs = this.lotObjs.get(l.id);
       if (!objs) {
         objs = this.spawnLot(l, false);
@@ -278,7 +286,7 @@ export class TownScene extends Phaser.Scene {
     }
     this.occupied = new Set();
     for (const l of LOTS) {
-      if (!(open.has(l.region) && growth >= l.at)) continue; // only built places block the way
+      if (!(open.has(l.region) && lotOpen(l, growth, getState().xp))) continue; // only built places block the way
       if (l.kind === 'plaza') {
         this.occupied.add(`${l.x + 1},${l.y + 1}`); // only the fountain blocks, the square itself is for walking
         continue;
@@ -396,6 +404,44 @@ export class TownScene extends Phaser.Scene {
       const v = new Companion(this, sprites[(i * 3 + live.length) % sprites.length], spot);
       v.container.setScale(0.7);
       this.visitors.push(v);
+    }
+  }
+
+  /** Pigeons peck around the Town Square and scatter when you walk up to them. */
+  private updatePigeons(): void {
+    const plaza = LOTS.find((l) => l.kind === 'plaza');
+    if (!plaza || !this.scene.isActive()) return;
+    const open = lotOpen(plaza, growthOf(getState()), getState().xp) && this.textures.exists('town_pigeons_idle');
+    if (!open) {
+      this.pigeons.forEach((p) => p.img.destroy());
+      this.pigeons = [];
+      return;
+    }
+    if (!this.pigeons.length) {
+      for (let i = 0; i < 4; i++) {
+        const t = tileCenter(plaza.x + 0.3 + (i % 2) * 1.4, plaza.y + 0.4 + Math.floor(i / 2) * 1.5);
+        const img = this.add.image(t.x, t.y + 4, 'town_pigeons_idle').setOrigin(0.5, 1).setDepth(plaza.x + plaza.y + 1.5 + i * 0.01);
+        img.setScale(((SPRITES.find((q) => q.key === 'town_pigeons_idle')?.dw ?? 22) * 1.1) / img.width);
+        this.pigeons.push({ img, home: { x: t.x, y: t.y + 4 }, away: false });
+      }
+    }
+    for (const p of this.pigeons) {
+      if (p.away) continue;
+      const near = (['A', 'B'] as PlayerId[]).some((a) => {
+        const c = this.avatars[a].container;
+        return Math.hypot(c.x - p.home.x, (c.y - p.home.y) * 1.6) < 46;
+      });
+      if (near) {
+        p.away = true;
+        p.img.setTexture('town_pigeons_scatter');
+        this.tweens.add({ targets: p.img, x: p.home.x + 90, y: p.home.y - 120, alpha: 0, duration: 1100, ease: 'Sine.easeIn' });
+        this.time.delayedCall(9000, () => {
+          p.img.setTexture('town_pigeons_idle').setPosition(p.home.x, p.home.y).setAlpha(1);
+          p.away = false;
+        });
+      } else if (Math.random() < 0.15) {
+        this.tweens.add({ targets: p.img, y: p.home.y - 2, duration: 120, yoyo: true }); // a little peck
+      }
     }
   }
 
@@ -606,7 +652,7 @@ export class TownScene extends Phaser.Scene {
       gameBus.emit(BUS.townToast, { text: `🔒 ${region.name} opens at ${region.unlockAt} growth. You are at ${growth}. Quests, memories and daily questions grow the town.` });
       return;
     }
-    const lot = LOTS.find((l) => growth >= l.at && t.x >= l.x && t.x < l.x + l.w && t.y >= l.y && t.y < l.y + l.d && this.lotObjs.has(l.id));
+    const lot = LOTS.find((l) => lotOpen(l, growth, getState().xp) && t.x >= l.x && t.x < l.x + l.w && t.y >= l.y && t.y < l.y + l.d && this.lotObjs.has(l.id));
     if (lot && lot.name !== 'Tree' && lot.name !== 'Pine') {
       if (activityOf(lot.name)) return this.visit(lot);
       gameBus.emit(BUS.townToast, { text: `${lot.name}${lot.blurb ? ` · ${lot.blurb}` : ''}` });

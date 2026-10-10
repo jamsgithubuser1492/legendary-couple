@@ -805,3 +805,15 @@ export function openBottle(id: string, reader: PlayerId) {
   commit({ ...state, shells: state.shells + BOTTLE_SHELLS, bottles: state.bottles.map((x) => (x.id === id ? { ...x, opened: true } : x)) });
   return b;
 }
+
+/** The Wishing Well in the Town Square: 10 coins for a wish. */
+export function tossWell(): string | null {
+  if (state.coins < 10) return null;
+  const r = Math.random();
+  let shells = 1, gems = 0, boxes = 0, text = '✨ Your wish drifts down… a Heart Shell glints in the water.';
+  if (r > 0.97) { boxes = 1; text = '🌟 The well glows gold! A blind box floats up.'; }
+  else if (r > 0.85) { gems = 3; shells = 2; text = '💎 A sparkle in the water: 2 shells and 3 gems.'; }
+  else if (r > 0.6) { shells = 3; text = '🐚 A lucky one! 3 Heart Shells.'; }
+  commit({ ...state, coins: state.coins - 10, shells: state.shells + shells, gems: state.gems + gems, blindBoxes: state.blindBoxes + boxes });
+  return text;
+}
