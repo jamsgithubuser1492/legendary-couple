@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Amount, CurrencyIcon, Price } from './Currency';
 import type { LifeArea, PlayerId, Quest } from '../types';
 import { AREAS, areaOf, SEASON_EVENTS, TEMPLATES, type QuestTemplate } from '../state/areas';
 import { THEMES, useTheme } from '../state/season';
@@ -94,9 +95,9 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="flex items-center gap-3 text-sm text-cocoa">
-          <label className="flex items-center gap-1">🪙<input type="number" min={0} className={`${field} w-20`} value={coins} onChange={(e) => setCoins(Math.max(0, +e.target.value))} /></label>
-          <label className="flex items-center gap-1">📦<input type="number" min={0} className={`${field} w-16`} value={boxes} onChange={(e) => setBoxes(Math.max(0, +e.target.value))} /></label>
-          <label className="flex items-center gap-1">💎<input type="number" min={0} className={`${field} w-20`} value={gems} onChange={(e) => setGems(Math.max(0, +e.target.value))} /></label>
+          <label className="flex items-center gap-1"><CurrencyIcon kind="coin" size={20} /><input type="number" min={0} className={`${field} w-20`} value={coins} onChange={(e) => setCoins(Math.max(0, +e.target.value))} /></label>
+          <label className="flex items-center gap-1"><CurrencyIcon kind="box" size={20} /><input type="number" min={0} className={`${field} w-16`} value={boxes} onChange={(e) => setBoxes(Math.max(0, +e.target.value))} /></label>
+          <label className="flex items-center gap-1"><CurrencyIcon kind="gem" size={20} /><input type="number" min={0} className={`${field} w-20`} value={gems} onChange={(e) => setGems(Math.max(0, +e.target.value))} /></label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repeats</label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={milestone} onChange={(e) => setMilestone(e.target.checked)} /> Milestone</label>
         </div>
@@ -171,7 +172,7 @@ function ApprovalModal({ quest, onClose }: { quest: Quest; onClose: () => void }
       {quest.evidenceNote && <p className="mt-3 rounded-xl bg-white p-3 text-cocoa">“{quest.evidenceNote}”</p>}
       {quest.evidencePhoto && <img src={quest.evidencePhoto} alt="evidence" className="mt-3 max-h-64 rounded-2xl" />}
       {!quest.evidenceNote && !quest.evidencePhoto && <p className="mt-3 text-sm italic text-cocoa/60">No evidence attached. Trust is part of the game.</p>}
-      <p className="mt-3 text-sm text-cocoa">Reward: 🪙 {quest.reward.coins} {quest.reward.gems > 0 && `💎 ${quest.reward.gems}`}</p>
+      <p className="mt-3 text-sm text-cocoa">Reward: <Price coins={quest.reward.coins} gems={quest.reward.gems} size={16} /></p>
       {asking ? (
         <div className="mt-3 space-y-2">
           <input className={field} placeholder="What should they add or fix?" value={msg} onChange={(e) => setMsg(e.target.value)} />
@@ -207,7 +208,7 @@ function QuestCard({ quest, onSubmit, onReview, onCapture }: { quest: Quest; onS
           <div className="font-display font-bold text-cocoa">{quest.title}{quest.recurring && <span className="ml-1 text-xs font-normal text-cocoa/60">↻ repeats</span>}</div>
           {quest.description && <div className="text-sm text-cocoa/70">{quest.description}</div>}
           {quest.ifThen && <div className="text-xs italic text-cocoa/70">🎯 {quest.ifThen}</div>}
-          <div className="mt-1 text-xs text-cocoa/60">{who} · 🪙 {quest.reward.coins}{quest.reward.gems > 0 && ` · 💎 ${quest.reward.gems}`}{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}{quest.reward.blindBoxes ? ` · 📦 ${quest.reward.blindBoxes} blind box` : ''}</div>
+          <div className="mt-1 text-xs text-cocoa/60">{who} · <Price coins={quest.reward.coins} gems={quest.reward.gems} size={13} />{quest.reward.itemId && ` · 🎁 ${itemOf(quest.reward.itemId)?.name}`}{quest.reward.blindBoxes ? <> · <Amount kind="box" n={quest.reward.blindBoxes} size={13} /> blind box</> : ''}</div>
           {quest.status === 'REJECTED' && quest.reviewNote && <div className="mt-1 rounded-lg bg-peach px-2 py-1 text-xs text-cocoa">💬 {quest.reviewNote}</div>}
         </div>
         {quest.status === 'IN_PROGRESS' && <button onClick={() => deleteQuest(quest.id)} className="text-cocoa/30" aria-label="Delete quest">🗑</button>}
@@ -248,7 +249,7 @@ function SeasonalStrip() {
             <div key={t.title} className="flex items-center gap-2 rounded-xl bg-white/80 p-2">
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold text-cocoa">{t.title}{t.milestone && ' 📔'}</div>
-                <div className="text-xs text-cocoa/60">🪙 {t.reward.coins} · 💎 {t.reward.gems}{t.reward.itemId && ` · 🎁 ${itemOf(t.reward.itemId)?.name}`}</div>
+                <div className="text-xs text-cocoa/60"><Price coins={t.reward.coins} gems={t.reward.gems} size={13} />{t.reward.itemId && ` · 🎁 ${itemOf(t.reward.itemId)?.name}`}</div>
               </div>
               <button
                 className={soft}

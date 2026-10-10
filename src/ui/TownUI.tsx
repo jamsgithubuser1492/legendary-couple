@@ -5,6 +5,7 @@ import { activityOf, arcadeOpen } from '../state/town';
 import { itemOf } from '../state/catalog';
 import { dateKey } from '../state/questions';
 import ItemIcon from './ItemIcon';
+import { Amount } from './Currency';
 import { REGIONS, LOTS, actualGrowth, growthOf, nextMilestone, setGrowthPreview, useGrowthPreview } from '../state/town';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
@@ -225,9 +226,9 @@ function WishingWell({ title, line, onClose }: { title: string; line: string; on
   return (
     <Sheet title={title} onClose={onClose}>
       <p className="text-cocoa">{line}</p>
-      <p className="mt-2 text-sm text-cocoa/70">Each toss costs 10 coins. Most wishes bring a Heart Shell, and some bring a lot more.</p>
+      <p className="mt-2 text-sm text-cocoa/70">Each toss costs <Amount kind="coin" n={10} />. Most wishes bring a Heart Shell, and some bring a lot more.</p>
       {result && <p className="animate-pop mt-3 rounded-2xl bg-gradient-to-r from-amber-100 to-pink-100 p-3 text-center font-display font-bold text-cocoa">{result}</p>}
-      <button className={`${primaryBtn} mt-4 w-full`} disabled={s.coins < 10} onClick={() => setResult(tossWell())}>Toss a coin (10 coins)</button>
+      <button className={`${primaryBtn} mt-4 w-full`} disabled={s.coins < 10} onClick={() => setResult(tossWell())}>Toss a coin (<Amount kind="coin" n={10} />)</button>
       <button className={`${softBtn} mt-2 w-full`} onClick={onClose}>Done</button>
     </Sheet>
   );

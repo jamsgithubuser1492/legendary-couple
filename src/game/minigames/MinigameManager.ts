@@ -65,7 +65,7 @@ export class MinigameManager {
     const solo = req.mode === 'solo';
     const role: PlayerId = solo ? req.role ?? 'A' : getMe();
     const host = solo || role === 'A';
-    if (req.type === 'CRANE_CRAZE' && host && getState().arcadeTokens < 1) return toast('🪙 You need an arcade token. Earn one per approved quest, or buy one.');
+    if (req.type === 'CRANE_CRAZE' && host && getState().arcadeTokens < 1) return toast('You need an arcade token. Earn one per approved quest, or buy one.');
 
     let net: MinigameNet | null = null;
     const sessionId = req.sessionId ?? uid();

@@ -218,7 +218,7 @@ export const ACTIVITIES: Record<string, Activity> = {
 };
 Object.assign(ACTIVITIES, {
   'Bulletin Board': { kind: 'open', what: 'quests', title: 'Bulletin Board 📌', line: 'Every goal you are working on, pinned where the whole town can see.' },
-  'Wishing Well': { kind: 'open', what: 'well', title: 'Wishing Well 🪙', line: 'Toss a coin together and make a wish.' },
+  'Wishing Well': { kind: 'open', what: 'well', title: 'Wishing Well', line: 'Toss a coin together and make a wish.' },
   'Newspaper Rack': { kind: 'open', what: 'log', title: 'The Town Paper 📰', line: 'Read back everything you have written to each other.' },
   'Downtown Arcade': { kind: 'open', what: 'arcade', title: 'Downtown Arcade 🎮', line: 'The Crane and the rest of your games live here.' },
   'Ice Cream Cart': tip('Share a scoop 🍨', 'Pick the same flavor, then each take a bite of the other one.', 'Walk the long way home with your cones.'),

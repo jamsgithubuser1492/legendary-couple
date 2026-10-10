@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Amount, Price } from './Currency';
 import type { CompanionId } from '../types';
 import { COMPANIONS, outfitOf, outfitsFor } from '../state/wardrobe';
 import { buyOutfit, setInvited, setLook, useGameState, wearOutfit } from '../state/store';
@@ -15,7 +16,7 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Wardrobe 👗" onClose={onClose} wide>
       <div className="flex items-center justify-between text-sm font-bold text-cocoa">
-        <span>🪙 {s.coins.toLocaleString()}  💎 {s.gems}</span>
+        <span className="inline-flex items-center gap-2"><Amount kind="coin" n={s.coins} /><Amount kind="gem" n={s.gems} /></span>
       </div>
       <div className="mt-2 rounded-2xl bg-white p-3 shadow">
         <div className="font-display font-bold text-cocoa">Your looks</div>
@@ -62,7 +63,7 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
                 </button>
               ) : (
                 <button disabled={!afford} onClick={() => buyOutfit(o.id)} className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40">
-                  {o.price.coins > 0 && `🪙 ${o.price.coins}`} {o.price.gems > 0 && `💎 ${o.price.gems}`}
+                  <Price coins={o.price.coins} gems={o.price.gems} />
                 </button>
               )}
             </div>

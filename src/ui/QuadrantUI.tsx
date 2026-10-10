@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
-import { CurrencyIcon } from './Currency';
+import { Amount, CurrencyIcon } from './Currency';
 import { shrinkImage } from './imageUtil';
 import { ArtImg } from './ItemIcon';
 import { BUS, gameBus } from '../game/events';
@@ -221,7 +221,7 @@ function Focus({ onClose }: { onClose: () => void }) {
     <div className="space-y-3 text-center text-cocoa">
       <div className="text-6xl">🏮</div>
       <p className="text-sm">Start a {FOCUS_MS / 60000} minute Deep Work session. A lantern glows over you on the island and the game locks until the timer ends so you can focus. Your partner can silently send a 🍵 warm tea worth +{TEA_COINS} coins.</p>
-      <p className="text-sm font-bold">Finish to earn {FOCUS_COINS} coins.</p>
+      <p className="text-sm font-bold">Finish to earn <Amount kind="coin" n={FOCUS_COINS} />.</p>
       <button className={`${primaryBtn} w-full`} disabled={focusActive(me)} onClick={() => { startFocus(me); onClose(); }}>Light the lantern</button>
     </div>
   );

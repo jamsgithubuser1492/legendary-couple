@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Price } from './Currency';
 import { availableIn, CATALOG, CATEGORIES, type ShopCategory } from '../state/catalog';
 import { THEMES, useTheme } from '../state/season';
 import { buyItem, useGameState } from '../state/store';
@@ -59,7 +60,7 @@ export default function ShopModal({ onClose, onPickPreset, initialCat }: { onClo
                     onClick={() => onPickPreset?.(p.id)}
                     className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40"
                   >
-                    {!inSeason ? 'Back in winter' : <>{p.price.coins > 0 && `🪙 ${p.price.coins}`} {p.price.gems > 0 && `💎 ${p.price.gems}`} · Place it</>}
+                    {!inSeason ? 'Back in winter' : <><Price coins={p.price.coins} gems={p.price.gems} /> · Place it</>}
                   </button>
                 </div>
               );
@@ -83,7 +84,7 @@ export default function ShopModal({ onClose, onPickPreset, initialCat }: { onClo
                   onClick={() => buyItem(it.id)}
                   className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40"
                 >
-                  {!inSeason ? `Back in ${returns}` : <>{it.price.coins > 0 && `🪙 ${it.price.coins}`} {it.price.gems > 0 && `💎 ${it.price.gems}`}</>}
+                  {!inSeason ? `Back in ${returns}` : <Price coins={it.price.coins} gems={it.price.gems} />}
                 </button>
               </div>
             );

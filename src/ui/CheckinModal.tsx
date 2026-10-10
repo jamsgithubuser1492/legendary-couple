@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Amount } from './Currency';
 import { ArtImg } from './ItemIcon';
 import { dateKey, questionFor, streakOf } from '../state/questions';
 import { answerCheckin, otherPlayer, useGameState, useMe } from '../state/store';
@@ -47,7 +48,7 @@ export default function CheckinModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
           <p className="rounded-xl bg-green-100 p-3 text-center text-sm text-cocoa">
-            🪙 15 · 💎 2 earned. Now put the phone down and talk about it, on a call or in person. 💞
+            <Amount kind="coin" n={15} /> <Amount kind="gem" n={2} /> earned. Now put the phone down and talk about it, on a call or in person. 💞
           </p>
         </div>
       )}

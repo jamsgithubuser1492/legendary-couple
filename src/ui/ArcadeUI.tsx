@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Amount } from './Currency';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 import { SpriteImg } from './ItemIcon';
 import { CurrencyIcon } from './Currency';
@@ -24,7 +25,7 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="🎮 Arcade" onClose={onClose} wide>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-cocoa">
-        <span className="rounded-full bg-white px-3 py-1 font-bold">🪙 {s.arcadeTokens} tokens</span>
+        <span className="rounded-full bg-white px-3 py-1 font-bold"><Amount kind="token" n={s.arcadeTokens} size={18} /> tokens</span>
         <button className={softBtn} disabled={s.coins < 100} onClick={() => buyToken()}>Buy token (100 <CurrencyIcon kind="coin" size={16} />)</button>
         <span className="opacity-70">Every approved quest earns a token.</span>
       </div>
@@ -91,7 +92,7 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
               <div className="text-xs">caught {s.fauna[f.id] ?? 0}</div>
             </div>
           ))}
-          <div className="col-span-3 text-sm">🪵 Driftwood {s.driftwood} · 🐚 Shells {s.shells}</div>
+          <div className="col-span-3 text-sm">🪵 Driftwood {s.driftwood} · 🐚 Heart Shells {s.shells}</div>
         </div>
       )}
       {tab === 'recipes' && (

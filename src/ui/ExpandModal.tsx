@@ -1,4 +1,5 @@
 import { ISLAND_STEPS } from '../state/placement';
+import { Amount } from './Currency';
 import { expandIsland, nextExpansion, useGameState } from '../state/store';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
@@ -12,13 +13,13 @@ export default function ExpandModal({ onClose }: { onClose: () => void }) {
         {ISLAND_STEPS.map((st) => (
           <div key={st.size} className={`flex items-center justify-between rounded-xl bg-white p-3 shadow ${s.islandSize >= st.size ? 'opacity-60' : ''}`}>
             <span className="font-display font-bold text-cocoa">{st.size} x {st.size} tiles</span>
-            <span className="text-sm text-cocoa">{s.islandSize >= st.size ? '✓ Unlocked' : `🪙 ${st.coins.toLocaleString()}`}</span>
+            <span className="text-sm text-cocoa">{s.islandSize >= st.size ? '✓ Unlocked' : <Amount kind="coin" n={st.coins} />}</span>
           </div>
         ))}
       </div>
       {next ? (
         <button className={`${primaryBtn} mt-4 w-full`} disabled={s.coins < next.coins} onClick={() => { if (expandIsland()) onClose(); }}>
-          Expand to {next.size} x {next.size} · 🪙 {next.coins.toLocaleString()}
+          Expand to {next.size} x {next.size} · <Amount kind="coin" n={next.coins} />
         </button>
       ) : (
         <p className="mt-4 rounded-xl bg-green-100 p-3 text-center text-sm text-cocoa">Your island is as big as it gets. Explore the town for more space!</p>

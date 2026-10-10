@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Amount } from './Currency';
 import { ADVENTURES, adventureFor, BIDS, LOVE_QUESTIONS, loveSet, TIERS, weekKey, type BidKind } from '../state/together';
 import { dateKey } from '../state/questions';
 import {
@@ -104,7 +105,7 @@ function Adventure() {
       <p className="mt-1 text-sm text-cocoa/70">{adv.blurb}</p>
       <div className="mt-2 flex items-center gap-3 rounded-2xl bg-white p-3 shadow">
         {cap && <ItemIcon id={cap.id} size={44} />}
-        <div className="text-sm text-cocoa"><b>Travel Capsule:</b> {cap?.name}<div className="text-xs text-cocoa/60">+ 🪙 60 and 💎 10 when approved</div></div>
+        <div className="text-sm text-cocoa"><b>Travel Capsule:</b> {cap?.name}<div className="text-xs text-cocoa/60">+ <Amount kind="coin" n={60} /> and <Amount kind="gem" n={10} /> when approved</div></div>
       </div>
       {cur.questId ? (
         <p className="mt-3 rounded-xl bg-green-100 p-3 text-center text-sm text-cocoa">📋 Accepted. {quest?.status === 'APPROVED' ? 'Completed! Your capsule is in your bag.' : 'Find it on your Quest Board.'}</p>

@@ -1,4 +1,5 @@
 import { itemOf } from '../state/catalog';
+import { Price } from './Currency';
 import { useGameState } from '../state/store';
 import ItemIcon from './ItemIcon';
 import { presetOf } from '../state/presets';
@@ -30,7 +31,7 @@ export default function EditBar({ edit, onChange, onShop, onExpand, onDone }: Pr
         <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3">
           <div>
             <div className="font-display font-bold text-cocoa">{preset.icon} Placing {preset.name}</div>
-            <div className="text-xs text-cocoa/70">Move over the island, green means it fits. Tap to buy and place the whole room. 🪙 {preset.price.coins} {preset.price.gems > 0 && `💎 ${preset.price.gems}`}</div>
+            <div className="text-xs text-cocoa/70">Move over the island, green means it fits. Tap to buy and place the whole room. <Price coins={preset.price.coins} gems={preset.price.gems} size={13} /></div>
           </div>
           <button className={`${chip} bg-white text-cocoa`} onClick={() => onChange({ ...edit, presetId: null })}>Cancel</button>
         </div>
