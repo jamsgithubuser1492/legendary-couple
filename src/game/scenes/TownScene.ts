@@ -20,20 +20,14 @@ import { QuadrantFx } from '../quadrantFx';
 import { focusActive } from '../../state/store';
 import { FIGURES } from '../../state/minigames';
 import { Companion } from '../Companion';
+import { NPC_DEFS, TownNpc, createNpcAnims } from '../town/npcs';
 
 const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 const HOUSES = ['house_terracotta', 'house_bluedoor', 'house_pink', 'house_balcony', 'house_coastal', 'house_modern'];
 const TOWERS = ['tower_coastal', 'tower_pastel', 'tower_garden', 'tower_city'];
-const NPCS = ['npc_grandma', 'npc_photographer', 'npc_woman', 'npc_hat'];
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.6;
 const DRAG_THRESHOLD = 8;
-
-interface Npc {
-  c: Phaser.GameObjects.Container;
-  tile: { x: number; y: number };
-  moving: boolean;
-}
 
 /** The zoomed out town. It starts bare and fills with buildings and people as you grow together. */
 export class TownScene extends Phaser.Scene {
@@ -51,7 +45,7 @@ export class TownScene extends Phaser.Scene {
   private fog: Phaser.GameObjects.GameObject[] = [];
   private lotObjs = new Map<string, Phaser.GameObjects.GameObject[]>();
   private seenRegions = new Set<RegionId>();
-  private npcs: Npc[] = [];
+  private npcs: TownNpc[] = [];
   private fx!: QuadrantFx;
   private visitors: Companion[] = [];
   private bunting: Phaser.GameObjects.GameObject[] = [];
@@ -77,6 +71,7 @@ export class TownScene extends Phaser.Scene {
     const ta = getState().townAvatars;
     const lk = getState().looks;
     this.avatars = { A: new Avatar(this, 'A', ta.A, 0.7, lk.A), B: new Avatar(this, 'B', ta.B, 0.7, lk.B) };
+    createNpcAnims(this);
     this.fx = new QuadrantFx(this, () => this.avatars);
     this.keys = this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT', false, false) as typeof this.keys;
     this.events.on(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
@@ -114,9 +109,10 @@ export class TownScene extends Phaser.Scene {
     gameBus.on(BUS.zoom, onZoom);
     gameBus.on(BUS.view, onView);
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.refresh(true));
-    this.time.addEvent({ delay: 1700, loop: true, callback: () => { this.wander(); this.roamVisitors(); } });
+    this.time.addEvent({ delay: 1700, loop: true, callback: () => this.roamVisitors() });
     this.time.addEvent({ delay: 20000, loop: true, callback: () => this.refresh(false) });
     this.events.on(Phaser.Scenes.Events.UPDATE, (time: number) => this.waterTick(time));
+    this.events.on(Phaser.Scenes.Events.UPDATE, this.updateNpcs, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offs.forEach((o) => o());
       this.events.off(Phaser.Scenes.Events.UPDATE, this.keyboardWalk, this);
@@ -412,52 +408,36 @@ export class TownScene extends Phaser.Scene {
 
   private syncNpcs(growth: number, open: Set<RegionId>): void {
     const want = Math.min(8, Math.floor(growth / 14));
-    while (this.npcs.length > want) this.npcs.pop()?.c.destroy();
+    while (this.npcs.length > want) this.npcs.pop()?.destroy();
     while (this.npcs.length < want) {
       const i = this.npcs.length;
-      const key = NPCS[i % NPCS.length];
-      if (!this.textures.exists(key)) break;
+      const def = NPC_DEFS[i % NPC_DEFS.length];
+      if (!this.textures.exists(def.e)) break;
       let spot = { x: 8 + (i % 4) * 2, y: 17 };
       for (let tries = 0; tries < 40 && !this.walkable(spot.x, spot.y, open); tries++) spot = { x: 5 + Math.floor(Math.random() * 12), y: 14 + Math.floor(Math.random() * 12) };
-      const im = this.add.image(0, 0, key).setOrigin(0.5, 1);
-      im.setScale(((DW.get(key) ?? im.width) / im.width) * 0.62); // townsfolk are small next to buildings
-      const shadow = this.add.ellipse(0, -1, 14, 6, 0x000000, 0.16);
-      const c = this.add.container(0, 0, [shadow, im]);
-      const p = tileCenter(spot.x, spot.y);
-      c.setPosition(p.x, p.y + 4).setDepth(spot.x + spot.y + 0.2);
-      this.npcs.push({ c, tile: spot, moving: false });
+      // a second copy of a townsperson gets a slightly different tint so they do not look cloned
+      this.npcs.push(new TownNpc(this, def, spot, i >= NPC_DEFS.length ? 0xffe3d6 : undefined));
     }
-    for (const n of this.npcs) if (!this.walkable(n.tile.x, n.tile.y, open) && !n.moving) {
-      const p = tileCenter(8, 17);
-      n.tile = { x: 8, y: 17 };
-      n.c.setPosition(p.x, p.y + 4);
-    }
+    for (const n of this.npcs) if (!this.walkable(n.tile.x, n.tile.y, open) && !n.moving) n.teleport({ x: 8, y: 17 });
   }
 
-  /** Townsfolk stroll one tile at a time around the open parts of the map. */
-  private wander(): void {
-    if (!this.scene.isActive()) return;
+  /** Townsfolk walk to a place on the map with a natural pace, curve around corners, stop and look about. */
+  private updateNpcs(_t: number, dt: number): void {
+    if (!this.scene.isActive() || !this.npcs.length) return;
     const open = new Set(unlockedRegions(growthOf(getState())));
+    const blocked = new Set(this.blockedTown);
+    for (const a of ['A', 'B'] as PlayerId[]) blocked.add(`${this.avatars[a].tile.x},${this.avatars[a].tile.y}`);
+    const plaza = LOTS.find((l) => l.kind === 'plaza');
+    const plazaOn = !!plaza && getState().banners.some((b) => b.until > Date.now());
     for (const n of this.npcs) {
-      if (n.moving || Math.random() < 0.4) continue;
-      const dirs = Phaser.Utils.Array.Shuffle([[1, 0], [-1, 0], [0, 1], [0, -1]]);
-      const d = dirs.find(([dx, dy]) => this.walkable(n.tile.x + dx, n.tile.y + dy, open));
-      if (!d) continue;
-      const to = { x: n.tile.x + d[0], y: n.tile.y + d[1] };
-      const a = tileCenter(n.tile.x, n.tile.y), b = tileCenter(to.x, to.y);
-      n.moving = true;
-      this.tweens.addCounter({
-        from: 0, to: 1, duration: 650,
-        onUpdate: (tw) => {
-          const t = tw.getValue() ?? 0;
-          n.c.setPosition(a.x + (b.x - a.x) * t, a.y + 4 + (b.y - a.y) * t - Math.abs(Math.sin(t * Math.PI)) * 3);
-          n.c.setDepth(n.tile.x + (to.x - n.tile.x) * t + n.tile.y + (to.y - n.tile.y) * t + 0.2);
-        },
-        onComplete: () => {
-          n.tile = to;
-          n.moving = false;
-        },
-      });
+      n.update(dt, blocked, () => {
+        // now and then head to the Town Square when there is a celebration, otherwise stroll nearby
+        if (plazaOn && plaza && Math.random() < 0.35) return { x: plaza.x + Math.floor(Math.random() * plaza.w), y: plaza.y + Math.floor(Math.random() * plaza.d) };
+        const t = n.tile;
+        const r = 3 + Math.random() * 7, ang = Math.random() * Math.PI * 2;
+        const goal = { x: Math.round(t.x + Math.cos(ang) * r), y: Math.round(t.y + Math.sin(ang) * r) };
+        return this.walkable(goal.x, goal.y, open) ? goal : null;
+      }, TOWN);
     }
   }
 

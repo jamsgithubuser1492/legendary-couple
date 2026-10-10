@@ -160,3 +160,11 @@ See [docs/HOSTING.md](docs/HOSTING.md) for putting it online, linking both phone
 * **Love Letters:** a romance goal earns a sealed bottle. Write it, and your partner finds it on the island shore (walk next to it) for 3 shells
 * **Town Square:** a plaza with a fountain appears after your first approved quest. Social goals fly a celebration banner and gather visitors for 24 hours
 * The full list of art still needed, and how to swap my placeholders for yours, is in `art/ASSET_WISHLIST.md`
+
+## Build 17 status: Walking townsfolk
+
+* **Five townsfolk with real walk cycles** (elder, photographer, hiker, sun hat man, courier) are cut from `art/source/sheet40_npc_walks.jpg` by `tools/slice_npcs.py`. They replace the old standing figures in the Town
+* **Natural movement:** each person picks a destination, walks a straightened route with rounded corners, speeds up and slows down, bobs a little with each step, then stops and glances around before heading off again. They gather at the Town Square when a celebration banner is up
+* **Facing follows the way they walk:** screen right uses the east view, screen left the west view (or a mirror of it), walking toward the camera uses the front view. The sheet has no back views, so walking away from the camera keeps the side view
+* The sheet's own N S E W labels were wrong, so every row was checked by eye. The student row mixes six different people and was left out, and a few repeated rows were skipped
+* Four more art sheets are saved in `art/source/` (sheets 36 to 39: home foundations, modular walls and floors, shore edge cases, coastal ground and water) and are not wired into the game yet

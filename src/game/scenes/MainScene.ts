@@ -17,6 +17,7 @@ import { Companion } from '../Companion';
 import { focusActive } from '../../state/store';
 import { figureOf } from '../../state/minigames';
 import { QuadrantFx } from '../quadrantFx';
+import { preloadNpcStrips } from '../town/npcs';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { IslandEffects } from '../effects';
@@ -63,6 +64,7 @@ export class MainScene extends Phaser.Scene {
     this.load.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
     for (const s of SPRITES) this.load.image(s.key, s.file);
     preloadWalkStrips(this);
+    preloadNpcStrips(this);
     // water effect sprites (cut by tools/slice_water.py)
     for (const k of ['wave_s0', 'wave_s1', 'wave_s2', 'wave_s3', 'wave_m0', 'wave_m1', 'wave_m2', 'wave_l0', 'wave_l3', 'ripple_ring', 'ripple_cross', 'wake_prop', 'wake_dinghy']) this.load.image(k, `${k}.png`);
   }
