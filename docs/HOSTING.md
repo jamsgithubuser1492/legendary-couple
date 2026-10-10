@@ -13,15 +13,14 @@ Notes
 ### If you see a blank white page
 This almost always means GitHub Pages is serving the repo's source files instead of the built game. Check **Settings, Pages, Build and deployment, Source**. It must say **GitHub Actions**, not "Deploy from a branch". After changing it, open the **Actions** tab, pick the latest "Deploy to GitHub Pages" run and press **Re-run all jobs**. A hard refresh (hold Shift while reloading) clears a cached blank page.
 
-## 2. Link both phones (real time sync with Supabase, free)
-1. Create a free project at supabase.com.
-2. SQL Editor, paste the contents of `supabase/schema.sql`, run it.
-3. Project Settings, API: copy the **Project URL** and the **anon public key**.
-4. GitHub repo, **Settings, Secrets and variables, Actions**: add two secrets named `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-5. Re-run the deploy (Actions tab, Run workflow). The deploy bakes the keys into the build.
-6. On one phone tap your name in the top left, press **New** next to the room code, then **Connect**. On the other phone type the same code and press **Connect**. Choose who is who under "I am playing as".
+## 2. Link both phones (Supabase, already wired in)
+Your project's address and publishable key are built into the game, so there is nothing to put in GitHub secrets.
+1. In Supabase open **SQL Editor**, paste all of `supabase/schema.sql`, and press **Run**. This creates the shared table. It is safe to run again.
+2. Open the live game, tap your name at the top left, press **New** next to the room code, then **Connect**.
+3. Press **Copy invite link** and send it to your partner. When they open it, they join your room already signed in as themselves, so nobody lands on the wrong person.
+4. Everything either of you writes is kept in the **Together, Log** tab with names and dates. Messages your partner has not unlocked yet (an unanswered daily question, a whisper, an unopened thank you) stay hidden until they are.
 
-Security note: the starter policy lets anyone who has the room code and the public key read and write that room. Treat the room code like a password. Tightening this with sign in is on the to do list.
+Security note: anyone holding the room code or an invite link can open your room, so share it only with each other. A real sign in could tighten this later.
 
 ## 3. Install it like an app
 * iPhone: open the link in Safari, Share, **Add to Home Screen**.

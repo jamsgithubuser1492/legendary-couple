@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
-import { applyRemote, getState, onStateChange } from '../state/store';
+import { applyRemote, getState, onStateChange, setMe } from '../state/store';
+import type { PlayerId } from '../types';
 
 export type SyncStatus = 'local' | 'connecting' | 'synced' | 'pending' | 'error';
 
@@ -38,6 +39,31 @@ export const useSyncStatus = () =>
 
 export const getRoom = () => room;
 export const syncAvailable = () => getSupabase() !== null;
+
+/** A link that opens the game already connected to your room and signed in as the chosen partner. */
+export function inviteLink(forPlayer: PlayerId): string | null {
+  if (!room) return null;
+  return `${location.origin}${location.pathname}?room=${room}&as=${forPlayer}`;
+}
+
+/** Reads ?room=CODE&as=A|B from the address, joins that room as that partner, then tidies the address. */
+function applyInvite() {
+  try {
+    const q = new URLSearchParams(location.search);
+    const code = q.get('room')?.trim().toUpperCase();
+    const as = q.get('as');
+    if (!code) return;
+    room = code;
+    localStorage.setItem(ROOM_KEY, code);
+    if (as === 'A' || as === 'B') setMe(as);
+    q.delete('room');
+    q.delete('as');
+    const rest = q.toString();
+    history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : '') + location.hash);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -110,6 +136,7 @@ async function connect() {
 export function startSync() {
   if (started) return;
   started = true;
+  applyInvite();
   onStateChange((_s, local) => {
     if (!local || !room || !getSupabase()) return;
     dirty = true;
