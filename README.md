@@ -242,3 +242,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 
 * **See on Island** now opens your sunset painting for each path (`public/assets/see_island_*.webp`, originals in `art/source/`)
 * **Matcha Masters barista** now layers the drink: the ticket shows the layer order with the real ingredient jars (for example Ice, Oat Milk, Matcha, Boba), and the barista taps the matching jar from a tray with one decoy. A wrong tap is a small slip, not a fail. The steam meter is slower and wider, customers wait 50 seconds, orders arrive less often, the round is 2 minutes, and the Couples Combo cheer window is 3 seconds
+
+### Build 28 status: A calmer Stellar Fishing
+
+* A four step how to play card opens the first time (and from the ? button, which pauses the game). Skip is always there
+* Calmer pace: fewer, slower fish (and fewer while a ring or tug is on), a slower sync ring with a wider green band and kinder timing, a gentler tug of war with a bigger safe zone and 14 seconds to land it, and non-target fish fade while a ring is up
+* Cleaner screen: a single hint bar that changes with the moment, names over each pier ("James (you)"), and the controls moved clear of the Finish button
