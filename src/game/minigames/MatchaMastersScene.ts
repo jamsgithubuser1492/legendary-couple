@@ -38,7 +38,7 @@ const MENU: { name: string; recipe: string[]; combo?: boolean }[] = [
 ];
 const FACES = ['🐻', '🐰', '🐱', '🐶', '🦊', '🐼'];
 const sameSet = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
-const PATIENCE_SECONDS = 50; // customers are patient: this game is for working it out together, not for speed
+const PATIENCE_SECONDS = 36; // still kinder than a real rush, but now there is a little pressure
 /** The barista layers a drink from the bottom up in this order, so both of you can read it off the ticket. */
 const LAYER_ORDER = ['Ice', 'Strawberry', 'Oat Milk', 'Milk', 'Espresso', 'Matcha', 'Boba'];
 const layered = (recipe: string[]) => [...recipe].sort((a, b) => LAYER_ORDER.indexOf(a) - LAYER_ORDER.indexOf(b));
@@ -49,7 +49,7 @@ export class MatchaMastersScene extends MinigameScene {
   constructor() {
     super('MatchaMastersScene');
   }
-  protected duration = 120;
+  protected duration = 100;
   private m!: Model;
   private nextSpawn = 0.5;
   private nextId = 1;
@@ -65,11 +65,11 @@ export class MatchaMastersScene extends MinigameScene {
   private startMult = 1;
 
   private fresh(): Model {
-    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.26 }, quality: 1, layers: [], tray: [], stepIdx: 0, score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, combo: null, flash: null };
+    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.2 }, quality: 1, layers: [], tray: [], stepIdx: 0, score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, combo: null, flash: null };
   }
 
   private meterPos(): number {
-    return 0.5 + 0.5 * Math.sin((this.clock - this.m.meterT0) * 1.9 - Math.PI / 2);
+    return 0.5 + 0.5 * Math.sin((this.clock - this.m.meterT0) * 2.6 - Math.PI / 2);
   }
 
   protected build() {
@@ -151,10 +151,10 @@ export class MatchaMastersScene extends MinigameScene {
       }
     }
     m.orders = m.orders.filter((o) => o.patience > 0);
-    if (c >= this.nextSpawn && m.orders.length < 3) {
+    if (c >= this.nextSpawn && m.orders.length < 4) {
       const d = MENU[Math.floor(Math.random() * MENU.length)];
       m.orders.push({ id: this.nextId++, name: d.name, recipe: d.recipe, patience: 1, combo: !!d.combo, claimed: false, face: FACES[Math.floor(Math.random() * FACES.length)] });
-      this.nextSpawn = c + 11 + Math.random() * 5;
+      this.nextSpawn = c + 7 + Math.random() * 3;
     }
     if (m.combo && c > m.combo.deadline) {
       m.flash = { text: 'Too slow to cheer!', until: c + 1.2 };
@@ -177,12 +177,12 @@ export class MatchaMastersScene extends MinigameScene {
         const o = m.orders.find((x) => !x.claimed);
         if (o) this.botPlan = [...o.recipe];
       }
-      if (this.botPlan.length) { this.onInput('A', 'add', this.botPlan.shift()); this.botT = 1.0; if (!this.botPlan.length) this.botT = 0.8; }
+      if (this.botPlan.length) { this.onInput('A', 'add', this.botPlan.shift()); this.botT = 0.8; if (!this.botPlan.length) this.botT = 0.6; }
       else if (m.counter.length) { this.onInput('A', 'pass'); this.botT = 0.9; }
     }
     if (this.isBot('B')) {
       if (m.stage === 'meter' && Math.abs(this.meterPos() - m.band.c) < 0.07) { this.onInput('B', 'meter', this.meterPos()); this.botT = 0.7; }
-      else if (m.stage === 'steps') { this.onInput('B', 'step', m.layers[m.stepIdx]); this.botT = 1.1; }
+      else if (m.stage === 'steps') { this.onInput('B', 'step', m.layers[m.stepIdx]); this.botT = 0.85; }
       else if (m.stage === 'serve') { this.onInput('B', 'serve'); this.botT = 0.9; }
     }
   }
@@ -198,7 +198,7 @@ export class MatchaMastersScene extends MinigameScene {
         m.pass = { orderId: o.id };
         m.stage = 'meter';
         m.meterT0 = c;
-        m.band = { c: 0.25 + Math.random() * 0.5, w: 0.26 };
+        m.band = { c: 0.25 + Math.random() * 0.5, w: 0.2 };
       } else {
         m.score = Math.max(0, m.score - 3);
         m.flash = { text: 'Wrong mix! −3', until: c + 1.2 };
@@ -224,7 +224,7 @@ export class MatchaMastersScene extends MinigameScene {
         m.stepIdx++;
         if (m.stepIdx >= m.layers.length) m.stage = 'serve';
       } else {
-        m.quality = Math.max(0.35, m.quality - 0.12); // a wrong layer is a small slip, not a disaster
+        m.quality = Math.max(0.3, m.quality - 0.18); // a wrong layer is a small slip, not a disaster
         m.flash = { text: `Not yet: ${m.layers[m.stepIdx]} comes next`, until: c + 1.4 };
       }
     } else if (k === 'serve' && from === 'B' && m.stage === 'serve') {
@@ -240,7 +240,7 @@ export class MatchaMastersScene extends MinigameScene {
       m.mult = Math.min(3, m.mult + 0.25);
       m.orders = m.orders.filter((x) => x.id !== o.id);
       m.flash = { text: `+${10 + tip}`, until: c + 1 };
-      if (o.combo) m.combo = { deadline: c + 3, taps: {} };
+      if (o.combo) m.combo = { deadline: c + 2.4, taps: {} };
     } else if (k === 'cheer' && m.combo) {
       m.combo.taps[from] = true;
       if (m.combo.taps.A && m.combo.taps.B) {
@@ -411,7 +411,7 @@ export class MatchaMastersScene extends MinigameScene {
     const r = emptyResult('MATCHA_MASTERS');
     r.score = m.score;
     r.coins = m.score;
-    r.stars = m.score >= 170 ? 3 : m.score >= 110 ? 2 : m.score >= 50 ? 1 : 0;
+    r.stars = m.score >= 230 ? 3 : m.score >= 140 ? 2 : m.score >= 60 ? 1 : 0;
     const have = getState().recipes;
     if (r.stars >= 3) {
       const next = RECIPES.find((x) => !have.includes(x));
