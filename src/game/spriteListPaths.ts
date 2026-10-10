@@ -3,23 +3,44 @@ export const PATH_SPRITES = [
   {
     "key": "path_card_rv",
     "file": "path_card_rv.png",
-    "w": 131,
-    "h": 88,
+    "w": 372,
+    "h": 285,
     "dw": 70
   },
   {
     "key": "path_card_shop",
     "file": "path_card_shop.png",
-    "w": 140,
-    "h": 118,
+    "w": 390,
+    "h": 303,
     "dw": 70
   },
   {
     "key": "path_card_home",
     "file": "path_card_home.png",
-    "w": 116,
-    "h": 72,
+    "w": 375,
+    "h": 309,
     "dw": 70
+  },
+  {
+    "key": "path_scene_rv",
+    "file": "path_scene_rv.png",
+    "w": 802,
+    "h": 518,
+    "dw": 200
+  },
+  {
+    "key": "path_scene_shop",
+    "file": "path_scene_shop.png",
+    "w": 806,
+    "h": 512,
+    "dw": 200
+  },
+  {
+    "key": "path_scene_home",
+    "file": "path_scene_home.png",
+    "w": 806,
+    "h": 512,
+    "dw": 200
   },
   {
     "key": "path_rv_1",
@@ -104,5 +125,26 @@ export const PATH_SPRITES = [
     "w": 210,
     "h": 153,
     "dw": 62
+  },
+  {
+    "key": "starter_day1_rv",
+    "file": "starter_day1_rv.png",
+    "w": 230,
+    "h": 194,
+    "dw": 115
+  },
+  {
+    "key": "starter_day1_shop",
+    "file": "starter_day1_shop.png",
+    "w": 230,
+    "h": 188,
+    "dw": 115
+  },
+  {
+    "key": "starter_day1_home",
+    "file": "starter_day1_home.png",
+    "w": 230,
+    "h": 169,
+    "dw": 115
   }
 ] as const;

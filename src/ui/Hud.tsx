@@ -39,6 +39,7 @@ interface Props {
   onWardrobe: () => void;
   onTogether: () => void;
   onArcade: () => void;
+  onSeeIsland: () => void;
   onRituals: () => void;
 }
 
@@ -71,10 +72,10 @@ export default function Hud(p: Props) {
           <span className="font-display text-sm text-cocoa">🐚 {s.shells}</span>
           <span className={`h-2.5 w-2.5 rounded-full ${DOT[sync]}`} title={`Sync: ${sync}`} />
         </button>
-        <div className="rounded-2xl bg-cream/90 px-3 py-1.5 text-right shadow">
+        <button onClick={p.onSeeIsland} disabled={!s.startingPath} className="pointer-events-auto rounded-2xl bg-cream/90 px-3 py-1.5 text-right shadow active:scale-95" aria-label="See on island">
           <div className="font-display text-sm font-bold text-cocoa">Our Little World ♡</div>
-          <div className="text-xs text-cocoa/70">{s.startingPath ? LABEL[s.startingPath] : 'Pick a path'}</div>
-        </div>
+          <div className="text-xs text-cocoa/70">{s.startingPath ? `${LABEL[s.startingPath]} · See on island` : 'Pick a path'}</div>
+        </button>
       </div>
 
       {!p.editing && p.view === 'town' && (

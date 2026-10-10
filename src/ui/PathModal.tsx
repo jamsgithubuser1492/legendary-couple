@@ -1,5 +1,4 @@
 import type { StartingPath } from '../types';
-import { ArtImg } from './ItemIcon';
 
 const OPTIONS: { id: StartingPath; icon: string; title: string; blurb: string; bg: string }[] = [
   { id: 'rv', icon: '🚐', title: 'The RV Life', blurb: 'Simple. Cozy. Mobile.', bg: 'bg-sky' },
@@ -26,13 +25,13 @@ export default function PathModal({ current, onPick, onClose }: Props) {
             <button
               key={o.id}
               onClick={() => onPick(o.id)}
-              className={`${o.bg} rounded-2xl p-4 text-left shadow transition hover:scale-[1.03] active:scale-95 ${
-                current === o.id ? 'ring-4 ring-pink-300' : ''
-              }`}
+              className={`overflow-hidden rounded-2xl bg-white text-left shadow transition hover:scale-[1.03] active:scale-95 ${current === o.id ? 'ring-4 ring-pink-300' : ''}`}
             >
-              <div className="flex h-24 items-center justify-center"><ArtImg name={`path_card_${o.id}`} size={96} /></div>
-              <div className="mt-2 font-display text-lg font-bold text-cocoa">{o.title}</div>
-              <div className="text-sm text-cocoa/70">{o.blurb}</div>
+              <img src={`${import.meta.env.BASE_URL}assets/sprites/path_card_${o.id}.png`} alt={o.title} className="block aspect-[1.12] w-full object-cover" draggable={false} />
+              <div className="p-3">
+                <div className="font-display text-lg font-bold text-cocoa">{o.title}</div>
+                <div className="text-sm text-cocoa/70">{o.blurb}</div>
+              </div>
             </button>
           ))}
         </div>

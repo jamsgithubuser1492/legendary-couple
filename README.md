@@ -225,3 +225,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * Answers stay hidden until you both answer, then open together. Every answer is kept in "Our Love Map library", where you can filter by theme
 * Secret Prompt Drop: write tomorrow's question for the two of you. It stays hidden until tomorrow
 * Voice answers are not built yet. `supabase/schema.sql` has `question_bank` and `daily_question_responses` tables, optional because the game syncs the answers already
+
+### Build 25 status: Your original starting path art, and See on Island
+
+* The path cards on the choice screen are cut cleanly from your original sheet (`tools/slice_paths.py`): rounded, with the tinted panel, no cut-off edges or stray hearts
+* Day one on the island is your original building from each card (RV, Shop and Café, Home Foundation), cut out cleanly. It then grows into the later stages
+* **See on Island:** tap the top right label ("The Shop & Café · See on island") to open your path's big island picture, the four step Build Up Over Time strip showing where you are, and a "Zoom to my build" button that flies the camera to your build

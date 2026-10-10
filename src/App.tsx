@@ -13,6 +13,7 @@ import CheckinModal from './ui/CheckinModal';
 import ExpandModal from './ui/ExpandModal';
 import CheatsModal from './ui/CheatsModal';
 import { BottleReader, FocusOverlay, RitualsModal, SynergyBanner, TeaPrompt } from './ui/QuadrantUI';
+import SeeOnIsland from './ui/SeeOnIsland';
 import { ArcadeModal, MinigameOverlays, useMinigameActive } from './ui/ArcadeUI';
 import TogetherModal, { BidBanner, type TogetherTab } from './ui/TogetherModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
@@ -51,6 +52,7 @@ export default function App() {
   const [townPanel, setTownPanel] = useState(false);
   const [dream, setDream] = useState(false);
   const [arcade, setArcade] = useState(false);
+  const [seeIsland, setSeeIsland] = useState(false);
   const [rituals, setRituals] = useState(false);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
@@ -159,6 +161,7 @@ export default function App() {
         onTownPanel={() => setTownPanel(true)}
         onDream={() => setDream(true)}
         onArcade={() => setArcade(true)}
+        onSeeIsland={() => setSeeIsland(true)}
         onRituals={() => setRituals(true)}
       />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
@@ -187,6 +190,7 @@ export default function App() {
       {rituals && <RitualsModal onClose={() => setRituals(false)} />}
       <BottleReader />
       <FocusOverlay />
+      {seeIsland && <SeeOnIsland onClose={() => setSeeIsland(false)} onShowIsland={() => { if (view !== 'island') changeView('island'); gameBus.emit(BUS.focus, { x: 4, y: 4 }); gameBus.emit(BUS.zoom, 0.5); }} />}
       {arcade && <ArcadeModal onClose={() => setArcade(false)} />}
       {together && <TogetherModal tab={together} onTab={setTogether} onClose={() => setTogether(null)} />}
       {cheats && <CheatsModal onClose={() => setCheats(false)} />}

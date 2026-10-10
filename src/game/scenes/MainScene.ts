@@ -405,8 +405,8 @@ export class MainScene extends Phaser.Scene {
       dirt.fillPath();
     }
     this.structure.push(dirt);
-    const stageKey = `starter_${p}_${stage}`;
-    if (stage > 1 && this.textures.exists(stageKey)) {
+    const stageKey = stage === 1 ? `starter_day1_${p}` : `starter_${p}_${stage}`; // day one is cut from your original path card
+    if (this.textures.exists(stageKey)) {
       this.structure.push(this.img(stageKey, front.x, front.y - 4, 0.5, 1).setDepth(depth));
     } else if (p === 'shop' && this.textures.exists('cafe_exterior')) {
       // day one is your original starter art, then it grows into the later stages
