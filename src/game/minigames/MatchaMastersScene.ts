@@ -9,12 +9,13 @@ interface Model {
   orders: Order[];
   counter: string[];
   pass: { orderId: number } | null;
-  stage: 'idle' | 'meter' | 'topping' | 'serve';
+  stage: 'idle' | 'meter' | 'steps' | 'serve';
   meterT0: number;
   band: { c: number; w: number };
   quality: number;
-  topIdx: number;
-  tops: { x: number; y: number }[];
+  layers: string[]; // the order the barista layers the drink in
+  tray: string[]; // the ingredients on the barista's tray, shuffled, with one decoy
+  stepIdx: number;
   score: number;
   mult: number;
   served: number;
@@ -37,13 +38,18 @@ const MENU: { name: string; recipe: string[]; combo?: boolean }[] = [
 ];
 const FACES = ['🐻', '🐰', '🐱', '🐶', '🦊', '🐼'];
 const sameSet = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
-const PATIENCE_SECONDS = 28;
+const PATIENCE_SECONDS = 50; // customers are patient: this game is for working it out together, not for speed
+/** The barista layers a drink from the bottom up in this order, so both of you can read it off the ticket. */
+const LAYER_ORDER = ['Ice', 'Strawberry', 'Oat Milk', 'Milk', 'Espresso', 'Matcha', 'Boba'];
+const layered = (recipe: string[]) => [...recipe].sort((a, b) => LAYER_ORDER.indexOf(a) - LAYER_ORDER.indexOf(b));
+const ICON = Object.fromEntries(ING) as Record<string, string>;
+const trayPos = (i: number, n: number) => ({ x: 714 + (i - (n - 1) / 2) * 82, y: 372 });
 
 export class MatchaMastersScene extends MinigameScene {
   constructor() {
     super('MatchaMastersScene');
   }
-  protected duration = 90;
+  protected duration = 120;
   private m!: Model;
   private nextSpawn = 0.5;
   private nextId = 1;
@@ -59,11 +65,11 @@ export class MatchaMastersScene extends MinigameScene {
   private startMult = 1;
 
   private fresh(): Model {
-    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.16 }, quality: 1, topIdx: 0, tops: [], score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, combo: null, flash: null };
+    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.26 }, quality: 1, layers: [], tray: [], stepIdx: 0, score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, combo: null, flash: null };
   }
 
   private meterPos(): number {
-    return 0.5 + 0.5 * Math.sin((this.clock - this.m.meterT0) * 3.2 - Math.PI / 2);
+    return 0.5 + 0.5 * Math.sin((this.clock - this.m.meterT0) * 1.9 - Math.PI / 2);
   }
 
   protected build() {
@@ -75,13 +81,15 @@ export class MatchaMastersScene extends MinigameScene {
     this.botT = 0;
     this.lastEnabled = '';
     this.cards = [];
+    this.stepImgs = {};
+    this.stepLabels = {};
     const mk = (x: number, y: number, size: number, color = '#6b4f4f', ox = 0.5, oy = 0.5) =>
       this.add.text(x, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center', wordWrap: { width: 400 } }).setOrigin(ox, oy).setDepth(10);
     for (let i = 0; i < 4; i++) {
       const x = 30 + i * 229;
       this.cards.push({
         name: this.add.text(x + 105, 28, '', { fontFamily: FONT, fontSize: '15px', color: '#6b4f4f', align: 'center', wordWrap: { width: 190 } }).setOrigin(0.5, 0).setDepth(10),
-        recipe: this.add.text(x + 105, 66, '', { fontFamily: FONT, fontSize: '13px', color: '#8a6b6b', align: 'center', wordWrap: { width: 190 } }).setOrigin(0.5, 0).setDepth(10),
+        recipe: this.add.text(x + 105, 66, '', { fontFamily: FONT, fontSize: '11px', color: '#8a6b6b', align: 'center', wordWrap: { width: 200 } }).setOrigin(0.5, 0).setDepth(10),
         hearts: this.add.text(x + 105, 104, '', { fontFamily: FONT, fontSize: '18px', color: '#ff7fa1' }).setOrigin(0.5, 0).setDepth(10),
       });
     }
@@ -118,12 +126,14 @@ export class MatchaMastersScene extends MinigameScene {
     this.btn.cheer = this.button(480, 380, 220, 70, '💞 CHEER!', { fill: 0xff9fbd, size: 30, onDown: () => this.act(this.role, 'cheer') });
     this.btn.cheer.setVisible(false);
     this.exitButton();
-    // tap the toppings in order
+    // tap the ingredient that is next in the layer order
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const m = this.m;
-      if (m.stage !== 'topping' || !this.can('B')) return;
-      const d = m.tops[m.topIdx];
-      if (d && Math.hypot(p.worldX - d.x, p.worldY - d.y) < 36) this.act('B', 'dot', m.topIdx);
+      if (m.stage !== 'steps' || !this.can('B')) return;
+      m.tray.forEach((name, i) => {
+        const t = trayPos(i, m.tray.length);
+        if (Math.abs(p.worldX - t.x) < 38 && Math.abs(p.worldY - t.y) < 44) this.act('B', 'step', name);
+      });
     });
   }
 
@@ -141,10 +151,10 @@ export class MatchaMastersScene extends MinigameScene {
       }
     }
     m.orders = m.orders.filter((o) => o.patience > 0);
-    if (c >= this.nextSpawn && m.orders.length < 4) {
+    if (c >= this.nextSpawn && m.orders.length < 3) {
       const d = MENU[Math.floor(Math.random() * MENU.length)];
       m.orders.push({ id: this.nextId++, name: d.name, recipe: d.recipe, patience: 1, combo: !!d.combo, claimed: false, face: FACES[Math.floor(Math.random() * FACES.length)] });
-      this.nextSpawn = c + 6 + Math.random() * 3;
+      this.nextSpawn = c + 11 + Math.random() * 5;
     }
     if (m.combo && c > m.combo.deadline) {
       m.flash = { text: 'Too slow to cheer!', until: c + 1.2 };
@@ -167,13 +177,13 @@ export class MatchaMastersScene extends MinigameScene {
         const o = m.orders.find((x) => !x.claimed);
         if (o) this.botPlan = [...o.recipe];
       }
-      if (this.botPlan.length) { this.onInput('A', 'add', this.botPlan.shift()); this.botT = 0.7; if (!this.botPlan.length) this.botT = 0.5; }
-      else if (m.counter.length) { this.onInput('A', 'pass'); this.botT = 0.6; }
+      if (this.botPlan.length) { this.onInput('A', 'add', this.botPlan.shift()); this.botT = 1.0; if (!this.botPlan.length) this.botT = 0.8; }
+      else if (m.counter.length) { this.onInput('A', 'pass'); this.botT = 0.9; }
     }
     if (this.isBot('B')) {
-      if (m.stage === 'meter' && Math.abs(this.meterPos() - m.band.c) < 0.07) { this.onInput('B', 'meter', this.meterPos()); this.botT = 0.4; }
-      else if (m.stage === 'topping') { this.onInput('B', 'dot', m.topIdx); this.botT = 0.55; }
-      else if (m.stage === 'serve') { this.onInput('B', 'serve'); this.botT = 0.5; }
+      if (m.stage === 'meter' && Math.abs(this.meterPos() - m.band.c) < 0.07) { this.onInput('B', 'meter', this.meterPos()); this.botT = 0.7; }
+      else if (m.stage === 'steps') { this.onInput('B', 'step', m.layers[m.stepIdx]); this.botT = 1.1; }
+      else if (m.stage === 'serve') { this.onInput('B', 'serve'); this.botT = 0.9; }
     }
   }
 
@@ -188,7 +198,7 @@ export class MatchaMastersScene extends MinigameScene {
         m.pass = { orderId: o.id };
         m.stage = 'meter';
         m.meterT0 = c;
-        m.band = { c: 0.25 + Math.random() * 0.5, w: 0.16 };
+        m.band = { c: 0.25 + Math.random() * 0.5, w: 0.26 };
       } else {
         m.score = Math.max(0, m.score - 3);
         m.flash = { text: 'Wrong mix! −3', until: c + 1.2 };
@@ -198,12 +208,25 @@ export class MatchaMastersScene extends MinigameScene {
     } else if (k === 'meter' && from === 'B' && m.stage === 'meter') {
       const d = Math.abs((v as number) - m.band.c); // judged on the barista's own screen, so lag does not cost them
       m.quality = d <= m.band.w / 2 ? 1 : d <= m.band.w ? 0.65 : 0.35;
-      m.stage = 'topping';
-      m.topIdx = 0;
-      m.tops = [0, 1, 2].map(() => ({ x: 580 + Math.random() * 270, y: 270 + Math.random() * 110 }));
-    } else if (k === 'dot' && from === 'B' && m.stage === 'topping' && v === m.topIdx) {
-      m.topIdx++;
-      if (m.topIdx >= 3) m.stage = 'serve';
+      const ord = m.orders.find((x) => x.id === m.pass?.orderId);
+      m.layers = layered(ord?.recipe ?? []);
+      const decoys = ING.map((x) => x[0]).filter((n) => !m.layers.includes(n));
+      const tray = [...m.layers, decoys[Math.floor(Math.random() * decoys.length)]];
+      for (let i = tray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tray[i], tray[j]] = [tray[j], tray[i]];
+      }
+      m.tray = tray;
+      m.stepIdx = 0;
+      m.stage = 'steps';
+    } else if (k === 'step' && from === 'B' && m.stage === 'steps') {
+      if (v === m.layers[m.stepIdx]) {
+        m.stepIdx++;
+        if (m.stepIdx >= m.layers.length) m.stage = 'serve';
+      } else {
+        m.quality = Math.max(0.35, m.quality - 0.12); // a wrong layer is a small slip, not a disaster
+        m.flash = { text: `Not yet: ${m.layers[m.stepIdx]} comes next`, until: c + 1.4 };
+      }
     } else if (k === 'serve' && from === 'B' && m.stage === 'serve') {
       const o = m.orders.find((x) => x.id === m.pass?.orderId);
       m.pass = null;
@@ -217,7 +240,7 @@ export class MatchaMastersScene extends MinigameScene {
       m.mult = Math.min(3, m.mult + 0.25);
       m.orders = m.orders.filter((x) => x.id !== o.id);
       m.flash = { text: `+${10 + tip}`, until: c + 1 };
-      if (o.combo) m.combo = { deadline: c + 2, taps: {} };
+      if (o.combo) m.combo = { deadline: c + 3, taps: {} };
     } else if (k === 'cheer' && m.combo) {
       m.combo.taps[from] = true;
       if (m.combo.taps.A && m.combo.taps.B) {
@@ -273,7 +296,7 @@ export class MatchaMastersScene extends MinigameScene {
       const ci = this.cardImgs[i];
       const ck = `mg_cust_${(FACES.indexOf(o.face) % 6) + 1}`;
       if (ci && this.textures.exists(ck)) fitBox(ci.setTexture(ck).setVisible(true), 34, 56);
-      this.cards[i].recipe.setText(o.recipe.join(' + '));
+      this.cards[i].recipe.setText(layered(o.recipe).join(' → '));
       this.cards[i].hearts.setText('♥'.repeat(hearts) + '♡'.repeat(5 - hearts)).setColor(hearts <= 1 ? '#e8503a' : '#ff7fa1');
     }
     // panels
@@ -302,30 +325,55 @@ export class MatchaMastersScene extends MinigameScene {
       const pos = this.meterPos();
       g.fillStyle(0xe85a6a, 1);
       g.fillRoundedRect(540 + pos * 348 - 5, 282, 10, 50, 5);
-    } else if (m.stage === 'topping') {
-      bLine = `Trace the toppings in order: ${Math.min(m.topIdx + 1, 3)} of 3`;
-      m.tops.forEach((d, i) => {
-        if (!this.dotLabels[i]) this.dotLabels[i] = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '22px', color: '#ffffff' }).setOrigin(0.5).setDepth(11);
-        const done = i < m.topIdx, next = i === m.topIdx;
-        g.fillStyle(done ? 0x9ad48c : next ? 0xff7fa1 : 0xe8c8d8, 1);
-        g.fillCircle(d.x, d.y, next ? 30 + Math.sin(c * 8) * 2 : 26);
-        this.dotLabels[i].setPosition(d.x, d.y).setText(`${i + 1}`);
-        if (i > 0) {
-          const p = m.tops[i - 1];
-          g.lineStyle(4, i <= m.topIdx ? 0x9ad48c : 0xe8c8d8, 0.8);
-          g.beginPath();
-          g.moveTo(p.x, p.y);
-          g.lineTo(d.x, d.y);
-          g.strokePath();
+    } else if (m.stage === 'steps') {
+      bLine = `Layer it in order: ${Math.min(m.stepIdx + 1, m.layers.length)} of ${m.layers.length}. Tap ${m.layers[m.stepIdx] ?? ''}`;
+      // the recipe, bottom to top, so you can follow it
+      m.layers.forEach((name, i) => {
+        const x = 714 + (i - (m.layers.length - 1) / 2) * 82, y = 300;
+        const done = i < m.stepIdx, next = i === m.stepIdx;
+        g.fillStyle(done ? 0xbfe8b0 : next ? 0xffd9e2 : 0xf3e6d8, 1);
+        g.fillRoundedRect(x - 36, y - 26, 72, 52, 12);
+        if (next) {
+          g.lineStyle(3, 0xff7fa1, 1);
+          g.strokeRoundedRect(x - 36, y - 26, 72, 52, 12);
         }
+        const k = `layer${i}`;
+        if (!this.stepImgs[k]) this.stepImgs[k] = this.add.image(0, 0, `mg_ing_${ICON[name] ?? 'matcha'}`).setDepth(12);
+        const im = this.stepImgs[k].setTexture(`mg_ing_${ICON[name] ?? 'matcha'}`).setPosition(x, y).setVisible(true).setAlpha(done ? 0.45 : 1);
+        fitBox(im, 40, 44);
+        if (!this.stepLabels[k]) this.stepLabels[k] = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '14px', color: '#6b4f4f' }).setOrigin(0.5).setDepth(13);
+        this.stepLabels[k].setPosition(x - 26, y - 20).setText(done ? '✓' : `${i + 1}`).setVisible(true);
+      });
+      // the tray: tap the next ingredient
+      m.tray.forEach((name, i) => {
+        const t = trayPos(i, m.tray.length);
+        const k = `tray${i}`;
+        g.fillStyle(0xffffff, 1);
+        g.fillRoundedRect(t.x - 36, t.y - 42, 72, 84, 14);
+        g.lineStyle(2, 0xe8d6c8, 1);
+        g.strokeRoundedRect(t.x - 36, t.y - 42, 72, 84, 14);
+        if (!this.stepImgs[k]) this.stepImgs[k] = this.add.image(0, 0, `mg_ing_${ICON[name] ?? 'matcha'}`).setDepth(12);
+        const im = this.stepImgs[k].setTexture(`mg_ing_${ICON[name] ?? 'matcha'}`).setPosition(t.x, t.y - 8).setVisible(true).setAlpha(1);
+        fitBox(im, 50, 54);
+        if (!this.stepLabels[k]) this.stepLabels[k] = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '13px', color: '#6b4f4f' }).setOrigin(0.5).setDepth(13);
+        this.stepLabels[k].setPosition(t.x, t.y + 32).setText(name).setVisible(true);
       });
     } else if (m.stage === 'serve') bLine = 'Looks lovely! Serve it';
-    if (m.stage !== 'topping') this.dotLabels.forEach((l) => l.setText(''));
-    if (this.drinkImg) {
-      const show = (m.stage === 'serve' || m.stage === 'topping') && !!m.pass;
-      this.drinkImg.setVisible(show && this.textures.exists('mg_cup_1'));
-      if (show) fitBox(this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`), 96, 90).setPosition(m.stage === 'serve' ? 714 : 540, m.stage === 'serve' ? 330 : 250);
+    if (m.stage !== 'steps') {
+      Object.values(this.stepImgs).forEach((i) => i.setVisible(false));
+      Object.values(this.stepLabels).forEach((l) => l.setVisible(false));
+    } else {
+      // hide pooled pieces that this order does not use
+      for (let i = m.layers.length; i < 6; i++) { this.stepImgs[`layer${i}`]?.setVisible(false); this.stepLabels[`layer${i}`]?.setVisible(false); }
+      for (let i = m.tray.length; i < 7; i++) { this.stepImgs[`tray${i}`]?.setVisible(false); this.stepLabels[`tray${i}`]?.setVisible(false); }
     }
+    if (this.drinkImg) {
+      const show = (m.stage === 'serve' || m.stage === 'steps') && !!m.pass;
+      this.drinkImg.setVisible(show && this.textures.exists('mg_cup_1'));
+      if (show) fitBox(this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`), m.stage === 'serve' ? 96 : 76, m.stage === 'serve' ? 90 : 70).setPosition(m.stage === 'serve' ? 714 : 556, m.stage === 'serve' ? 330 : 236);
+    }
+    if (m.stage === 'steps') this.t.bState.setOrigin(0, 0.5).setPosition(616, 228).setWordWrapWidth(300);
+    else this.t.bState.setOrigin(0.5, 0.5).setPosition(714, 232).setWordWrapWidth(400);
     this.t.bState.setText(bLine);
     // text
     this.t.score.setText(`⭐ ${m.score}`);
@@ -343,7 +391,7 @@ export class MatchaMastersScene extends MinigameScene {
       for (const [name] of ING) this.btn[`ing:${name}`].setEnabled(a && m.counter.length < 4);
       this.btn.clear.setEnabled(a && m.counter.length > 0);
       this.btn.pass.setEnabled(a && m.counter.length > 0 && !m.pass);
-      this.btn.steam.setVisible(m.stage !== 'serve');
+      this.btn.steam.setVisible(m.stage === 'idle' || m.stage === 'meter');
       this.btn.steam.setEnabled(b && m.stage === 'meter');
       this.btn.serve.setVisible(m.stage === 'serve');
       this.btn.serve.setEnabled(b);
@@ -355,14 +403,15 @@ export class MatchaMastersScene extends MinigameScene {
     }
   }
   private slotLabels: Phaser.GameObjects.Text[] = [];
-  private dotLabels: Phaser.GameObjects.Text[] = [];
+  private stepImgs: Record<string, Phaser.GameObjects.Image> = {};
+  private stepLabels: Record<string, Phaser.GameObjects.Text> = {};
 
   protected result(): MGResult {
     const m = this.m;
     const r = emptyResult('MATCHA_MASTERS');
     r.score = m.score;
     r.coins = m.score;
-    r.stars = m.score >= 260 ? 3 : m.score >= 150 ? 2 : m.score >= 60 ? 1 : 0;
+    r.stars = m.score >= 170 ? 3 : m.score >= 110 ? 2 : m.score >= 50 ? 1 : 0;
     const have = getState().recipes;
     if (r.stars >= 3) {
       const next = RECIPES.find((x) => !have.includes(x));

@@ -237,3 +237,8 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * The RV, the Shop & Café and the Home Foundation now use your detailed sheet (sheet 59, cut by `tools/slice_starters2.py`; the characters are ignored). The path cards, the day one building on the island and the See on Island view all use them
 * They grow with the stages: stage 2 (2 approved goals) adds campfire, stools and packs for the RV, a café table and umbrella for the shop, and lumber and frames for the home. Stage 3 (6 goals) adds the duffel and toolbox, the shelf and menu board, or the wall unit and toolbox
 * See on Island now draws your actual starter and its props, and lets you preview all three stages
+
+### Build 27 status: Sunset See on Island art, and a calmer Matcha barista
+
+* **See on Island** now opens your sunset painting for each path (`public/assets/see_island_*.webp`, originals in `art/source/`)
+* **Matcha Masters barista** now layers the drink: the ticket shows the layer order with the real ingredient jars (for example Ice, Oat Milk, Matcha, Boba), and the barista taps the matching jar from a tray with one decoy. A wrong tap is a small slip, not a fail. The steam meter is slower and wider, customers wait 50 seconds, orders arrive less often, the round is 2 minutes, and the Couples Combo cheer window is 3 seconds
