@@ -1,279 +1,283 @@
-# Our Little World: the full asset wish list
+# Our Little World: the art wish list (updated)
 
-This is everything still needed to take the game from "working and cozy" to "polished and immersive", plus how to swap any of my placeholder art for your own designs. Items are grouped, then ranked by priority at the end.
+This is the master list of what is still needed to make the game fully on brand, beautiful and alive. It reflects the game as it stands today (Build 28). Every section says what is already painted and live, what is saved but not used, and what is still missing.
 
-Legend: **Have** means a painted asset of yours is already in the game. **Placeholder** means I drew it with code or reused another sprite, and it is a good candidate to replace. **Missing** means nothing exists yet.
+Legend
+* **Live**: your painted art is in the game today.
+* **Saved**: your art exists in `art/source/` but is not used yet. I can wire these in without you drawing anything.
+* **Missing**: nothing painted exists. This is what to create.
+* **Code drawn**: the game paints it with shapes, so it works but looks plainer than your art.
 
 ---
 
-## Part 1. How to replace anything I made
+## Part 1. How to add or replace art
 
-There are four kinds of art in the game, and each swaps in a slightly different way.
+### A. Single sprites (furniture, props, buildings, icons)
+1. Make a transparent PNG, tightly cropped, no labels and no sheet background, at 2x size (one island tile is 128 x 64 px at 2x).
+2. Name it after the key (for example `plant_a.png`) or tell me what it is.
+3. Send it, or drop it in `art/replace/`. I register its on screen width and rebuild the sprite lists.
+4. A brand new item needs a name, price, footprint in tiles (width by depth) and shop category. I add one line in `src/state/catalog.ts`.
 
-### A. Single sprites (furniture, buildings, props, icons)
-These live in `public/assets/sprites/<key>.png`. The key is the name you see in the lists below.
-1. Make a transparent PNG, tightly cropped, no labels and no sheet background, drawn at **2x size** (one game tile is 128 x 64 px at 2x).
-2. Name the file after the key. For example `plant_a.png` replaces `plant_a`.
-3. Send it to me (or drop it in the repo under `art/replace/`). I register its on screen width in `tools/slice_sprites.py` so it keeps the same footprint, and rebuild `src/game/spriteList.ts`.
-4. A new sprite for something that has no key yet needs one line in `src/state/catalog.ts`. Tell me the name, price, footprint in tiles (width x depth) and category and I add it.
+### B. Sheets (many things on one picture)
+This is the workflow we have used all along, and it works well.
+* One object per cell, clear gaps, a flat plain background, no text touching an object.
+* Keep labels in a margin or on a second copy.
+* Tell me the key for each object in reading order. If you do not, I choose names from the sheet title.
+* For animations, keep every frame the same size, bottom aligned, left to right.
+* The cutters live in `tools/` (`slice_sheets41_45.py`, `slice_town.py`, `slice_minigames.py`, `slice_starters2.py`, `slice_floors.py`, `slice_npcs.py`). A new sheet gets a small new cutter.
 
-### B. Sheets (many sprites in one picture)
-Keep doing what you do today: send a sheet, and I cut it with `tools/slice_sprites.py`. To make slicing painless:
-* One object per cell, a clear gap between objects, plain flat background.
-* No text labels touching a sprite. Put labels in the margin or send a second copy with labels.
-* Tell me the key name for each object, in reading order, left to right and top to bottom.
+### C. Walk cycles
+One horizontal strip per direction, every frame the same size and bottom aligned. The layout I want for every character from now on:
 
-### C. Animated characters (walk cycles)
-Each character is one **horizontal strip** in `public/assets/sprites/`, every frame the same size and bottom aligned. Current strips: `james_new`, `rachel_new`, `james_dark`, `rachel_dark`, `dog_walk_side` (see `src/game/walkSheets.ts`). To replace one, send a strip or a grid sheet and say which frames face which way. The standard layout I want for every new character is:
-
-| Frames | Meaning |
+| Strip | Frames |
 |---|---|
-| 0 to 3 | Walk right (northeast and southeast get their own rows when you have them) |
-| 4 to 7 | Walk left |
-| 8 to 11 | Walk toward the camera |
-| 12 to 15 | Walk away from the camera |
-| 16 | Idle front, 17 idle back, 18 sit, 19 happy bounce |
+| Walk toward the camera (south), screen left and screen right | 4 to 6 each |
+| Walk away from the camera (north), screen left and screen right | 4 to 6 each |
+| Walk east and walk west (side views) | 4 to 6 each |
+| Idle: front, back, left, right | 2 each (a gentle breath) |
+| Sit, sleep, wave, cheer | 2 to 4 each |
 
-### D. Things drawn by code (the biggest group, listed in Part 2)
-The island ground, water, floors, walls, plaza, all four minigames, the lantern, the bottle, banners, the aura effects and most of the interface are drawn by code or built from emoji. These are the most "placeholder" feeling parts. To replace one, send the art as in A or B and tell me the part. I change the code to draw your sprite instead. No design skill with code is needed from you.
+Diagonals are what make town walking look right on an isometric map, so northeast, northwest, southeast and southwest matter more than the straight up and down views.
+
+### D. Things drawn by code
+The plaza paving, the island ground and sea, the wall materials, all aura effects and a lot of interface are drawn by code. To replace one, send the art and say which part it replaces, and I change the code to draw your sprite instead.
 
 ### Delivery checklist
-* Transparent PNG, sRGB, no compression artefacts. WebP is fine for big backgrounds.
-* Same light direction as your existing art: soft light from the upper left.
-* Thin warm brown outlines, pastel palette, chibi proportions (see `art/ART_GUIDE.md`).
-* Always tell me the **footprint in tiles** for anything that sits on the grid.
-* Seasonal pieces: one version per season (spring, summer, autumn, winter, holidays) or tell me which are shared.
+* Transparent PNG, sRGB. WebP is fine for large backgrounds.
+* Soft light from the upper left, warm brown outlines, pastel palette, chibi proportions (see `art/ART_GUIDE.md`).
+* Always give the footprint in tiles for anything that sits on the grid.
+* For seasonal pieces, give spring, summer, autumn and winter (holidays can reuse winter).
+* Do not bake a pale background or a cream halo into a sprite. The cutters work best with a flat background and a clear outline.
 
 ---
 
-## Part 2. What I drew with code or reused (placeholders you can replace)
+## Part 2. Where we are today
 
-| Area | Placeholder today | Replace with |
-|---|---|---|
-| Home island ground, shoreline, water | Drawn with code (soft shapes, ripples) | Island ground tile set per season, shoreline edge pieces, painted water texture |
-| Floors | Code: planks, tiles, café checker, sand | Floor tile sprites (they must tile with no seams) |
-| Walls | Code: plaster wall with trim, plus your wall sprites | Full modular wall set (see Part 4) |
-| Items with no sprite | `floor_pink`, `floor_checker`, `espresso`, `pumpkin` | Four sprites |
-| Memory plaque | Drawn heart plaque | Wooden sign with a heart, plus 3 frame styles |
-| Quadrant aura effects | Emoji bursts and coloured rings | 8 sets of painted particle sprites |
-| Vitality Glow, Synergy Aura | Coloured ellipses | Painted glow decals, animated |
-| Focus lantern | A lantern emoji | Animated lantern sprite |
-| Sealed bottle | Small drawn bottle | Animated bottle sprite |
-| Town Square plaza and fountain | Drawn paving, fountain and bunting | Plaza, fountain, bunting, stage |
-| Celebration visitors | Reuse of the figure and outfit sprites | Dedicated visitor characters |
-| Collectible figures (12) | Reuse of the Kitty, Miffy and Snoopy outfit stills | 12 dedicated figure sprites, 3 series |
-| Blind box in the crane | Drawn pink and purple cubes | Painted capsule and box art |
-| All four minigames | 100 percent drawn by code | Full scene art (Part 6) |
-| Interface icons | Emoji | Icon set (Part 7) |
-| Shell, arcade token, event token, driftwood, ingredient icons | Emoji | Painted currency icons like your coin and gem |
-| Town terrain, mountains, sky, roads | Drawn by code plus `world_map.jpg` | Sprite based roads and terrain (Part 8) |
-| Rachel front and back walk | Standing poses with a bounce | Real walk frames |
-| Kitty, Miffy, Snoopy walking | Bounce and sway | Real 4 direction walk cycles |
-| Sound | None | Music and effects (Part 9) |
+### Live and painted
+* The three starting paths (RV, Shop and Café, Home Foundation): cards, day one buildings, stage props, and the three sunset paintings for See on Island.
+* About 345 shop items, including 95 new home, outdoor, café, wall decor, pet and seasonal pieces, and 16 painted floors.
+* 14 civic buildings, the Town Square props, trees, boats, houses, towers, park, road signs and cars.
+* 5 walking townsfolk, James and Rachel (two looks), the golden retriever (side view), Kitty, Miffy and Snoopy outfits (standing).
+* 12 Crane figures and 4 capsule series.
+* Quadrant icons, Focus lantern, sealed bottle, bunting, Wisdom Bookshelf stages, Dream Vault and blueprints, bids, streak flames, whisper cards, campfire and scratch card icons, coin, gem and blind boxes.
+* Matcha Masters: café interior, 12 ingredient jars, 6 customers, cups.
+* Stellar Fishing: 3 skies (time of day), 4 fish species with glow variants, crate, bottle.
+* The Crane: claw, rail, light and heavy boxes in 3 colours.
+
+### Saved but not wired (I can use these now)
+* Sheets 36, 37, 38, 39, 45: shoreline pieces, depth gradient, transition mats, roofs, stairs, half walls, modular wall sets. We chose to keep the soft pastel island and plain blue sea, so most of these are on hold.
+* Sheet 53: town edge cases (road transitions, curbs, cliffs, riverbend, awnings, alert markers).
+* Sheets 46 and 47: arcade edge cases, the full cabinet view, and the arcade front.
+* Together art: gratitude note frames, pop open sequence, love map heart meter stages, confetti and balloons, the tea parachute frames.
+* Matcha: recipe book cover and page art, 4 recipe illustrations, 6 topping stencils, tip jar, star states, order window and prep station.
+* Fishing: octopus, starfish and jellyfish idle frames, the aquarium tank, the Beach Memory Journal page.
+* Crane: figure reveal cards, token art, prize drop and heavy slip frames, magnetic aura.
+* 6 of the 8 Matcha customers and only one expression each.
+
+### Code drawn (works, but not at your art quality)
+* The island ground, shoreline and water, the ripple lines.
+* Walls (the materials are code drawn in your colours), floors that are seamless.
+* The Town Square paving and the road ribbons.
+* Orchard Harvest: the whole scene.
+* The Perfect Catch meter, sync ring, tension bar, and most game interface.
+* All aura bursts, Vitality Glow, Synergy Aura.
+* The interface icons (side buttons are emoji) and resource icons for shells, driftwood, event tokens and ingredients.
 
 ---
 
-## Part 3. Characters and animation
+## Part 3. Characters (the biggest remaining gap)
 
-### James and Rachel (both looks: cream cap and dark cap)
-* **Missing:** diagonal walks for northeast, northwest, southeast, southwest, 4 frames each, both characters, both looks.
-* **Missing:** Rachel front and back walk, 4 frames each.
-* **Missing:** sit poses (couch, chair, bench, beach lounger, picnic blanket), idle breathing frames, and a "hold a drink" idle.
-* **Missing: emote set** for each of you: wave, hug (a shared two person pose), high five, cheer, blow a kiss, laugh, cry happy tears, sleep, yawn, thumbs up.
-* **Missing: activity poses** that match the new mechanics:
-  * Focus Beacon: sitting cross legged at a laptop or notebook, lantern floating above, 2 frames.
-  * Health: stretching, jogging in place, yoga pose, sipping water.
-  * Learning: reading a book, writing in a notebook.
-  * Finance: dropping a coin in a piggy bank.
-  * Romance: writing a letter, corking a bottle.
-  * Social: hosting (arms out), clinking glasses.
-  * Fishing: casting, holding the rod, reeling, celebrating a catch.
-  * Matcha Masters: sous chef scooping and passing, barista steaming and serving.
-  * Crane: pressing the arcade buttons, cheering.
-  * Orchard: shaking a tree, holding a basket out.
-* **Missing: outfit layers** so the Wardrobe can dress you: hoodie, concert outfit, holiday sweater, pajamas, swimwear, café apron, winter coat, rain coat. Either full re drawn sets for each (best) or layered sprites.
-* **Missing: close up portraits** (about 512 px square) of each of you with 6 expressions (neutral, happy, laughing, shy, sleepy, loving), for the quest, journal and letter screens.
-* **Missing: a "couple" pose set** for photo moments (hand holding, side by side, dancing).
+### James and Rachel (both the cream cap and dark cap looks)
+Missing:
+1. **Diagonal walks**: northeast, northwest, southeast, southwest, 4 to 6 frames each. This is the single biggest improvement for how movement feels.
+2. **Rachel front and back walk**, 4 to 6 frames each (she uses a standing pose and a bounce today).
+3. **Back view walk** for James in both looks.
+4. **Sit poses**: couch, chair, bench, beach lounger, picnic blanket, camp chair.
+5. **Emote set** for each of you: wave, hug (a shared two person pose), high five, cheer, blow a kiss, laugh, happy tears, sleep, yawn, thumbs up, shy.
+6. **Activity poses** that match the game: stretching or jogging (Health), cross legged at a laptop with the lantern above (Focus Beacon), reading (Learning), dropping a coin in a piggy bank (Finance), writing a letter and corking a bottle (Romance), hosting with arms out (Social), casting and reeling (Fishing), steaming and serving (Matcha), pressing arcade buttons (Crane), shaking a tree and holding a basket (Orchard).
+7. **Outfit layers or full outfit sets** so the Wardrobe can dress you: hoodie, concert outfit, holiday sweater, pajamas, swimwear, café apron, winter coat, rain coat. Full redrawn sets are best because layers rarely line up on small sprites.
+8. **Close up portraits** (about 512 px square) with 6 expressions each: neutral, happy, laughing, shy, sleepy, loving. These would lift the quest, journal, letter and daily question screens a lot.
+9. **Couple pose set** for photo moments: hand holding, side by side, dancing, forehead touch.
+10. **Starting path characters**: your sheet 59 characters (hooded RV couple, barista couple, builder couple) are saved but not used. Say if you want these as the avatar outfits for each path.
 
 ### Companions
-* **Hello Kitty, Miffy, Snoopy:** 4 direction walk cycles (4 frames each) for every outfit, plus sit and sleep poses. Today they bounce. There are about 11 outfits in the Wardrobe.
-* **Golden retriever:** front and back walk, plus sit, wag, sleep and play. Today only the side walk exists.
-* **New companions** for future Wardrobe slots: corgi, bunny, golden retriever puppy, cat, duck. Walk cycles for each.
+1. **Hello Kitty, Miffy, Snoopy**: 4 direction walk cycles (4 frames each) for every outfit. Today they bounce and mirror. There are about 11 outfits.
+2. **Sit, sleep and play poses** for each.
+3. **Golden retriever**: front and back walk, plus sit, wag, sleep and play. Only the side walk exists.
+4. **New companions for future Wardrobe slots**: corgi, bunny, puppy, cat, duck, with walk cycles.
+5. **Mochi** (the practice partner bot in the minigames): a proper character with an avatar, an idle and a happy pose. Today Mochi is just a name.
 
-### Collectible figures from the Crane (12 figures, 3 series)
-Draw each as a standing figure, front view, about 256 px tall, plus a small walk cycle so freed figures can roam the island.
-* **Beach Vacation:** Beach Kitty, Beach Miffy, Beach Snoopy
-* **Barista:** Barista Kitty, Barista Miffy, Barista Snoopy
-* **Sleepy Pajama:** PJ Kitty, PJ Miffy, PJ Snoopy
-* **Golden series (rare, 3 figures):** Golden Kitty, Golden Miffy, Golden Snoopy, plus room for a secret figure.
-* For each series: a **capsule or box** design in a matching colour and the box in 3 states (closed, shaking, opening).
+### Collectible figures (the 12 Crane figures)
+1. A small **walk cycle** for each (4 frames, front and side) so freed figures can really roam. They hop and sway today.
+2. The **secret figure** (the Golden series has room for it).
+3. **Figure reveal cards** (saved, not used), one per figure.
+4. A **capsule shake and open** animation per series (3 frames each).
 
-### Townsfolk and visitors
-* **Today:** 4 townsfolk stills (`npc_grandma`, `npc_photographer`, `npc_woman`, `npc_hat`).
-* **Missing:** 12 or more townsfolk, with walk cycles in 4 directions. Include children, an older man, a jogger, a dog walker, a vendor, a musician, a painter, a postal worker, a barista, a surfer.
-* **Missing: celebration visitors** for the Town Square: people with party hats, balloons, cake and confetti, 2 frame cheering loops.
-* **Missing:** friends and family characters that match the Social goals (a friend couple, a grandparent, a baby).
+### Townspeople and visitors
+1. **Back views** for the 5 walkers (the sheet only had front, side and one back row). Without them, walking away from the camera reuses a side view.
+2. **The student row** (6 different people on one row) as separate characters, each with their own walk.
+3. **10 or more new townsfolk** with 4 direction walks: a child, an older man, a jogger, a dog walker, a vendor, a musician, a painter, a postal worker, a barista, a surfer, a teacher.
+4. **Celebration visitors** for the Town Square (party hats, balloons, cake, cheering loops).
+5. **Friends and family characters** for the Social goals: a friend couple, a grandparent, a baby.
+6. **Shopkeepers** that stand at the new civic buildings (baker, librarian, teacher, doctor, firefighter, cinema clerk).
 
----
-
-## Part 4. Home island: decor, structures and items
-
-### Foundations
-* **Ground:** island grass and sand tile set per season (5 sets), with edge and corner pieces, plus a clean "blank dirt" tile for the start.
-* **Floors (seamless tiles):** pink tile, café checker, pastel rug (3 colours), grass with flowers, stone path, wood in 3 stains, tatami, carpet.
-* **Walls:** pastel pink, sage, brick, board and batten, half wall, fence, hedge, glass wall, plus corner, window and door variants for each.
-* **Roofs:** snow, autumn leaves, cherry blossom petals, and a thatch and tile roof for the starters.
-* **Starter structures:** RV, Shop and Café, and Home Foundation, each in 3 growth stages (day one, mid, finished) so they can grow with you.
-* **Memory plaque, 3 frame styles** (wood, brass, pastel), plus a polaroid and a framed photo style.
-* **Front door mailbox** (for love letter delivery as an alternative to the shoreline).
-
-### Home items that are missing from the shop
-* Kitchen: oven, fridge, kitchen island, sink, dining table, dishes, pot rack.
-* Living: rugs, floor cushions, TV and console, record player, piano, desk and laptop, easel, yoga mat.
-* Bedroom: wardrobe, dresser, vanity, nightlights.
-* Bathroom: tub, sink, plants.
-* Outdoor: hot tub, hammock, fire pit, bbq grill, garden beds, greenhouse, chicken coop, swing set, gazebo, pergola.
-* Wall decor: more prints, mirrors, shelves, pennants, neon signs (a **neon sign** for the café is promised in the Matcha Masters unlock list).
-* Seasonal sets for every season: at least 8 pieces each.
-* Pets: more beds, bowls, toys.
-* Cafe items: **espresso machine** (placeholder), **pastry case**, **patio seating**, **neon sign**, menu boards, a counter in 3 finishes, bar stools, hanging plants, pendant lamps, a record corner, chalkboard.
-
-### New mechanic objects
-* **Shared bookshelf (Wisdom Bookshelf):** a big bookcase or library wall with **5 growth stages**, and loose pieces: book spines in 8 colours and 4 thicknesses, a scroll, a tied letter, a bookmark, a ladder. When you add a book it should appear on the shelf.
-* **Dream Vault:** a piggy bank or vault, 3 fill states, plus **blueprint art** for each build: Glass Café, Rooftop Deck, and each island expansion (3 stages each: blueprint, scaffolding, finished). The Rooftop Deck and Glass Café also need the finished building sprites.
-* **Focus lantern:** a floating paper lantern with a soft glow loop, plus an "extinguished" frame, and a **tea cup drop** animation (a cup arriving by a little parachute or a floating ribbon).
-* **Sealed bottle:** bottle in 3 states (drifting, washed up, opened), plus a splash and a sparkle loop and a rolled note.
-* **Celebration banner and bunting** for the plaza in a few colour sets, plus confetti and balloons.
-* **Quadrant icons:** 8 pastel icons (Health leaf, Career briefcase or lantern, Learning book, Finance coin, Romance heart, Social balloon, Home house, Fun star), each with a matching **aura effect** (see Part 7).
+### Matcha Masters characters
+1. **Customers**: the other 2 of 8 customers, and **four expressions each** (happy, neutral, impatient, delighted). Today the game uses one image per customer.
+2. **Sous chef and barista avatars** in aprons for the two roles.
+3. **Serve animation**: a hand passing the cup across the counter.
 
 ---
 
-## Part 5. Together mechanics art
-* Bids: wave, tea and flower icons with a short animation, plus a "turned toward you" glow.
-* Starry fireside glow: stars and a campfire sprite with a flicker loop.
-* Love Map: card art and a heart meter.
-* Gratitude jar and notes: jar, note, and a pop open animation.
-* Daily check in: question card art and a streak flame in 5 stages.
-* Whisper tiers: light, medium and deep card styles.
-* Adventure scratch card: a card with scratch off texture and 6 reveal designs.
+## Part 4. Home island
+
+### Ground, shoreline, water
+We chose to keep the soft pastel island and plain blue sea. If you ever want more life there, the useful pieces are:
+1. A **refined seasonal ground** in the same soft pastel language (no leaf texture), one for each season, with the same flat feel as today.
+2. **Shoreline foam** pieces for the island edge in 4 corners and 4 straight pieces.
+3. **Water ripple** sprites or a very subtle painted sea tile.
+
+### Structures
+1. **Roofs**: modular roof pieces for placed rooms (straight, corner, valley, L hip), in tile, thatch, snow and autumn leaf versions. The finished starters have roofs, but a room you build yourself does not.
+2. **Wall materials as sprites** (pink, sage, brick, board and batten, wainscot, picket, hedge, glass) with corner, T, cross, end cap and pillar pieces. They are code drawn today.
+3. **Doors and windows** for each material that has none (picket, hedge, glass).
+4. **Stairs and half walls** (we are skipping multi level homes for now, so this is low priority).
+5. **Memory plaque** sprite (wood, brass, pastel) plus polaroid and framed photo styles. It is code drawn today.
+6. **Front door mailbox** for love letters as an alternative to the shoreline.
+7. **Island growth**: the 12, 14 and 16 tile expansions in 3 stages each (blueprint, scaffolding, finished) so a bigger island shows the work.
+
+### Items still missing from the shop
+* Kitchen: oven hood, pot rack, dish rack, stand mixer, microwave.
+* Living: bar cart, floor lamp variants, bean bag, rocking chair, fireplace, bookshelf variants.
+* Bedroom: bunk bed, crib, hamper, jewelry box.
+* Bathroom: shower, towel rack, bath mat, mirror cabinet.
+* Outdoor: fountain, pond, windmill, bird bath, sandbox, picnic table, pizza oven.
+* Wall decor: more prints, pennants, a chalkboard, clocks, a cork board.
+* Seasonal: 8 or more pieces per season (8 per season now exist for spring through winter, but holidays has only a few).
+* Pets: more beds, bowls, toys and a pet house.
+* Café: a counter in more finishes, a juice bar, a pastry display with animation, an open sign.
+
+### Mechanic objects (partly live)
+1. **Wisdom Bookshelf in the room**: the 5 stage shelf is live in the Library screen, but a version that sits in your home and fills with spines is not.
+2. **Dream Vault in the room**: a piggy bank or safe sprite you can place, in 3 fill states.
+3. **Focus lantern animation**: a soft glow loop, an extinguished frame, and a tea cup arriving on a little parachute.
+4. **Sealed bottle**: drifting, washed up and opened, plus splash and sparkle loops.
+5. **Gratitude jar and notes**: the pop open animation.
+6. **Confetti and balloons** for the plaza.
 
 ---
 
-## Part 6. Minigame art (currently 100 percent drawn by code)
+## Part 5. The Town
 
-### Matcha Masters (café)
-* Background: a café interior at 960 x 540, plus a sunset version.
-* Counter, order window, prep station, steamer with a dial, tea whisk, bowls, ingredient shelf.
-* **Ingredients (at least 12 sprites):** matcha powder, milk, oat milk, ice, strawberry, syrup, boba, whipped cream, cocoa, cherry blossom, and more, each about 96 px.
-* **Cups and drinks:** 6 drink designs with latte art, and a finished tray. Serve animation.
-* **Topping trace stencils:** heart, star, cat face, leaf, flower, 3 dot patterns.
-* **Customers:** 8 customers with four expressions each (happy, neutral, impatient, delighted) and **patience hearts**.
-* **Order tickets:** a ticket style and a "Café Rush" multiplier badge.
-* **Recipe Memory Book:** book cover, page art, and 4 recipe illustrations (Our First Date Matcha, Sunset Strawberry Cloud, Pier Day Boba, Cozy Rainy Latte).
-* Reward stars (3 states), tip jar, coin burst.
+1. **Sprite roads**: straight, corner, T, crossroads, curbs, sidewalks, crosswalks, parking, bike lanes, cobblestone, dirt trail, drawn in the town's isometric grid. Roads are painted by code in your colours today, because the road sheet was not drawn in the town grid.
+2. **Terrain**: grass, sand, forest floor, snow, farm rows, cliff edges and shoreline pieces for the town map (sheet 53 has some, saved).
+3. **Buildings**: the 14 civic buildings are live, but still missing a **train with tracks**, a **harbor market**, a **lighthouse close up**, a **church or chapel**, a **museum**, a **post office**, a **hotel**, a **flower market** and a **community garden**. Also separate buildings for the farm, cabin and campus so they can grow in steps.
+4. **Growth stages** for every building (a small version, then built).
+5. **Day, evening and night versions** of every building, with lit windows and street lamps that glow.
+6. **Vehicles in 4 directions**: your pink beetle, the retro van, scooter, bus, bike, a boat or two.
+7. **Sky life**: birds, butterflies, a hot air balloon and clouds.
+8. **Weather**: rain, snow, fog, fireflies and a rainbow.
+9. **Seasonal town swaps**: every tree and building in the 5 themes.
+10. **Map markers**: home pin, region labels, locked and unlocked previews, a "new!" burst, alert and lock markers (sheet 53 has some).
+11. **Town Square**: a real stage in three states (empty, setup, active), market stalls, a fountain with glowing water for events, string lights, and 3 celebration banner designs. Several are saved.
+12. **The Arcade building**: the town map version is live. The full cabinet view is saved.
 
-### Stellar Fishing (pier)
-* Background layers: sky with sunset gradient, sun, clouds, distant island, wooden pier, water tile with animated waves (in 3 time of day variants).
-* **Fish:** at least 8 species, each swimming left and right, plus a **glowing Co op Fish** glow variant for each.
-* **Driftwood crate**, glowing, plus open animation.
-* **Sea fauna for the aquarium:** octopus, starfish, pastel jellyfish (each in 2 or 3 idle frames), plus room for 10 more.
-* Bobber, fishing line, hook, splash rings, **sync ring VFX** (a green zone and a pulsing ring).
-* **Message in a bottle**, and the Beach Memory Journal page art.
-* Aquarium tank art for the collection screen.
+---
 
-### Blind Box Crane Craze (arcade)
-* **Arcade cabinet** (a big pastel crane machine with glass, buttons, and a prize chute), plus the arcade front for the Downtown map.
-* **Claw** in open, closing, closed and lifting frames, plus the cable and rail.
-* **Boxes:** light box, heavy box (clearly heavier looking), in each of the 3 series colours.
-* **Magnetic aura** effect for the Cheer lift.
-* Prize drop animation, a "heavy slipped" animation, and a figure reveal card for each of the 12 figures.
-* Arcade token art.
+## Part 6. Minigames
 
-### Orchard Apple Bouncing and Harvest (park)
-* Orchard background in 4 seasons, apple trees with a shake animation, baskets, a harvest crate.
-* **Apples:** red, green, and **golden**, plus a bounce and a squash frame.
-* **Pastel Shower** effect for golden apples.
-* Seasonal event token art, and the cafe pantry shelf that stores harvested fruit.
+### Matcha Masters
+Live: café interior, ingredient jars, 6 customers, cups. Missing or saved:
+* A **sunset version** of the café.
+* The **steamer with a dial**, the whisk and bowls placed in the scene.
+* **Order tickets** with a ticket style and a Café Rush badge (the badge is live).
+* The **Recipe Memory Book**: cover, page art and the 4 recipe illustrations (Our First Date Matcha, Sunset Strawberry Cloud, Pier Day Boba, Cozy Rainy Latte). Saved, not used.
+* **Latte art** variations on the finished drink, and the topping stencils (saved).
+* **Reward stars** in 3 states, the tip jar and a coin burst (saved).
 
-### Shared
-* Result screen frame, star rating art, confetti, an "invite" banner style, a "waiting for your partner" illustration.
+### Stellar Fishing
+Live: skies, 4 fish species, crate, bottle. Missing:
+* **At least 8 fish species**, each swimming left and right, with a glow variant for each (4 exist).
+* **Pier and distant island layers** so the background has depth, and the **water in three times of day**.
+* **Sea fauna** for the aquarium (octopus, starfish and jellyfish are saved) plus room for 10 more, and the **aquarium tank screen**, which the game does not have yet.
+* **Bobber, line, hook and splash rings**, and a painted **sync ring** (code drawn today).
+* **Message in a bottle** art and the **Beach Memory Journal** page (saved, not used).
+
+### Blind Box Crane Craze
+Live: claw, rail, boxes. Missing or saved:
+* The **full cabinet** with glass and a prize chute, as the minigame backdrop (saved).
+* Claw frames for **open, closing, closed and lifting** with a cable that scales, plus the **magnetic aura**.
+* **Prize drop** and **heavy slipped** animations, and a **figure reveal card** for each of the 12 figures.
+* **Edge case art**: jam, tangle, teeter and lid pop frames (sheet 46, saved).
+
+### Orchard Apple Bouncing and Harvest (all code drawn)
+Nothing painted exists. Needed:
+* An **orchard background** in 4 seasons.
+* **Apple trees** with a shake animation, a **basket** and a **harvest crate**.
+* **Apples**: red, green and golden, with bounce and squash frames.
+* The **Pastel Shower** effect for golden apples, a seasonal event token and the café pantry shelf.
+
+### Shared minigame pieces
+* A result screen frame, star art, confetti, an invite banner style and a "waiting for your partner" illustration.
 
 ---
 
 ## Part 7. Interface
 
-* **Side button icons** (replace emoji): Town, Together, Arcade, Rituals, Daily question, Blind boxes, Wardrobe, Journal, Decorate, Quests.
-* **Currency and resource icons:** coin and gem exist. **Missing:** Heart Shell, arcade token, seasonal event token, driftwood, ingredient, vault coin, blind box key.
-* **Quadrant icons (8)** plus **aura effect sprites (8 sets)**: green leaves for Health, golden coins for Finance, pink hearts for Romance, lanterns for Career, books for Learning, balloons for Social, flowers for Home, music notes and stars for Fun.
-* **Vitality Glow and Synergy Aura:** soft glow decals under the avatars in 3 sizes.
-* **Panels and buttons:** a sheet frame, button states (normal, pressed, disabled), tab styles, toggles, sliders, progress bars (pink, green, gold), badges and notification dots.
-* **Cards:** quest card, blind box rarity frames (common, rare, epic, legendary), outfit card, memory polaroid.
-* **Branding:** app icon (192 and 512 px), favicon, splash screen, title logo, loading animation, a share card image.
-* **Onboarding illustrations:** one per starting path (RV, Shop and Café, Home Foundation), and a "pair with your partner" illustration.
-* **Level up and milestone animations:** a medal, a badge set for approved quest counts, and a confetti burst.
+1. **Side button icons** (they are emoji today): town map, together, arcade, rituals, daily question, blind boxes, wardrobe, journal, decorate, quests, see on island.
+2. **Currency and resource icons**: coin, gem, blind box and arcade token are painted. Missing: **Heart Shell, event token, driftwood, ingredient, vault coin and blind box key**.
+3. **Quadrant icons** are live. The matching **aura effect sprites** are missing: green leaves for Health, lanterns for Career, books for Learning, golden coins for Finance, hearts for Romance, balloons for Social, flowers for Home, music notes and stars for Fun.
+4. **Vitality Glow and Synergy Aura**: soft painted glow decals in 3 sizes.
+5. **Panels and buttons**: a sheet frame, button states, tab styles, toggles, sliders and progress bars in pink, green and gold, and badges. The interface is plain rounded shapes today.
+6. **Cards**: quest card, blind box rarity frames, outfit card, memory polaroid.
+7. **Branding**: app icon (192 and 512 px), favicon, splash screen, title logo, loading animation and a share card image.
+8. **Onboarding illustrations**: "pair with your partner" and "claim your plot".
+9. **Level up and milestone**: a medal, a badge set for approved goal counts and a confetti burst.
+10. **Daily question**: a card frame, the Love Map library book, and a floating heart over the box.
+11. **Economy screens**: the Today's full pay bar, the Duo Day bonus art.
 
 ---
 
-## Part 8. The Town
+## Part 8. Audio (none exists yet)
 
-* **Roads, sprite based:** straight, corner, T junction, crossroads, curbs, sidewalks, crosswalks (2 exist), parking, bike lanes, cobblestone, dirt trail.
-* **Terrain:** grass, sand, forest floor, snow, farm rows, cliff edges, shoreline pieces.
-* **Buildings missing:** school, library, train station, town hall, hospital, fire station, bakery, bank, cinema, gym, yoga studio, bookstore interior hints, pet shop, park pavilion. Also a **stage and market stalls** for the Town Square, and an **arcade building** for the Crane.
-* **Houses and towers:** you have 6 houses, a barn, a windmill and 4 towers. More colour variants and holiday decorated versions would help.
-* **Growth stages:** the farm, cabin and campus are single pieces. Separate buildings let each grow in steps.
-* **Day, evening and night versions** of every building, with lit windows, and street lamps that glow.
-* **Vehicles in 4 directions:** your pink beetle, retro van, scooter, bus, bike, and a boat or two. Plus a **hot air balloon, birds, butterflies and clouds** for the sky.
-* **Weather:** rain, snow, fog, fireflies, and a rainbow.
-* **Seasonal town swaps:** every tree and building in 5 themes.
-* **Map markers:** home pin, region labels, locked and unlocked previews, a "new!" burst.
-* **Plaza:** a full Town Square tile set (paving, fountain, benches, trees, string lights, stage, flower beds) and 3 celebration banner designs.
-* **Poster and world map:** a clean illustrated map for the Dream Map screen.
+* **Music loops** (60 to 120 seconds): home island, town, café, pier at sunset, arcade, orchard, one for each season, and a calm focus track for the Focus Beacon.
+* **Ambience**: waves, wind, birds, crickets, rain, fire crackle, café chatter.
+* **Interface sounds**: tap, open and close, quest sent, quest approved (a happy chime), coin and gem pickup, level up, blind box shake and reveal, error.
+* **Gameplay sounds**: footsteps on sand, wood and grass, place and pick up furniture, tea drop, bottle plop and cork, lantern light, vitality chime, synergy swell, fountain.
+* **Minigames**: order bell, steam hiss, whisk, cup clink, fish splash, line cast, ring tick and perfect hit, claw motor, box drop, prize jingle, apple thud, golden apple shimmer, countdown beeps, victory fanfare.
+* **Character sounds** (optional): tiny giggles and happy noises.
 
 ---
 
-## Part 9. Audio (none exists today)
+## Part 9. Priority order
 
-* **Music loops** (60 to 120 seconds each): home island, town, café, pier at sunset, arcade, orchard, one for each season, and a calm focus track for the Focus Beacon.
-* **Ambience loops:** waves, wind, birds, crickets, rain, fire crackle, café chatter.
-* **Interface sounds:** tap, open and close, quest sent, quest approved (a happy chime), coin and gem pickups, level up, blind box shake and reveal, error.
-* **Gameplay sounds:** footsteps (sand, wood, grass), place and pick up furniture, tea drop, bottle plop and cork, lantern light, vitality chime, synergy swell, fountain.
-* **Minigames:** order bell, steam hiss, whisk, cup clink, fish splash, line cast, ring tick and perfect hit, claw motor, box drop, prize jingle, apple thud, golden apple shimmer, countdown beeps, victory fanfare.
-* **Voice and character sounds (optional):** tiny giggles and happy noises per character.
+**Tier 1: biggest lift for the least drawing**
+1. James and Rachel diagonal walks, plus Rachel front and back walk.
+2. Close up portraits with expressions (quest, journal, letters, daily question).
+3. The Heart Shell, event token, driftwood and ingredient icons, plus the side button icon set.
+4. Kitty, Miffy and Snoopy walk cycles for the outfits you use most.
+5. Orchard Harvest scene art (the only game with no painted art).
+6. Matcha customers, 4 expressions each.
 
----
-
-## Part 10. Priority order
-
-**Tier 1: biggest visual upgrade for the least work**
-1. Walk cycles: diagonal directions, Rachel front and back, and Kitty, Miffy and Snoopy.
-2. The 12 collectible figures plus the three capsule or box designs.
-3. The 4 items with no sprite, plus the neon sign.
-4. Icons: 8 quadrant icons, 7 currency and resource icons, and the side button set.
-5. The Town Square tile set and bunting.
-6. Matcha Masters ingredients, customers and the café scene.
-
-**Tier 2: makes the new mechanics feel special**
-7. Aura effect sprites for the 8 quadrants, plus the Vitality Glow and Synergy Aura.
-8. The Wisdom Bookshelf (5 stages plus loose books).
-9. Dream Vault and blueprint art for Glass Café, Rooftop Deck and expansions.
-10. Focus lantern, tea cup drop and sealed bottle animations.
-11. Stellar Fishing fish, fauna and background.
-12. Crane cabinet, claw and boxes.
+**Tier 2: make the new mechanics feel special**
+7. Aura effect sprites for the 8 quadrants, plus Vitality Glow and Synergy Aura.
+8. Sprite roads and terrain in the town grid.
+9. Townsfolk back views and 10 more townsfolk with walks.
+10. Fishing: 4 more fish species, the aquarium screen and sea fauna.
+11. Focus lantern, tea parachute and sealed bottle animations.
+12. Emotes and activity poses for James and Rachel.
 
 **Tier 3: depth and polish**
-13. Orchard art.
-14. Outfits and close up portraits.
-15. Emotes and activity poses.
-16. More townsfolk and visitors.
-17. Town buildings, roads and vehicles.
-18. Day and night variants.
-19. Audio.
-20. Branding and onboarding art.
+13. Outfit sets for the Wardrobe.
+14. Day, evening and night variants of the town.
+15. Modular roofs and wall material sprites.
+16. Weather and sky life.
+17. Audio.
+18. Branding and onboarding art.
 
 **Tier 4: long tail**
-21. Extra furniture and seasonal sets.
-22. Weather.
-23. Extra companions.
+19. More furniture and seasonal sets, more companions.
+20. Multi level homes (stairs and half walls).
+21. More civic buildings and growth stages.
 
 ---
 
