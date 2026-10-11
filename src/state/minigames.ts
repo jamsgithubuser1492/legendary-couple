@@ -73,11 +73,19 @@ export const figureOf = (id: string) => FIGURES.find((f) => f.id === id);
 export const COMMON_FIGURES = FIGURES.filter((f) => !f.rare).map((f) => f.id);
 export const RARE_FIGURES = FIGURES.filter((f) => f.rare).map((f) => f.id);
 
-export const FAUNA: { id: string; name: string; icon: string }[] = [
-  { id: 'octopus', name: 'Cute Octopus', icon: '🐙' },
-  { id: 'starfish', name: 'Starfish', icon: '⭐' },
-  { id: 'jellyfish', name: 'Pastel Jellyfish', icon: '🪼' },
+export const FAUNA: { id: string; name: string; icon: string; sprite: string }[] = [
+  { id: 'octopus', name: 'Cute Octopus', icon: '🐙', sprite: 'mg_octopus' },
+  { id: 'starfish', name: 'Starfish', icon: '⭐', sprite: 'mg_star_red' },
+  { id: 'jellyfish', name: 'Pastel Jellyfish', icon: '🪼', sprite: 'mg_jelly_peach' },
+  { id: 'jelly_mint', name: 'Mint Jellyfish', icon: '🪼', sprite: 'mg_jelly_mint' },
+  { id: 'starfish_pink', name: 'Pink Starfish', icon: '⭐', sprite: 'mg_star_pink' },
 ];
+/** The painted card frame for each figure, from your figure reveal card sheet. */
+export const FIGURE_CARD: Record<string, number> = {
+  fig_kitty_beach: 8, fig_miffy_beach: 9, fig_snoopy_beach: 3, fig_kitty_barista: 7, fig_miffy_barista: 12, fig_snoopy_barista: 1,
+  fig_kitty_pj: 10, fig_miffy_pj: 11, fig_snoopy_pj: 5, fig_golden_kitty: 2, fig_golden_miffy: 4, fig_golden_snoopy: 6,
+};
+
 
 export const RECIPES = ['Our First Date Matcha', 'Sunset Strawberry Cloud', 'Pier Day Boba', 'Cozy Rainy Latte'];
 export const CAFE_DECOR = ['espresso', 'cafe_pastry_case', 'seating_cluster', 'neon_cafe'];

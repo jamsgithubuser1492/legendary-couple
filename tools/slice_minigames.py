@@ -21,6 +21,25 @@ def plain(sheet, half, x0, y0, x1, y1):
     return sheet.img.crop((round(x0 * K), round(y0 * K + yo), round(x1 * K), round(y1 * K + yo))).convert('RGBA')
 
 
+def clean_card(im):
+    """Paints over the 'Figure Reveal Card' words in the middle of a card, keeping the ornate border and hearts."""
+    import numpy as np
+    from PIL import ImageFilter
+    im = im.copy()
+    a = np.array(im.convert('RGB')).astype(float)
+    h, w, _ = a.shape
+    col = np.median(a[int(h * 0.42):int(h * 0.58), int(w * 0.12):int(w * 0.17)].reshape(-1, 3), axis=0)
+    top = np.median(a[int(h * 0.24):int(h * 0.27), int(w * 0.3):int(w * 0.7)].reshape(-1, 3), axis=0)
+    patch = Image.new('RGB', (w, h), tuple(int(v) for v in col))
+    mask = Image.new('L', (w, h), 0)
+    from PIL import ImageDraw
+    ImageDraw.Draw(mask).rounded_rectangle([int(w * 0.17), int(h * 0.24), int(w * 0.83), int(h * 0.8)], radius=int(w * 0.08), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(max(1, w // 40)))
+    out = Image.composite(patch, im.convert('RGB'), mask).convert('RGBA')
+    out.putalpha(im.getchannel('A'))
+    return out
+
+
 def main():
     s48 = s41.Sheet('sheet48_crane_prize.jpg', 490)
     s49 = s41.Sheet('sheet49_stellar_fishing.jpg', 490)
@@ -93,6 +112,25 @@ def main():
         cb(s48, f'mg_heavy_{k}', 'b', b, 46)
     for k, b in {'heart': (1720, 77, 1810, 168), 'star': (1828, 77, 1920, 168), 'silver': (1720, 178, 1810, 270), 'gold': (1828, 178, 1920, 270)}.items():
         cb(s48, f'mg_token_{k}', 'b', b, 26)
+
+    # ---- Matcha recipe book illustrations (sheet 50) ----
+    for i, b in enumerate([(858, 632, 968, 772), (980, 632, 1096, 772), (1110, 632, 1226, 772), (1244, 632, 1358, 772)], 1):
+        jobs.append((f'mg_recipe_{i}', s50.box('b', *b, radius=6), 60))
+    jobs.append(('mg_book_open', s50.cutbox('b', 1000, 450, 1234, 596), 120))
+
+    # ---- more sea fauna (sheet 49) ----
+    cb(s49, 'mg_star_red', 'b', (662, 478, 755, 572), 26)
+    cb(s49, 'mg_star_pink', 'b', (782, 478, 880, 572), 26)
+
+    # ---- Crane figure reveal cards (sheet 48): the printed words are painted out so a figure can stand in the card ----
+    r1, r2 = (412, 568), (598, 756)
+    cols = [(70, 202), (390, 522), (715, 845), (1033, 1165), (1347, 1478), (1658, 1790)]
+    cards = [(c, r1) for c in cols] + [(c, r2) for c in cols]
+    for i, ((x0, x1), (y0, y1)) in enumerate(cards, 1):
+        im = s48.box('b', x0 + 5, y0 + 3, x1 - 5, y1 - 3, radius=10)
+        jobs.append((f'mg_card_{i}', clean_card(im), 56))
+    sil = s48.box('b', 224, 415, 345, 565, radius=10)
+    jobs.append(('mg_card_locked', sil, 56))
 
     entries = []
     for key, im, dw in jobs:

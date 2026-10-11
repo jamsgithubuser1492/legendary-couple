@@ -580,5 +580,145 @@ export const MG_SPRITES = [
     "w": 50,
     "h": 49,
     "dw": 26
+  },
+  {
+    "key": "mg_recipe_1",
+    "file": "mg_recipe_1.png",
+    "w": 60,
+    "h": 76,
+    "dw": 60
+  },
+  {
+    "key": "mg_recipe_2",
+    "file": "mg_recipe_2.png",
+    "w": 63,
+    "h": 76,
+    "dw": 60
+  },
+  {
+    "key": "mg_recipe_3",
+    "file": "mg_recipe_3.png",
+    "w": 63,
+    "h": 76,
+    "dw": 60
+  },
+  {
+    "key": "mg_recipe_4",
+    "file": "mg_recipe_4.png",
+    "w": 62,
+    "h": 76,
+    "dw": 60
+  },
+  {
+    "key": "mg_book_open",
+    "file": "mg_book_open.png",
+    "w": 126,
+    "h": 78,
+    "dw": 120
+  },
+  {
+    "key": "mg_star_red",
+    "file": "mg_star_red.png",
+    "w": 43,
+    "h": 42,
+    "dw": 26
+  },
+  {
+    "key": "mg_star_pink",
+    "file": "mg_star_pink.png",
+    "w": 42,
+    "h": 39,
+    "dw": 26
+  },
+  {
+    "key": "mg_card_1",
+    "file": "mg_card_1.png",
+    "w": 66,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_2",
+    "file": "mg_card_2.png",
+    "w": 66,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_3",
+    "file": "mg_card_3.png",
+    "w": 65,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_4",
+    "file": "mg_card_4.png",
+    "w": 66,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_5",
+    "file": "mg_card_5.png",
+    "w": 66,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_6",
+    "file": "mg_card_6.png",
+    "w": 66,
+    "h": 82,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_7",
+    "file": "mg_card_7.png",
+    "w": 66,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_8",
+    "file": "mg_card_8.png",
+    "w": 66,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_9",
+    "file": "mg_card_9.png",
+    "w": 65,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_10",
+    "file": "mg_card_10.png",
+    "w": 66,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_11",
+    "file": "mg_card_11.png",
+    "w": 66,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_12",
+    "file": "mg_card_12.png",
+    "w": 66,
+    "h": 83,
+    "dw": 56
+  },
+  {
+    "key": "mg_card_locked",
+    "file": "mg_card_locked.png",
+    "w": 65,
+    "h": 82,
+    "dw": 56
   }
 ] as const;

@@ -4,7 +4,7 @@ import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 import { SpriteImg } from './ItemIcon';
 import { CurrencyIcon } from './Currency';
 import { BUS, gameBus } from '../game/events';
-import { FAUNA, FIGURES, GAMES, RECIPES, gameOf, type MGResult, type MGType } from '../state/minigames';
+import { FAUNA, FIGURES, FIGURE_CARD, GAMES, RECIPES, gameOf, type Figure, type MGResult, type MGType } from '../state/minigames';
 import { addBottleNote, buyToken, getMe, getState, setFigureFree, useGameState, useMe } from '../state/store';
 import type { PlayerId } from '../types';
 
@@ -73,9 +73,9 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
             const n = s.figures[f.id] ?? 0;
             const free = s.freeFigures.includes(f.id);
             return (
-              <div key={f.id} className={`rounded-2xl bg-white p-2 text-center text-cocoa shadow ${n ? '' : 'opacity-40'}`}>
-                <div className="flex h-20 items-end justify-center">{n ? <SpriteImg sprite={f.sprite} size={72} /> : <SpriteImg sprite="toy_secret" size={72} />}</div>
-                <div className="text-xs font-bold">{n ? f.name : '???'}{f.rare ? ' ✨' : ''}{n > 1 ? ` x${n}` : ''}</div>
+              <div key={f.id} className="text-center text-cocoa">
+                <RevealCard f={f} found={n > 0} />
+                <div className="mt-1 text-xs font-bold">{n ? f.name : '???'}{f.rare ? ' ✨' : ''}{n > 1 ? ` x${n}` : ''}</div>
                 <div className="text-[10px] opacity-70">{f.series}</div>
                 {n > 0 && <button className={`${softBtn} mt-1 !px-2 !py-1 text-xs`} onClick={() => setFigureFree(f.id, !free)}>{free ? 'Shelve' : 'Set free'}</button>}
               </div>
@@ -84,23 +84,47 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
         </div>
       )}
       {tab === 'sea' && (
-        <div className="grid grid-cols-3 gap-3 text-center text-cocoa">
-          {FAUNA.map((f) => (
-            <div key={f.id} className={`rounded-2xl bg-white p-3 shadow ${(s.fauna[f.id] ?? 0) ? '' : 'opacity-40'}`}>
-              <div className="text-4xl">{f.icon}</div>
-              <div className="text-sm font-bold">{f.name}</div>
-              <div className="text-xs">caught {s.fauna[f.id] ?? 0}</div>
-            </div>
-          ))}
-          <div className="col-span-3 text-sm">🪵 Driftwood {s.driftwood} · 🐚 Heart Shells {s.shells}</div>
+        <div className="text-cocoa">
+          <Aquarium />
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            {FAUNA.map((f) => {
+              const n = s.fauna[f.id] ?? 0;
+              return (
+                <div key={f.id} className={`rounded-2xl bg-white p-2 shadow ${n ? '' : 'opacity-50'}`}>
+                  <div className="flex h-12 items-center justify-center">{n ? <SpriteImg sprite={f.sprite} size={44} /> : <span className="text-2xl opacity-40">?</span>}</div>
+                  <div className="text-xs font-bold">{n ? f.name : '???'}</div>
+                  <div className="text-[10px] opacity-70">{n ? `caught ${n}` : 'not found yet'}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-center text-sm">🪵 Driftwood {s.driftwood} · 🐚 Heart Shells {s.shells}</div>
         </div>
       )}
       {tab === 'recipes' && (
-        <ul className="flex flex-col gap-2 text-cocoa">
-          {RECIPES.map((r) => (
-            <li key={r} className={`rounded-2xl bg-white p-3 font-bold shadow ${s.recipes.includes(r) ? '' : 'opacity-40'}`}>{s.recipes.includes(r) ? `📖 ${r}` : '🔒 Earn 3 stars in Matcha Masters'}</li>
-          ))}
-        </ul>
+        <div className="text-cocoa">
+          <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-100 to-pink-100 p-3">
+            <SpriteImg sprite="mg_book_cover" size={72} />
+            <div>
+              <div className="font-display text-lg font-bold">Our Recipe Memory Book</div>
+              <div className="text-sm opacity-80">{s.recipes.length} of {RECIPES.length} recipes. Earn 3 stars in Matcha Masters to add the next one.</div>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {RECIPES.map((r, i) => {
+              const have = s.recipes.includes(r);
+              return (
+                <div key={r} className="text-center">
+                  <div className="relative">
+                    <SpriteImg sprite={`mg_recipe_${i + 1}`} size={150} />
+                    {!have && <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cream/80 text-3xl backdrop-blur-[2px]">🔒</div>}
+                  </div>
+                  <div className="mt-1 text-sm font-bold">{have ? r : 'A secret recipe'}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </Sheet>
   );
@@ -160,13 +184,13 @@ export function MinigameOverlays() {
               {result.eventTokens > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.eventTokens} 🎟️</span>}
               {result.ingredients > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.ingredients} 🍏</span>}
               {Object.entries(result.fauna).map(([k, n]) => <span key={k} className="rounded-full bg-white px-3 py-1">{FAUNA.find((f) => f.id === k)?.icon} x{n}</span>)}
-              {result.recipes.map((r) => <span key={r} className="rounded-full bg-white px-3 py-1">📖 {r}</span>)}
+              {result.recipes.map((r) => <span key={r} className="flex items-center gap-1 rounded-full bg-white px-3 py-1"><SpriteImg sprite={`mg_recipe_${RECIPES.indexOf(r) + 1}`} size={34} /> {r}</span>)}
             </div>
             {result.figures.length > 0 && (
               <div className="flex flex-wrap justify-center gap-3">
                 {result.figures.map((id, i) => {
                   const f = FIGURES.find((q) => q.id === id);
-                  return f ? <div key={i} className="text-center text-xs font-bold"><SpriteImg sprite={f.sprite} size={72} />{f.name}</div> : null;
+                  return f ? <div key={i} className="w-24 animate-pop text-center text-xs font-bold"><RevealCard f={f} found />{f.name}</div> : null;
                 })}
               </div>
             )}
@@ -186,5 +210,37 @@ export function MinigameOverlays() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/** A figure shown on its painted reveal card. A figure you have not found yet shows as a silhouette. */
+function RevealCard({ f, found }: { f: Figure; found: boolean }) {
+  const base = import.meta.env.BASE_URL;
+  if (!found) return <div className="relative mx-auto w-full max-w-[110px]"><img src={`${base}assets/sprites/mg_card_locked.png`} alt="" className="block w-full" draggable={false} /></div>;
+  return (
+    <div className="relative mx-auto w-full max-w-[110px]">
+      <img src={`${base}assets/sprites/mg_card_${FIGURE_CARD[f.id] ?? 1}.png`} alt="" className="block w-full" draggable={false} />
+      <img src={`${base}assets/sprites/${f.sprite}.png`} alt={f.name} className="absolute left-1/2 top-[52%] max-h-[64%] max-w-[72%] -translate-x-1/2 -translate-y-1/2 object-contain" draggable={false} />
+    </div>
+  );
+}
+
+/** Your collection swimming in the painted tank. Each creature you have caught drifts about. */
+function Aquarium() {
+  const s = useGameState();
+  const base = import.meta.env.BASE_URL;
+  const swimmers = FAUNA.flatMap((f, fi) => Array.from({ length: Math.min(3, s.fauna[f.id] ?? 0) }, (_, k) => ({ f, key: `${f.id}${k}`, i: fi * 3 + k })));
+  return (
+    <div className="relative mx-auto max-w-md">
+      <style>{`@keyframes olwdrift{0%{transform:translate(0,0)}50%{transform:translate(10px,-12px)}100%{transform:translate(0,0)}}`}</style>
+      <img src={`${base}assets/sprites/mg_tank.png`} alt="Aquarium" className="block w-full" draggable={false} />
+      <div className="absolute inset-x-[7%] bottom-[22%] top-[16%]">
+        {swimmers.map(({ f, key, i }) => (
+          <img key={key} src={`${base}assets/sprites/${f.sprite}.png`} alt={f.name} draggable={false} className="absolute h-[34%] object-contain"
+            style={{ left: `${(i * 23 + 6) % 80}%`, top: `${(i * 31 + 8) % 56}%`, animation: `olwdrift ${4 + (i % 4)}s ease-in-out ${-i * 0.7}s infinite` }} />
+        ))}
+        {swimmers.length === 0 && <div className="flex h-full items-center justify-center text-center text-sm font-bold text-cocoa/60">An empty tank. Catch rare critters while fishing to fill it.</div>}
+      </div>
+    </div>
   );
 }

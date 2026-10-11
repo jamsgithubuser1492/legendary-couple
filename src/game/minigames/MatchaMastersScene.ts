@@ -23,6 +23,7 @@ interface Model {
   perfect: number;
   combos: number;
   lastTip: number;
+  tips: number;
   combo: { deadline: number; taps: { A?: boolean; B?: boolean } } | null;
   flash: { text: string; until: number } | null;
 }
@@ -62,10 +63,12 @@ export class MatchaMastersScene extends MinigameScene {
   private hasBg = false;
   private cardImgs: Phaser.GameObjects.Image[] = [];
   private drinkImg?: Phaser.GameObjects.Image;
+  private jar?: Phaser.GameObjects.Image;
+  private lastTips = 0;
   private startMult = 1;
 
   private fresh(): Model {
-    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.2 }, quality: 1, layers: [], tray: [], stepIdx: 0, score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, combo: null, flash: null };
+    return { orders: [], counter: [], pass: null, stage: 'idle', meterT0: 0, band: { c: 0.5, w: 0.2 }, quality: 1, layers: [], tray: [], stepIdx: 0, score: 0, mult: this.startMult, served: 0, missed: 0, perfect: 0, combos: 0, lastTip: 0, tips: 0, combo: null, flash: null };
   }
 
   private meterPos(): number {
@@ -82,6 +85,8 @@ export class MatchaMastersScene extends MinigameScene {
     this.lastEnabled = '';
     this.cards = [];
     this.stepImgs = {};
+    this.jar = undefined;
+    this.lastTips = 0;
     this.stepLabels = {};
     const mk = (x: number, y: number, size: number, color = '#6b4f4f', ox = 0.5, oy = 0.5) =>
       this.add.text(x, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center', wordWrap: { width: 400 } }).setOrigin(ox, oy).setDepth(10);
@@ -97,6 +102,7 @@ export class MatchaMastersScene extends MinigameScene {
       score: mk(24, 150, 24, '#6b4f4f', 0, 0),
       mult: mk(480, 135, 20, '#a05a7a'),
       time: mk(936, 150, 24, '#6b4f4f', 1, 0),
+      tips: mk(826, 160, 16, '#a05a7a', 1, 0.5),
       aTitle: mk(246, 160, 20, '#a05a7a'),
       bTitle: mk(714, 160, 20, '#a05a7a'),
       counter: mk(246, 292, 16),
@@ -116,6 +122,7 @@ export class MatchaMastersScene extends MinigameScene {
     }
     if (this.textures.exists('mg_rush_badge')) fitBox(this.add.image(372, 135, 'mg_rush_badge').setDepth(11), 26, 26);
     this.cardImgs = [0, 1, 2, 3].map((i) => fitBox(this.add.image(30 + i * 229 + 184, 122, 'mg_cust_1').setOrigin(0.5, 1).setDepth(11).setVisible(false), 34, 56));
+    if (this.textures.exists('mg_tipjar')) this.jar = fitBox(this.add.image(846, 160, 'mg_tipjar').setDepth(12), 32, 40);
     this.drinkImg = fitBox(this.add.image(714, 330, 'mg_cup_1').setDepth(12).setVisible(false), 96, 90);
     this.btn.clear = this.button(100, 468, 100, 44, 'Clear', { fill: 0xe8e0f0, onDown: () => this.act('A', 'clear') });
     this.btn.pass = this.button(330, 468, 180, 44, 'Pass to barista ➜', { fill: 0xbfe8b0, size: 17, onDown: () => this.act('A', 'pass') });
@@ -235,6 +242,7 @@ export class MatchaMastersScene extends MinigameScene {
       const tip = Math.round(m.quality * 10 * m.mult * (0.5 + 0.5 * Math.max(0, o.patience)));
       m.score += 10 + tip;
       m.lastTip = tip;
+      m.tips += tip;
       m.served++;
       if (m.quality === 1) m.perfect++;
       m.mult = Math.min(3, m.mult + 0.25);
@@ -245,6 +253,7 @@ export class MatchaMastersScene extends MinigameScene {
       m.combo.taps[from] = true;
       if (m.combo.taps.A && m.combo.taps.B) {
         m.score += m.lastTip; // double the tip
+      m.tips += m.lastTip;
         m.combos++;
         m.flash = { text: `💞 In sync! Tip doubled +${m.lastTip}`, until: c + 1.6 };
         m.combo = null;
@@ -377,6 +386,11 @@ export class MatchaMastersScene extends MinigameScene {
     this.t.bState.setText(bLine);
     // text
     this.t.score.setText(`⭐ ${m.score}`);
+    this.t.tips.setText(`${m.tips}`);
+    if (this.jar && m.tips > this.lastTips) {
+      this.tweens.add({ targets: this.jar, scale: this.jar.scale * 1.3, duration: 120, yoyo: true }); // a tip drops in
+    }
+    this.lastTips = m.tips;
     this.t.mult.setText(`Café Rush ×${m.mult.toFixed(2)}`);
     this.t.time.setText(`${Math.max(0, Math.ceil(this.duration - c))}s`);
     this.t.aTitle.setText(`🧑 ${this.name('A')}: Sous Chef`);

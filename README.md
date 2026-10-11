@@ -248,3 +248,8 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 * A four step how to play card opens the first time (and from the ? button, which pauses the game). Skip is always there
 * Calmer pace: fewer, slower fish (and fewer while a ring or tug is on), a slower sync ring with a wider green band and kinder timing, a gentler tug of war with a bigger safe zone and 14 seconds to land it, and non-target fish fade while a ring is up
 * Cleaner screen: a single hint bar that changes with the moment, names over each pier ("James (you)"), and the controls moved clear of the Finish button
+
+### Build 29: minigame art wiring
+- Matcha Masters: tip jar counter beside the timer, recipe book art in the Arcade Recipe tab.
+- Fishing: aquarium tank with drifting creatures, five catchable sea species.
+- Crane: figure reveal cards (frames with the figure shown, locked silhouette until won).
