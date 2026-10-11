@@ -253,3 +253,6 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Matcha Masters: tip jar counter beside the timer, recipe book art in the Arcade Recipe tab.
 - Fishing: aquarium tank with drifting creatures, five catchable sea species.
 - Crane: figure reveal cards (frames with the figure shown, locked silhouette until won).
+
+### Build 30: new companion outfits
+- 19 new Wardrobe looks cut from the outfit sheets (`tools/slice_outfits.py`): Miffy 8, Kitty 4, Snoopy 7. They are standing sprites that use the existing bounce walk. Real walk cycles from the sheets are still to do.
