@@ -85,6 +85,62 @@ export const OUTFIT_SPRITES = [
     "dw": 26
   },
   {
+    "key": "outfit_kitty_beach",
+    "file": "outfit_kitty_beach.png",
+    "w": 55,
+    "h": 76,
+    "dw": 28
+  },
+  {
+    "key": "outfit_kitty_barista",
+    "file": "outfit_kitty_barista.png",
+    "w": 61,
+    "h": 76,
+    "dw": 30
+  },
+  {
+    "key": "outfit_kitty_pajamas",
+    "file": "outfit_kitty_pajamas.png",
+    "w": 51,
+    "h": 76,
+    "dw": 26
+  },
+  {
+    "key": "outfit_kitty_golden",
+    "file": "outfit_kitty_golden.png",
+    "w": 47,
+    "h": 76,
+    "dw": 24
+  },
+  {
+    "key": "outfit_kitty_holiday",
+    "file": "outfit_kitty_holiday.png",
+    "w": 52,
+    "h": 76,
+    "dw": 26
+  },
+  {
+    "key": "outfit_kitty_date",
+    "file": "outfit_kitty_date.png",
+    "w": 50,
+    "h": 76,
+    "dw": 25
+  },
+  {
+    "key": "outfit_kitty_concert",
+    "file": "outfit_kitty_concert.png",
+    "w": 60,
+    "h": 76,
+    "dw": 30
+  },
+  {
+    "key": "outfit_kitty_rain",
+    "file": "outfit_kitty_rain.png",
+    "w": 56,
+    "h": 76,
+    "dw": 28
+  },
+  {
     "key": "outfit_snoopy_beach",
     "file": "outfit_snoopy_beach.png",
     "w": 68,

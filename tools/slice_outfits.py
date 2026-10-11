@@ -30,6 +30,14 @@ CUTS = [
     ('outfit_kitty_garden', 'kitty', 'kitty3', (440, 224, 545, 348)),
     ('outfit_kitty_chef', 'kitty', 'kitty3', (445, 350, 545, 482)),
     ('outfit_kitty_jogger', 'kitty', 'kitty3', (445, 548, 545, 678)),
+    ('outfit_kitty_beach', 'kitty', 'kitty1', (440, 88, 560, 218)),
+    ('outfit_kitty_barista', 'kitty', 'kitty1', (440, 222, 565, 348)),
+    ('outfit_kitty_pajamas', 'kitty', 'kitty1', (440, 352, 560, 482)),
+    ('outfit_kitty_golden', 'kitty', 'kitty1', (168, 532, 290, 672)),
+    ('outfit_kitty_holiday', 'kitty', 'kitty1', (440, 538, 560, 672)),
+    ('outfit_kitty_date', 'kitty', 'kitty2', (440, 222, 560, 348)),
+    ('outfit_kitty_concert', 'kitty', 'kitty2', (440, 88, 565, 215)),
+    ('outfit_kitty_rain', 'kitty', 'kitty2', (590, 538, 700, 672)),
     ('outfit_snoopy_beach', 'snoopy', 'snoopy', (1000, 92, 1085, 212)),
     ('outfit_snoopy_barista', 'snoopy', 'snoopy', (1000, 214, 1085, 296)),
     ('outfit_snoopy_date', 'snoopy', 'snoopy', (332, 526, 392, 598)),
@@ -40,7 +48,7 @@ CUTS = [
 ]
 SHEETS = {
     'miffy3': 'sheet_miffy_outfits3.jpg', 'miffy2': 'sheet_miffy_outfits2.jpg', 'miffy1': 'sheet_miffy_outfits1.jpg',
-    'kitty3': 'sheet_kitty_outfits3.jpg', 'snoopy': 'sheet_snoopy_outfits.jpg',
+    'kitty3': 'sheet_kitty_outfits3.jpg', 'kitty2': 'sheet_kitty_outfits2.jpg', 'kitty1': 'sheet_kitty_outfits1.jpg', 'snoopy': 'sheet_snoopy_outfits.jpg',
 }
 
 
