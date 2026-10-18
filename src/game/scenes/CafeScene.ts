@@ -47,6 +47,9 @@ export class CafeScene extends Phaser.Scene {
   private blocked = new Set<string>();
   private sig = '';
   private lastSize = 0;
+  private bg!: Phaser.GameObjects.Graphics;
+  private bgTheme = '';
+  private drifters: { o: Phaser.GameObjects.Text; vx: number; vy: number; sway: number; ph: number }[] = [];
   private dragStart?: { x: number; y: number; camX: number; camY: number };
   private dragging = false;
   private pinchDist = 0;
@@ -61,6 +64,8 @@ export class CafeScene extends Phaser.Scene {
   private size = () => getState().cafe.size;
 
   create() {
+    this.bg = this.add.graphics().setDepth(-200).setScrollFactor(0);
+    this.scale.on('resize', () => { this.bgTheme = ''; this.paintBackdrop(); }, this);
     this.highlight = this.add.graphics().setDepth(1000);
     this.fx = this.add.graphics().setDepth(3000);
     const st = getState();
@@ -165,7 +170,7 @@ export class CafeScene extends Phaser.Scene {
     for (const o of shellPieces(c.theme, c.size)) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view }));
     for (const o of c.placed) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view, skin }));
     this.blocked = cafeBlocked(s);
-    this.cameras.main.setBackgroundColor(c.theme === 'cloud' ? 0xeceaf4 : c.theme === 'bistro' ? 0xf4e1d4 : 0xf6ebdd);
+    this.paintBackdrop();
     this.refreshHover();
   }
 
@@ -214,6 +219,7 @@ export class CafeScene extends Phaser.Scene {
   // ---------------------------------------------------------------- the little customers
   private tick(t: number, delta: number) {
     if (!this.scene.isActive()) return;
+    this.driftBackdrop(t, delta);
     this.drawFx(t);
     this.syncStaff();
     this.syncGifts();
@@ -225,6 +231,68 @@ export class CafeScene extends Phaser.Scene {
     if (this.nextPatron <= 0 && this.patrons.length < max) {
       this.nextPatron = 5 + Math.random() * 6;
       this.addPatron();
+    }
+  }
+
+  // ---------------------------------------------------------------- the backdrop
+  /** A soft, pastel picture behind the room that follows the theme: gradient, polka dots, a round glow and drifting little things. */
+  private paintBackdrop() {
+    const th = getState().cafe.theme;
+    const cam = this.cameras.main;
+    const key = `${th}|${cam.width}|${cam.height}`;
+    if (key === this.bgTheme) return;
+    this.bgTheme = key;
+    const W = cam.width, H = cam.height;
+    const pal = {
+      matcha: { top: 0xe9f3df, bot: 0xfdf1dc, dot: 0xcfe6bf, glow: 0xfff6c9, bits: ['🍃', '✿', '·', '✦'], tint: '#9cc98a' },
+      bistro: { top: 0xfde2d8, bot: 0xfff0e2, dot: 0xf7c1b6, glow: 0xffe3c2, bits: ['♡', '🌸', '·', '✦'], tint: '#f09aa8' },
+      cloud: { top: 0xe3e1f7, bot: 0xf7f0fb, dot: 0xcdc6ef, glow: 0xf3ebff, bits: ['☁', '✦', '·', '☆'], tint: '#b7aee6' },
+    }[th];
+    const g = this.bg;
+    g.clear();
+    const bands = 28;
+    const mix = (a: number, b: number, k: number) => {
+      const f = (s: number) => Math.round(((a >> s) & 255) + (((b >> s) & 255) - ((a >> s) & 255)) * k);
+      return (f(16) << 16) | (f(8) << 8) | f(0);
+    };
+    for (let i = 0; i < bands; i++) {
+      g.fillStyle(mix(pal.top, pal.bot, i / (bands - 1)), 1);
+      g.fillRect(0, (H / bands) * i, W, H / bands + 1);
+    }
+    // a big soft glow behind the room, like afternoon light
+    for (let i = 5; i > 0; i--) {
+      g.fillStyle(pal.glow, 0.12);
+      g.fillEllipse(W / 2, H * 0.52, W * (0.34 + i * 0.1), H * (0.3 + i * 0.09));
+    }
+    // polka dots in a loose grid, every other row shifted
+    g.fillStyle(pal.dot, 0.42);
+    const step = 54;
+    for (let r = 0, y = 20; y < H + step; y += step * 0.9, r++) {
+      for (let x = (r % 2) * (step / 2); x < W + step; x += step) g.fillCircle(x, y, 4 + ((x + y) % 3));
+    }
+    // scalloped bunting along the top
+    for (let x = 0; x < W + 40; x += 40) {
+      g.fillStyle(x / 40 % 2 ? pal.dot : 0xffffff, 0.7);
+      g.fillCircle(x + 20, 0, 22);
+    }
+    // little things that drift down and sway
+    this.drifters.forEach((d) => d.o.destroy());
+    this.drifters = [];
+    const n = Math.min(40, Math.round((W * H) / 20000));
+    for (let i = 0; i < n; i++) {
+      const o = this.add.text(Math.random() * W, Math.random() * H, pal.bits[i % pal.bits.length], { fontSize: `${16 + Math.random() * 16}px`, color: pal.tint }).setScrollFactor(0).setDepth(-190).setAlpha(0.35 + Math.random() * 0.4).setOrigin(0.5);
+      this.drifters.push({ o, vx: (Math.random() - 0.5) * 6, vy: 6 + Math.random() * 12, sway: 8 + Math.random() * 16, ph: Math.random() * 6 });
+    }
+  }
+
+  private driftBackdrop(t: number, delta: number) {
+    const cam = this.cameras.main;
+    for (const d of this.drifters) {
+      d.o.y += (d.vy * delta) / 1000;
+      d.o.x += (d.vx * delta) / 1000 + Math.sin(t / 1100 + d.ph) * 0.12 * (d.sway / 12);
+      d.o.setRotation(Math.sin(t / 1500 + d.ph) * 0.4);
+      if (d.o.y > cam.height + 20) { d.o.y = -20; d.o.x = Math.random() * cam.width; }
+      if (d.o.x < -20) d.o.x = cam.width + 10; else if (d.o.x > cam.width + 20) d.o.x = -10;
     }
   }
 

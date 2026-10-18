@@ -317,3 +317,4 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - The service counter, pastry cases, shelves, chairs, tables, menus, food, plants and lamp from sheets 6 and 8 were recut with extra room (`tools/recut_cafe_base.py`), so no edge or corner is lost. The counter gained its missing front corner.
 - `displayWidth()` in `placedRender.ts` sets one scale for the café: people about 54 px tall, chair seats at their knee, tables at their waist. Guests, staff and walkers now share the same height.
 - Guests walk with a 4 step frame swap per tile, a soft shadow that follows them, and depth sorting.
+- Cutesy café backdrop: a pastel gradient, soft glow, polka dots, scalloped bunting and drifting little leaves, hearts or clouds that follow the room theme (Build 38).
