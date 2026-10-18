@@ -228,28 +228,28 @@ export const CAFE4_SPRITES = [
     "key": "cp_d_hands",
     "file": "cp_d_hands.png",
     "w": 180,
-    "h": 166,
+    "h": 175,
     "dw": 90
   },
   {
     "key": "cp_d_side",
     "file": "cp_d_side.png",
     "w": 180,
-    "h": 199,
+    "h": 201,
     "dw": 90
   },
   {
     "key": "cp_d_dance",
     "file": "cp_d_dance.png",
     "w": 180,
-    "h": 199,
+    "h": 188,
     "dw": 90
   },
   {
     "key": "cp_d_photo",
     "file": "cp_d_photo.png",
     "w": 180,
-    "h": 224,
+    "h": 188,
     "dw": 90
   },
   {
@@ -263,28 +263,28 @@ export const CAFE4_SPRITES = [
     "key": "cp_d_adventure",
     "file": "cp_d_adventure.png",
     "w": 180,
-    "h": 139,
+    "h": 162,
     "dw": 90
   },
   {
     "key": "cp_d_beach",
     "file": "cp_d_beach.png",
     "w": 180,
-    "h": 132,
+    "h": 164,
     "dw": 90
   },
   {
     "key": "cp_d_sunset",
     "file": "cp_d_sunset.png",
     "w": 180,
-    "h": 157,
+    "h": 153,
     "dw": 90
   },
   {
     "key": "cp_d_road",
     "file": "cp_d_road.png",
     "w": 180,
-    "h": 139,
+    "h": 136,
     "dw": 90
   },
   {

@@ -35,6 +35,7 @@ def comps(img, thr=180, close=3, minarea=350):
 
 class Sheet:
     def __init__(self, name, off_b=0):
+        self.fname = name
         self.img = Image.open(os.path.join(SRC, name)).convert('RGB')
         self.lab, self.cs = comps(self.img)
         self.off_b = off_b
@@ -64,6 +65,21 @@ class Sheet:
         return im
 
     def cutbox(self, half, dx0, dy0, dx1, dy1, keep_all=False):
+        if os.environ.get('AUDIT_CLIPS') and half == 'o' and not getattr(self, '_in_audit', False):
+            self._in_audit = True
+            a = self.cutbox(half, dx0, dy0, dx1, dy1, keep_all)
+            b = self.cutbox(half, dx0 - 24, dy0 - 24, dx1 + 24, dy1 + 24, keep_all)
+            self._in_audit = False
+            ba = a.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+            bb = b.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+            if ba and bb:
+                # does the piece touch its own box edge, or grow when given more room?
+                w0, h0, w1, h1 = ba[2] - ba[0], ba[3] - ba[1], bb[2] - bb[0], bb[3] - bb[1]
+                edge = ba[0] <= 1 or ba[1] <= 1 or ba[2] >= a.width - 1 or ba[3] >= a.height - 1
+                if w1 > w0 + 3 or h1 > h0 + 3 or edge:
+                    print('CLIP?', self.fname if hasattr(self, 'fname') else '', (dx0, dy0, dx1, dy1), (w0, h0), '->', (w1, h1), 'edge' if edge else '')
+            return a
+
         """For objects that touch a caption or have pale outlines: crop a box and flood the background away from its edges."""
         if half == 'o':
             x0, y0, x1, y1 = dx0, dy0, dx1, dy1

@@ -80,7 +80,7 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_kitty_jogger",
     "file": "outfit_kitty_jogger.png",
-    "w": 51,
+    "w": 52,
     "h": 76,
     "dw": 26
   },
@@ -136,23 +136,23 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_kitty_rain",
     "file": "outfit_kitty_rain.png",
-    "w": 62,
+    "w": 52,
     "h": 76,
-    "dw": 31
+    "dw": 26
   },
   {
     "key": "outfit_snoopy_beach",
     "file": "outfit_snoopy_beach.png",
-    "w": 63,
+    "w": 62,
     "h": 98,
-    "dw": 32
+    "dw": 31
   },
   {
     "key": "outfit_snoopy_barista",
     "file": "outfit_snoopy_barista.png",
-    "w": 66,
+    "w": 67,
     "h": 98,
-    "dw": 33
+    "dw": 34
   },
   {
     "key": "outfit_snoopy_date",

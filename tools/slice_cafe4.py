@@ -1,7 +1,7 @@
 """Cuts the couple poses (sheet 88), customer walk frames (sheets 72, 73) and townsfolk walking views (sheet 90).
 Run:  python3 tools/slice_cafe4.py   Writes cp_*, cw_* and ct_* sprites and src/game/spriteListCafe4.ts."""
 import importlib.util, json, os
-from PIL import Image
+from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location('s41', os.path.join(HERE, 'slice_sheets41_45.py'))
@@ -39,7 +39,12 @@ def main():
         preview(S, f'cp_a_{k}', 'poses', b, 56)
     for k, b in {'hands': (40, 1095, 200, 1250), 'side': (215, 1095, 355, 1250), 'dance': (370, 1095, 520, 1250), 'photo': (525, 1095, 675, 1250), 'picnic': (690, 1095, 860, 1250),
                  'adventure': (872, 1095, 1045, 1250), 'beach': (1075, 1095, 1245, 1250), 'sunset': (1253, 1095, 1440, 1255), 'road': (1455, 1095, 1665, 1255)}.items():
-        preview(S, f'cp_d_{k}', 'poses', b, 90, keep_all=False)
+        x0, y0, x1, y1 = (round(v / D) for v in b)
+        im = S['poses'].img.crop((x0 + 2, y0 + 2, x1 - 2, y1 - 2)).convert('RGBA')  # painted scenes: a plain, rounded frame so no edge is lost
+        m = Image.new('L', im.size, 0)
+        ImageDraw.Draw(m).rounded_rectangle([0, 0, im.width - 1, im.height - 1], radius=10, fill=255)
+        im.putalpha(m)
+        jobs.append((f'cp_d_{k}', im, 90, None))
 
     # ---- customer walk frames, first row: frames 1 to 3 walk, a 4th is the view from behind
     R1 = (405, 545)

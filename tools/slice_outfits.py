@@ -63,11 +63,43 @@ SHEETS = {
 }
 
 
+def lightcut(sheet, box, thr=185, spread=48):
+    """Figures drawn on a pale card with a grid: flood the light, low colour background from the box edges. Their dark outline keeps the white bodies."""
+    import numpy as np
+    from scipy import ndimage
+    from PIL import ImageFilter
+    x0, y0, x1, y1 = box
+    im = sheet.img.crop((x0, y0, min(x1, sheet.img.width), y1)).convert('RGB')
+    a = np.array(im).astype(int)
+    bg = (a.mean(-1) > thr) & ((a.max(-1) - a.min(-1)) < spread)
+    lab, _ = ndimage.label(bg)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    fg = ~np.isin(lab, list(edge))
+    fg = ndimage.binary_opening(fg, iterations=1)
+    l2, n = ndimage.label(fg)
+    if n > 1:
+        sizes = ndimage.sum(fg, l2, range(1, n + 1))
+        fg = l2 == (1 + int(np.argmax(sizes)))
+    fg = ndimage.binary_fill_holes(fg)
+    out = im.convert('RGBA')
+    out.putalpha(Image.fromarray((fg * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.6)))
+    return out
+
+
+LIGHT = {  # figures on pale cards: recut with a light background flood
+    'outfit_kitty_jogger': ('kitty3', (452, 553, 545, 675)),
+    'outfit_kitty_rain': ('kitty2', (588, 538, 698, 678)),
+    'outfit_miffy_holiday': ('miffy3', (452, 540, 545, 675)),
+    'outfit_snoopy_beach': ('snoopy', (1000, 126, 1062, 220)),
+    'outfit_snoopy_barista': ('snoopy', (1002, 221, 1060, 294)),
+}
+
+
 def main():
     sheets = {k: s41.Sheet(v) for k, v in SHEETS.items()}
     entries = []
     for key, comp, sh, box in CUTS:
-        im = sheets[sh].cutbox('o', *box)
+        im = lightcut(sheets[sh], LIGHT[key][1]) if key in LIGHT else sheets[sh].cutbox('o', *box)
         bb = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
         if bb:
             im = im.crop(bb)

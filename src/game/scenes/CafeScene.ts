@@ -118,6 +118,8 @@ export class CafeScene extends Phaser.Scene {
     this.nextPatron = 0;
     const stocked = stockPantry();
     if (stocked) gameBus.emit(BUS.townToast, { text: `🍵 Your café stocked the pantry with ${stocked} ingredient${stocked > 1 ? 's' : ''}.` });
+    const st0 = styleOf(getState());
+    if (!(st0.seats > 0 && st0.tables > 0)) gameBus.emit(BUS.townToast, { text: '☕ Your café is closed. Add a seat and a table to open the doors and welcome guests.' });
     const me = getMe();
     const door = getState().cafe.avatars[me];
     if (door.y < 1 || door.x < 1) this.avatars[me].snap(ENTRY.x, ENTRY.y + 1);
@@ -497,6 +499,9 @@ export class CafeScene extends Phaser.Scene {
     this.dragging = false;
     this.dragStart = undefined;
     if (wasDrag) return;
+    const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    const guest = this.patrons.find((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4);
+    if (guest && !this.edit.active) return this.say('☕ A guest is ordering. Serve them in Matcha Masters (Arcade, then Games), and your café earns a bonus on every round.');
     const t = this.pointerTile(p) ?? this.doorTap(p);
     if (!t) return;
     if (this.edit.active) return this.editAt(t);
