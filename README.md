@@ -256,3 +256,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 
 ### Build 30: new companion outfits
 - 27 new Wardrobe looks cut from the outfit sheets (`tools/slice_outfits.py`): Miffy 8, Kitty 12, Snoopy 7. They are standing sprites that use the existing bounce walk. Real walk cycles from the sheets are still to do.
+
+### Build 31: weekly couple goal, streak ladder and weekly recap
+- Our Week 📅 button (rules in `src/state/weekly.ts`, screen in `src/ui/WeeklyModal.tsx`).
+- Weekly couple goal: pick one shared goal per week (Monday to Sunday). One tick a day, and the other partner confirms it. Finishing pays 60 coins, 4 gems and 3 shells once.
+- Streak ladder: daily question streak rungs at 3, 7, 14, 30, 50 and 100 days pay a bonus once per run. One missed day a month is forgiven automatically (a freeze).
+- Weekly recap: counts of questions, goals, gratitude notes, memories and whispers for last week and this week so far, with a one time 20 coin bonus for looking back. Empty weeks pay nothing.

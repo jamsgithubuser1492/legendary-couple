@@ -21,6 +21,7 @@ import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
+import WeeklyModal from './ui/WeeklyModal';
 import { startSync } from './lib/sync';
 import type { Quest, StartingPath } from './types';
 
@@ -54,6 +55,7 @@ export default function App() {
   const [arcade, setArcade] = useState(false);
   const [seeIsland, setSeeIsland] = useState(false);
   const [rituals, setRituals] = useState(false);
+  const [week, setWeek] = useState(false);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
@@ -163,6 +165,7 @@ export default function App() {
         onArcade={() => setArcade(true)}
         onSeeIsland={() => setSeeIsland(true)}
         onRituals={() => setRituals(true)}
+        onWeek={() => setWeek(true)}
       />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
@@ -188,6 +191,7 @@ export default function App() {
       <MinigameOverlays />
       {!mgActive && <SynergyBannerWrap />}
       {rituals && <RitualsModal onClose={() => setRituals(false)} />}
+      {week && <WeeklyModal onClose={() => setWeek(false)} />}
       <BottleReader />
       <FocusOverlay />
       {seeIsland && <SeeOnIsland onClose={() => setSeeIsland(false)} onShowIsland={() => { if (view !== 'island') changeView('island'); gameBus.emit(BUS.focus, { x: 4, y: 4 }); gameBus.emit(BUS.zoom, 0.5); }} />}

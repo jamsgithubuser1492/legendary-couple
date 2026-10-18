@@ -76,20 +76,29 @@ export function legacyQuestionFor(key: string): string {
   return QUESTIONS[h % QUESTIONS.length];
 }
 
-const prevKey = (key: string) => {
+export const prevKey = (key: string) => {
   const [y, m, d] = key.split('-').map(Number);
   return dateKey(new Date(y, m - 1, d - 1));
 };
 
 /** Consecutive days both of you answered, counting back from today (or yesterday if today is still open). */
-export function streakOf(checkins: Record<string, { paid?: boolean }>, today = dateKey()): number {
+export function streakOf(checkins: Record<string, { paid?: boolean }>, today = dateKey(), frozen: string[] = []): number {
+  return streakRun(checkins, today, frozen).n;
+}
+
+/** The streak length and the first day it began. A frozen day keeps the streak alive without counting. */
+export function streakRun(checkins: Record<string, { paid?: boolean }>, today = dateKey(), frozen: string[] = []): { n: number; start: string } {
   let key = checkins[today]?.paid ? today : prevKey(today);
   let n = 0;
-  while (checkins[key]?.paid) {
-    n++;
+  let start = key;
+  for (;;) {
+    if (checkins[key]?.paid) {
+      n++;
+      start = key;
+    } else if (!frozen.includes(key)) break;
     key = prevKey(key);
   }
-  return n;
+  return { n, start };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

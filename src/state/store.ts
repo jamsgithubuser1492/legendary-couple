@@ -7,7 +7,8 @@ import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
-import { dateKey, journeyFor, streakOf, tomorrowKey } from './questions';
+import { dateKey, journeyFor, prevKey, streakRun, tomorrowKey } from './questions';
+import { FREEZES_PER_MONTH, LADDER, hasActivity, lastWeekKey, mondayOf, RECAP_REWARD, recapOf, WEEKLY_REWARD } from './weekly';
 import type { MGResult } from './minigames';
 import { clampReward, DAILY_MG_COINS, DAILY_QUEST_COINS, DAILY_TOKENS, DAILY_WELL_TOSSES, DUO_DAY_COINS, DUO_DAY_SHELLS, emptyDay, MG_COINS_PER_GAME, OVER_CAP_SHARE, START_COINS } from './economy';
 import { BANNER_MS, BLUEPRINTS, BOTTLE_SHELLS, FINANCE_VAULT_SHARE, FOCUS_COINS, FOCUS_MS, otherP, quadrantOf, SYNERGY_MS, SYNERGY_MULT, TEA_COINS, VITALITY_MS } from './quadrants';
@@ -73,6 +74,9 @@ const initial = (): GameState => ({
   today: emptyDay(''),
   customPrompts: {},
   questDays: {},
+  weekly: {},
+  ladder: { claimed: [], frozen: [] },
+  recapClaimed: [],
 });
 
 function load(): GameState {
@@ -100,6 +104,7 @@ function withDefaults(saved: Partial<GameState>): GameState {
     vitalityUntil: { ...base.vitalityUntil, ...(saved.vitalityUntil ?? {}) },
     bottleCredits: { ...base.bottleCredits, ...(saved.bottleCredits ?? {}) },
     vault: { ...base.vault, ...(saved.vault ?? {}) },
+    ladder: { ...base.ladder, ...(saved.ladder ?? {}) },
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -531,13 +536,23 @@ export function answerCheckin(player: PlayerId, text: string) {
   const both = next.A && next.B;
   const checkins = { ...state.checkins, [key]: { ...next, paid: both ? true : today.paid } };
   if (!both || today.paid) return commit({ ...state, checkins });
-  const streak = streakOf(checkins, key);
+  // one streak freeze a month: a single missed day is forgiven so a busy day does not erase the run
+  let frozen = state.ladder.frozen;
+  const yest = prevKey(key);
+  const month = key.slice(0, 7);
+  if (!checkins[yest]?.paid && !frozen.includes(yest) && checkins[prevKey(yest)]?.paid && frozen.filter((f) => f.startsWith(month)).length < FREEZES_PER_MONTH) {
+    frozen = [...frozen, yest];
+  }
+  const run = streakRun(checkins, key, frozen);
+  const streak = run.n;
+  const rung = LADDER.find((r) => r.days === streak && !state.ladder.claimed.includes(`${run.start}:${r.days}`));
   const milestone = !jq.custom && jq.n === 50; // the day 50 celebration
   commit({
     ...state,
     checkins,
-    coins: state.coins + 15,
-    gems: state.gems + 2 + (milestone ? 10 : 0),
+    ladder: { frozen, claimed: rung ? [...state.ladder.claimed, `${run.start}:${rung.days}`] : state.ladder.claimed },
+    coins: state.coins + 15 + (rung?.coins ?? 0),
+    gems: state.gems + 2 + (rung?.gems ?? 0) + (milestone ? 10 : 0),
     shells: state.shells + (milestone ? 10 : 0),
     xp: state.xp + 15,
     blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0) + (milestone ? 1 : 0), // a week of check-ins earns a box, and so does finishing day 50
@@ -867,4 +882,59 @@ export function tossWell(): string | null {
   else if (r > 0.6) { shells = 3; text = '🐚 A lucky one! 3 Heart Shells.'; }
   commit({ ...state, coins: state.coins - 10, shells: state.shells + shells, gems: state.gems + gems, blindBoxes: state.blindBoxes + boxes, today: { ...wd, wells: wd.wells + 1 } });
   return text;
+}
+
+
+// ---------- weekly couple goal and recap ----------
+
+/** Either partner sets the goal for this week. It can be set once. */
+export function setWeeklyGoal(by: PlayerId, title: string, target: number): boolean {
+  const wk = mondayOf();
+  const t = title.trim().slice(0, 60);
+  if (!t || state.weekly[wk]) return false;
+  commit({ ...state, weekly: { ...state.weekly, [wk]: { title: t, target: Math.min(7, Math.max(1, Math.round(target))), by, ticks: [] } } });
+  return true;
+}
+
+/** "We did it today": one tick a day, and it counts once the other partner confirms. */
+export function logWeeklyTick(by: PlayerId): boolean {
+  const wk = mondayOf();
+  const g = state.weekly[wk];
+  const day = dateKey();
+  if (!g || g.paid || g.ticks.some((t) => t.day === day)) return false;
+  commit({ ...state, weekly: { ...state.weekly, [wk]: { ...g, ticks: [...g.ticks, { day, by }] } } });
+  return true;
+}
+
+export function confirmWeeklyTick(by: PlayerId, day: string) {
+  const wk = mondayOf();
+  const g = state.weekly[wk];
+  const tick = g?.ticks.find((t) => t.day === day);
+  if (!g || !tick || tick.ok || tick.by === by) return;
+  const ticks = g.ticks.map((t) => (t.day === day ? { ...t, ok: true } : t));
+  const done = ticks.filter((t) => t.ok).length >= g.target && !g.paid;
+  commit({
+    ...state,
+    weekly: { ...state.weekly, [wk]: { ...g, ticks, paid: g.paid || done } },
+    coins: state.coins + (done ? WEEKLY_REWARD.coins : 0),
+    gems: state.gems + (done ? WEEKLY_REWARD.gems : 0),
+    shells: state.shells + (done ? WEEKLY_REWARD.shells : 0),
+    xp: state.xp + (done ? WEEKLY_REWARD.xp : 0),
+  });
+}
+
+export function undoWeeklyTick(by: PlayerId, day: string) {
+  const wk = mondayOf();
+  const g = state.weekly[wk];
+  const tick = g?.ticks.find((t) => t.day === day);
+  if (!g || g.paid || !tick || tick.ok || tick.by !== by) return;
+  commit({ ...state, weekly: { ...state.weekly, [wk]: { ...g, ticks: g.ticks.filter((t) => t.day !== day) } } });
+}
+
+/** Last week's recap pays a small bonus once, so looking back together becomes a Sunday habit. */
+export function claimRecap(): boolean {
+  const wk = lastWeekKey();
+  if (state.recapClaimed.includes(wk) || !hasActivity(recapOf(state, wk))) return false;
+  commit({ ...state, recapClaimed: [...state.recapClaimed, wk], coins: state.coins + RECAP_REWARD.coins, shells: state.shells + RECAP_REWARD.shells });
+  return true;
 }

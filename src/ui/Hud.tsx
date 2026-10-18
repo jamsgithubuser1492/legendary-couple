@@ -1,3 +1,4 @@
+import { hasActivity, lastWeekKey, mondayOf, recapOf } from '../state/weekly';
 import type { HoverPayload } from '../game/events';
 import type { StartingPath } from '../types';
 import { levelOf, otherPlayer, pendingFor, useGameState, useMe } from '../state/store';
@@ -41,6 +42,7 @@ interface Props {
   onArcade: () => void;
   onSeeIsland: () => void;
   onRituals: () => void;
+  onWeek: () => void;
 }
 
 const btn =
@@ -56,6 +58,8 @@ export default function Hud(p: Props) {
   const pending = pendingFor(s, me).length;
   const level = levelOf(s.xp);
   const unanswered = !s.checkins[dateKey()]?.[me];
+  const wg = s.weekly[mondayOf()];
+  const weekDot = !wg || (!wg.paid && wg.ticks.some((t) => !t.ok && t.by !== me)) || (!s.recapClaimed.includes(lastWeekKey()) && hasActivity(recapOf(s, lastWeekKey())));
   const boxWaiting = s.pendingBox && s.pendingBox.by === otherPlayer(me);
 
   return (
@@ -85,6 +89,7 @@ export default function Hud(p: Props) {
           <button className={side} onClick={p.onDream} aria-label="Dream map">🖼️</button>
           <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
           <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
+          <button className={side} onClick={p.onWeek} aria-label="Our week">📅{weekDot && <span className={`${badge} !h-3 !min-w-3`} />}</button>
           <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
         </div>
@@ -94,6 +99,7 @@ export default function Hud(p: Props) {
           <button className={side} onClick={() => p.onView('town')} aria-label="Town map">🌍</button>
           <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
           <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
+          <button className={side} onClick={p.onWeek} aria-label="Our week">📅{weekDot && <span className={`${badge} !h-3 !min-w-3`} />}</button>
           <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
           <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
           <button className={side} onClick={p.onBoxes} aria-label="Blind boxes"><CurrencyIcon kind="box" size={28} />{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>

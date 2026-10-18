@@ -119,6 +119,10 @@ export interface SealedBottle { id: string; from: PlayerId; text: string; photo?
 export interface TownBanner { id: string; by: PlayerId; title: string; ts: number; until: number }
 export interface Celebration { id: string; quadrant: Quadrant; by: PlayerId; ts: number }
 
+export interface WeeklyTick { day: string; by: PlayerId; ok?: boolean }
+/** One shared goal for a week (Monday to Sunday). A tick counts once the other partner confirms it. */
+export interface WeeklyGoal { title: string; target: number; by: PlayerId; ticks: WeeklyTick[]; paid?: boolean }
+
 export interface GameState {
   startingPath: StartingPath | null;
   coins: number;
@@ -172,5 +176,8 @@ export interface GameState {
   celebration: Celebration | null;
   customPrompts: Record<string, { from: PlayerId; text: string }>; // secret prompts for a future day's question
   today: { day: string; questCoins: number; quests: number; tokens: number; mgCoins: number; wells: number; duoPaid: boolean }; // daily limits
+  weekly: Record<string, WeeklyGoal>; // keyed by the Monday of the week
+  ladder: { claimed: string[]; frozen: string[] }; // streak rungs paid, and days saved by a monthly freeze
+  recapClaimed: string[]; // weeks whose recap bonus was taken
   questDays: Record<string, PlayerId[]>; // who had a goal approved on each date // the last quadrant goal finished, for the aura effect
 }
