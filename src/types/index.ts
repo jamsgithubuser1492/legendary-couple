@@ -71,7 +71,7 @@ export interface CafeState {
   staff: string[]; // hired baristas
   sign: string; // the sidewalk chalkboard message in use
   popularity: number; // grows each time a community event is hosted together
-  event: { day: string; id: string; by: PlayerId; joined: boolean } | null;
+  event: { day: string; id: string; by: PlayerId; joined: boolean; full?: boolean } | null;
   latte: { day: string; n: number; best: number; streak: number };
   gacha: { n: number; day: string; pity: number };
 }
@@ -145,7 +145,7 @@ export interface WeeklyGoal { title: string; target: number; by: PlayerId; ticks
 /** A secret act of kindness one partner sets for the other. The note stays sealed until it is done. */
 export interface Surprise { id: string; from: PlayerId; to: PlayerId; act: string; note?: string; ts: number; doneAt?: number }
 /** A shared celebration. Every new mechanic writes one, and both phones show it once. */
-export interface Moment { id: string; kind: 'goal' | 'streak' | 'grace' | 'surprise' | 'recap' | 'cafe'; title: string; text: string; icon: string; ts: number }
+export interface Moment { id: string; kind: 'goal' | 'streak' | 'grace' | 'surprise' | 'recap' | 'cafe'; title: string; text: string; icon: string; ts: number; art?: string }
 
 export interface GameState {
   startingPath: StartingPath | null;

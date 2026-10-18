@@ -18,7 +18,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_staff_manager_bl",
     "file": "cy_staff_manager_bl.png",
     "w": 68,
-    "h": 127,
+    "h": 129,
     "dw": 34
   },
   {
@@ -60,14 +60,14 @@ export const CAFE2_SPRITES = [
     "key": "cy_staff_apprentice_fl",
     "file": "cy_staff_apprentice_fl.png",
     "w": 68,
-    "h": 126,
+    "h": 119,
     "dw": 34
   },
   {
     "key": "cy_staff_apprentice_fr",
     "file": "cy_staff_apprentice_fr.png",
     "w": 68,
-    "h": 126,
+    "h": 119,
     "dw": 34
   },
   {
@@ -88,42 +88,42 @@ export const CAFE2_SPRITES = [
     "key": "cy_staff_petsitter_fl",
     "file": "cy_staff_petsitter_fl.png",
     "w": 68,
-    "h": 141,
+    "h": 134,
     "dw": 34
   },
   {
     "key": "cy_staff_petsitter_fr",
     "file": "cy_staff_petsitter_fr.png",
     "w": 68,
-    "h": 130,
+    "h": 126,
     "dw": 34
   },
   {
     "key": "cy_staff_petsitter_bl",
     "file": "cy_staff_petsitter_bl.png",
     "w": 68,
-    "h": 137,
+    "h": 132,
     "dw": 34
   },
   {
     "key": "cy_staff_petsitter_br",
     "file": "cy_staff_petsitter_br.png",
     "w": 68,
-    "h": 126,
+    "h": 124,
     "dw": 34
   },
   {
     "key": "cy_tray_fl",
     "file": "cy_tray_fl.png",
     "w": 68,
-    "h": 93,
+    "h": 101,
     "dw": 34
   },
   {
     "key": "cy_tray_fr",
     "file": "cy_tray_fr.png",
     "w": 68,
-    "h": 93,
+    "h": 100,
     "dw": 34
   },
   {
@@ -158,7 +158,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_work_milk",
     "file": "cy_work_milk.png",
     "w": 72,
-    "h": 116,
+    "h": 99,
     "dw": 36
   },
   {
@@ -200,56 +200,56 @@ export const CAFE2_SPRITES = [
     "key": "cy_pos_fl",
     "file": "cy_pos_fl.png",
     "w": 124,
-    "h": 106,
+    "h": 119,
     "dw": 62
   },
   {
     "key": "cy_pos_fr",
     "file": "cy_pos_fr.png",
     "w": 124,
-    "h": 110,
+    "h": 120,
     "dw": 62
   },
   {
     "key": "cy_pos_bl",
     "file": "cy_pos_bl.png",
     "w": 124,
-    "h": 111,
+    "h": 116,
     "dw": 62
   },
   {
     "key": "cy_pos_br",
     "file": "cy_pos_br.png",
     "w": 124,
-    "h": 112,
+    "h": 115,
     "dw": 62
   },
   {
     "key": "cy_pickup_fl",
     "file": "cy_pickup_fl.png",
     "w": 116,
-    "h": 123,
+    "h": 129,
     "dw": 58
   },
   {
     "key": "cy_pickup_fr",
     "file": "cy_pickup_fr.png",
     "w": 116,
-    "h": 117,
+    "h": 129,
     "dw": 58
   },
   {
     "key": "cy_pickup_bl",
     "file": "cy_pickup_bl.png",
     "w": 116,
-    "h": 113,
+    "h": 123,
     "dw": 58
   },
   {
     "key": "cy_pickup_br",
     "file": "cy_pickup_br.png",
     "w": 116,
-    "h": 108,
+    "h": 123,
     "dw": 58
   },
   {
@@ -270,21 +270,21 @@ export const CAFE2_SPRITES = [
     "key": "cy_cart_bl",
     "file": "cy_cart_bl.png",
     "w": 112,
-    "h": 94,
+    "h": 109,
     "dw": 56
   },
   {
     "key": "cy_cart_br",
     "file": "cy_cart_br.png",
     "w": 112,
-    "h": 94,
+    "h": 105,
     "dw": 56
   },
   {
     "key": "cy_loveseat_fl",
     "file": "cy_loveseat_fl.png",
     "w": 124,
-    "h": 142,
+    "h": 141,
     "dw": 62
   },
   {
@@ -298,7 +298,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_loveseat_bl",
     "file": "cy_loveseat_bl.png",
     "w": 124,
-    "h": 129,
+    "h": 128,
     "dw": 62
   },
   {
@@ -396,91 +396,91 @@ export const CAFE2_SPRITES = [
     "key": "cy_catbed_fl",
     "file": "cy_catbed_fl.png",
     "w": 112,
-    "h": 74,
+    "h": 89,
     "dw": 56
   },
   {
     "key": "cy_catbed_fr",
     "file": "cy_catbed_fr.png",
     "w": 112,
-    "h": 74,
+    "h": 90,
     "dw": 56
   },
   {
     "key": "cy_catbed_bl",
     "file": "cy_catbed_bl.png",
     "w": 112,
-    "h": 72,
+    "h": 78,
     "dw": 56
   },
   {
     "key": "cy_catbed_br",
     "file": "cy_catbed_br.png",
     "w": 112,
-    "h": 57,
+    "h": 82,
     "dw": 56
   },
   {
     "key": "cy_tunnel_fl",
     "file": "cy_tunnel_fl.png",
     "w": 112,
-    "h": 94,
+    "h": 98,
     "dw": 56
   },
   {
     "key": "cy_tunnel_fr",
     "file": "cy_tunnel_fr.png",
     "w": 112,
-    "h": 94,
+    "h": 97,
     "dw": 56
   },
   {
     "key": "cy_tunnel_bl",
     "file": "cy_tunnel_bl.png",
     "w": 112,
-    "h": 83,
+    "h": 97,
     "dw": 56
   },
   {
     "key": "cy_tunnel_br",
     "file": "cy_tunnel_br.png",
     "w": 112,
-    "h": 83,
+    "h": 98,
     "dw": 56
   },
   {
     "key": "cy_foodbowl_fl",
     "file": "cy_foodbowl_fl.png",
     "w": 100,
-    "h": 69,
+    "h": 82,
     "dw": 50
   },
   {
     "key": "cy_foodbowl_fr",
     "file": "cy_foodbowl_fr.png",
     "w": 100,
-    "h": 71,
+    "h": 84,
     "dw": 50
   },
   {
     "key": "cy_foodbowl_bl",
     "file": "cy_foodbowl_bl.png",
     "w": 100,
-    "h": 72,
+    "h": 83,
     "dw": 50
   },
   {
     "key": "cy_foodbowl_br",
     "file": "cy_foodbowl_br.png",
     "w": 100,
-    "h": 72,
+    "h": 84,
     "dw": 50
   },
   {
     "key": "cy_scratch_fl",
     "file": "cy_scratch_fl.png",
     "w": 68,
-    "h": 106,
+    "h": 100,
     "dw": 34
   },
   {
@@ -494,7 +494,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_scratch_bl",
     "file": "cy_scratch_bl.png",
     "w": 68,
-    "h": 106,
+    "h": 100,
     "dw": 34
   },
   {
@@ -515,7 +515,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_tea_fr",
     "file": "cy_tea_fr.png",
     "w": 104,
-    "h": 70,
+    "h": 69,
     "dw": 52
   },
   {
@@ -543,14 +543,14 @@ export const CAFE2_SPRITES = [
     "key": "cy_g_focaccia",
     "file": "cy_g_focaccia.png",
     "w": 76,
-    "h": 63,
+    "h": 64,
     "dw": 38
   },
   {
     "key": "cy_g_hamcroissant",
     "file": "cy_g_hamcroissant.png",
     "w": 72,
-    "h": 68,
+    "h": 66,
     "dw": 36
   },
   {
@@ -564,35 +564,35 @@ export const CAFE2_SPRITES = [
     "key": "cy_g_bobajar",
     "file": "cy_g_bobajar.png",
     "w": 68,
-    "h": 73,
+    "h": 82,
     "dw": 34
   },
   {
     "key": "cy_g_condensed",
     "file": "cy_g_condensed.png",
     "w": 56,
-    "h": 66,
+    "h": 70,
     "dw": 28
   },
   {
     "key": "cy_g_yuzu",
     "file": "cy_g_yuzu.png",
     "w": 48,
-    "h": 71,
+    "h": 79,
     "dw": 24
   },
   {
     "key": "cy_g_oatmilk",
     "file": "cy_g_oatmilk.png",
     "w": 60,
-    "h": 79,
+    "h": 81,
     "dw": 30
   },
   {
     "key": "cy_g_tallboba",
     "file": "cy_g_tallboba.png",
     "w": 48,
-    "h": 89,
+    "h": 78,
     "dw": 24
   },
   {
@@ -606,35 +606,35 @@ export const CAFE2_SPRITES = [
     "key": "cy_g_box_artisan",
     "file": "cy_g_box_artisan.png",
     "w": 76,
-    "h": 74,
+    "h": 73,
     "dw": 38
   },
   {
     "key": "cy_g_box_plain",
     "file": "cy_g_box_plain.png",
     "w": 72,
-    "h": 77,
+    "h": 70,
     "dw": 36
   },
   {
     "key": "cy_g_crate_bottles",
     "file": "cy_g_crate_bottles.png",
     "w": 80,
-    "h": 69,
+    "h": 75,
     "dw": 40
   },
   {
     "key": "cy_g_crate_berries",
     "file": "cy_g_crate_berries.png",
     "w": 80,
-    "h": 70,
+    "h": 73,
     "dw": 40
   },
   {
     "key": "cy_g_box_green",
     "file": "cy_g_box_green.png",
     "w": 76,
-    "h": 72,
+    "h": 73,
     "dw": 38
   },
   {
@@ -648,28 +648,28 @@ export const CAFE2_SPRITES = [
     "key": "cy_mailbox_flag",
     "file": "cy_mailbox_flag.png",
     "w": 120,
-    "h": 116,
+    "h": 122,
     "dw": 60
   },
   {
     "key": "cy_lantern",
     "file": "cy_lantern.png",
     "w": 60,
-    "h": 97,
+    "h": 105,
     "dw": 30
   },
   {
     "key": "cy_lantern_f1",
     "file": "cy_lantern_f1.png",
     "w": 60,
-    "h": 94,
+    "h": 105,
     "dw": 30
   },
   {
     "key": "cy_lantern_f2",
     "file": "cy_lantern_f2.png",
     "w": 60,
-    "h": 102,
+    "h": 106,
     "dw": 30
   },
   {
@@ -697,7 +697,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_cat_coin",
     "file": "cy_cat_coin.png",
     "w": 124,
-    "h": 109,
+    "h": 108,
     "dw": 62
   },
   {
@@ -711,14 +711,14 @@ export const CAFE2_SPRITES = [
     "key": "cy_cat_burst",
     "file": "cy_cat_burst.png",
     "w": 124,
-    "h": 111,
+    "h": 109,
     "dw": 62
   },
   {
     "key": "cy_jukebox",
     "file": "cy_jukebox.png",
     "w": 108,
-    "h": 135,
+    "h": 144,
     "dw": 54
   },
   {
@@ -732,63 +732,35 @@ export const CAFE2_SPRITES = [
     "key": "cy_bobalamp2",
     "file": "cy_bobalamp2.png",
     "w": 80,
-    "h": 102,
+    "h": 108,
     "dw": 40
   },
   {
     "key": "cy_sun_f1",
     "file": "cy_sun_f1.png",
     "w": 80,
-    "h": 118,
+    "h": 117,
     "dw": 40
   },
   {
     "key": "cy_sun_f2",
     "file": "cy_sun_f2.png",
     "w": 80,
-    "h": 118,
+    "h": 115,
     "dw": 40
   },
   {
     "key": "cy_sun_f3",
     "file": "cy_sun_f3.png",
     "w": 80,
-    "h": 118,
+    "h": 116,
     "dw": 40
   },
   {
     "key": "cy_sun_f4",
     "file": "cy_sun_f4.png",
     "w": 80,
-    "h": 119,
-    "dw": 40
-  },
-  {
-    "key": "cy_bubble_empty",
-    "file": "cy_bubble_empty.png",
-    "w": 80,
-    "h": 97,
-    "dw": 40
-  },
-  {
-    "key": "cy_bubble_common",
-    "file": "cy_bubble_common.png",
-    "w": 80,
-    "h": 88,
-    "dw": 40
-  },
-  {
-    "key": "cy_bubble_rare",
-    "file": "cy_bubble_rare.png",
-    "w": 80,
-    "h": 76,
-    "dw": 40
-  },
-  {
-    "key": "cy_bubble_legendary",
-    "file": "cy_bubble_legendary.png",
-    "w": 80,
-    "h": 130,
+    "h": 117,
     "dw": 40
   },
   {
@@ -802,7 +774,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_sign",
     "file": "cy_sign.png",
     "w": 140,
-    "h": 134,
+    "h": 135,
     "dw": 70
   },
   {
@@ -837,14 +809,14 @@ export const CAFE2_SPRITES = [
     "key": "cy_router",
     "file": "cy_router.png",
     "w": 108,
-    "h": 93,
+    "h": 94,
     "dw": 54
   },
   {
     "key": "cy_router_glow",
     "file": "cy_router_glow.png",
     "w": 140,
-    "h": 117,
+    "h": 119,
     "dw": 70
   },
   {
@@ -858,28 +830,28 @@ export const CAFE2_SPRITES = [
     "key": "cy_board",
     "file": "cy_board.png",
     "w": 88,
-    "h": 117,
+    "h": 115,
     "dw": 44
   },
   {
     "key": "cy_board_fr",
     "file": "cy_board_fr.png",
     "w": 88,
-    "h": 105,
+    "h": 108,
     "dw": 44
   },
   {
     "key": "cy_board_bl",
     "file": "cy_board_bl.png",
     "w": 88,
-    "h": 105,
+    "h": 108,
     "dw": 44
   },
   {
     "key": "cy_board_new",
     "file": "cy_board_new.png",
     "w": 88,
-    "h": 105,
+    "h": 108,
     "dw": 44
   },
   {
@@ -949,21 +921,21 @@ export const CAFE2_SPRITES = [
     "key": "cy_badge_books",
     "file": "cy_badge_books.png",
     "w": 48,
-    "h": 42,
+    "h": 46,
     "dw": 24
   },
   {
     "key": "cy_badge_moon",
     "file": "cy_badge_moon.png",
     "w": 48,
-    "h": 45,
+    "h": 51,
     "dw": 24
   },
   {
     "key": "cy_stu_type",
     "file": "cy_stu_type.png",
     "w": 68,
-    "h": 100,
+    "h": 103,
     "dw": 34
   },
   {
@@ -984,7 +956,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_clu_book",
     "file": "cy_clu_book.png",
     "w": 52,
-    "h": 39,
+    "h": 38,
     "dw": 26
   },
   {
@@ -998,21 +970,21 @@ export const CAFE2_SPRITES = [
     "key": "cy_clu_laptop",
     "file": "cy_clu_laptop.png",
     "w": 52,
-    "h": 51,
+    "h": 53,
     "dw": 26
   },
   {
     "key": "cy_clu_boba",
     "file": "cy_clu_boba.png",
     "w": 44,
-    "h": 75,
+    "h": 79,
     "dw": 22
   },
   {
     "key": "cy_clu_papers",
     "file": "cy_clu_papers.png",
     "w": 56,
-    "h": 38,
+    "h": 40,
     "dw": 28
   },
   {
@@ -1075,28 +1047,28 @@ export const CAFE2_SPRITES = [
     "key": "cy_pitcher_1",
     "file": "cy_pitcher_1.png",
     "w": 72,
-    "h": 75,
+    "h": 80,
     "dw": 36
   },
   {
     "key": "cy_pitcher_2",
     "file": "cy_pitcher_2.png",
     "w": 72,
-    "h": 75,
+    "h": 80,
     "dw": 36
   },
   {
     "key": "cy_pitcher_3",
     "file": "cy_pitcher_3.png",
     "w": 72,
-    "h": 74,
+    "h": 79,
     "dw": 36
   },
   {
     "key": "cy_pitcher_4",
     "file": "cy_pitcher_4.png",
     "w": 72,
-    "h": 74,
+    "h": 79,
     "dw": 36
   },
   {
@@ -1138,7 +1110,7 @@ export const CAFE2_SPRITES = [
     "key": "cy_sparkle",
     "file": "cy_sparkle.png",
     "w": 60,
-    "h": 45,
+    "h": 54,
     "dw": 30
   }
 ] as const;

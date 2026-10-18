@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { BUS, gameBus } from '../game/events';
 import { finishLatte, joinCafeEvent, otherPlayer, pullGacha, startCafeEvent, useGameState, useMe } from '../state/store';
-import { eventOf, eventReady, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
+import { eventOf, eventReady, EVENT_SURPRISE, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
 import { dateKey } from '../state/questions';
 import { itemOf } from '../state/catalog';
 import { Amount } from './Currency';
@@ -217,11 +218,13 @@ export function EventsModal({ onClose }: { onClose: () => void }) {
           ) : live && live.by !== me ? (
             <button className={`${primaryBtn} mt-2 w-full`} onClick={() => joinCafeEvent(me)}>Join {s.names[live.by]} 🎉</button>
           ) : live ? (
-            <p className="mt-2 text-center text-sm text-cocoa/70">Waiting for {partner} to join you…</p>
+            <div className="mt-2 text-center"><img src={art('cz_waiting')} alt="" className="mx-auto max-h-28 rounded-xl" draggable={false} /><p className="mt-1 text-sm text-cocoa/70">Waiting for {partner} to join you…</p></div>
           ) : (
             <button className={`${primaryBtn} mt-2 w-full`} onClick={() => setMsg(startCafeEvent(me, today.id) ?? '')}>Host it with {partner}</button>
           )}
+          {!live && !eventReady(s, today.id) && <p className="mt-2 text-center text-xs text-cocoa/70">Not fully ready ({today.need}). You can still host it together for half the bonus.</p>}
           {msg && <p className="mt-2 text-center text-xs text-cocoa">{msg}</p>}
+          <button className={`${softBtn} mt-2 w-full text-sm`} onClick={() => gameBus.emit(BUS.openFocus, 'surprise')}>💌 Surprise idea: {EVENT_SURPRISE[today.id]}</button>
         </div>
       ) : (
         <p className="rounded-2xl bg-white p-3 text-center text-sm text-cocoa shadow">No event today. Check the calendar below and get your café ready for the next one.</p>

@@ -170,6 +170,7 @@ export function MinigameOverlays() {
     <>
       {invite && (
         <div className="absolute inset-x-0 top-3 z-40 mx-auto flex w-[92%] max-w-md items-center justify-between gap-2 rounded-2xl bg-cream p-3 text-cocoa shadow-2xl">
+          <img src={`${import.meta.env.BASE_URL}assets/sprites/cz_invite.png`} alt="" className="h-12 shrink-0" draggable={false} />
           <span className="font-display font-bold">{gameOf(invite.type).icon} {s.names[invite.from]} invites you to {gameOf(invite.type).name}!</span>
           <span className="flex gap-2">
             <button className={primaryBtn} onClick={() => { gameBus.emit(BUS.mgLaunch, { type: invite.type, mode: 'join', sessionId: invite.sessionId }); setInvite(null); }}>Join</button>

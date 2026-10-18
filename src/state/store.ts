@@ -205,7 +205,8 @@ export function setMe(p: PlayerId) {
 
 const other = (p: PlayerId): PlayerId => (p === 'A' ? 'B' : 'A');
 const uid = () => Math.random().toString(36).slice(2, 10);
-const moment = (kind: Moment['kind'], title: string, text: string, icon: string): Moment => ({ id: uid(), kind, title, text, icon, ts: Date.now() });
+const MOMENT_ART: Record<Moment['kind'], string> = { goal: 'cz_highfive', streak: 'cz_highfive', grace: 'cz_waiting', surprise: 'cz_moment_3', recap: 'cz_friends', cafe: 'cz_toast' };
+const moment = (kind: Moment['kind'], title: string, text: string, icon: string, art = MOMENT_ART[kind]): Moment => ({ id: uid(), kind, title, text, icon, ts: Date.now(), art });
 
 /** Adds to the message log. Call just before the commit that saves the action. */
 function addMsg(kind: MessageKind, from: PlayerId, text: string, ctx?: string, ref?: string) {
@@ -1089,8 +1090,8 @@ export function startCafeEvent(by: PlayerId, id: EventId): string | null {
   const ev = eventToday();
   if (!ev || ev.id !== id) return 'That event is not on today.';
   if (state.cafe.event?.day === day) return 'Today’s event is already under way.';
-  if (!eventReady(state, id)) return `Your café is not ready yet: ${ev.need}.`;
-  commit({ ...state, cafe: { ...state.cafe, event: { day, id, by, joined: false } } });
+  // never blocked: a room that is not fully ready simply earns half the bonus, so a messy event costs nothing
+  commit({ ...state, cafe: { ...state.cafe, event: { day, id, by, joined: false, full: eventReady(state, id) } } });
   return null;
 }
 
@@ -1099,13 +1100,15 @@ export function joinCafeEvent(by: PlayerId): boolean {
   const e = state.cafe.event;
   if (!e || e.day !== dateKey() || e.joined || e.by === by) return false;
   const ev = eventOf(e.id as EventId);
+  const k = e.full === false ? 0.5 : 1;
+  const coins = Math.round(ev.coins * k), shells = Math.max(1, Math.round(ev.shells * k));
   commit({
     ...state,
-    coins: state.coins + ev.coins,
-    shells: state.shells + ev.shells,
+    coins: state.coins + coins,
+    shells: state.shells + shells,
     xp: state.xp + 15,
-    cafe: { ...state.cafe, event: { ...e, joined: true }, popularity: Math.min(10, state.cafe.popularity + (ev.popularity ? 1 : 0)) },
-    moment: moment('cafe', `${ev.name} done!`, `You hosted it together. +${ev.coins} coins and +${ev.shells} shells${ev.popularity ? ', and your café is more popular for good' : ''}.`, ev.icon),
+    cafe: { ...state.cafe, event: { ...e, joined: true }, popularity: Math.min(10, state.cafe.popularity + (ev.popularity && k === 1 ? 1 : 0)) },
+    moment: moment('cafe', `${ev.name} done!`, `You hosted it together. +${coins} coins and +${shells} shells${ev.popularity && k === 1 ? ', and your café is more popular for good' : ''}.${k < 1 ? ' (Half bonus: the room was not fully ready. Get it ready next time for the full reward.)' : ''}`, ev.icon),
   });
   return true;
 }

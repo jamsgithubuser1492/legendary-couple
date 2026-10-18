@@ -298,3 +298,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - **Community Board** (tap it): a weekly calendar of four events (Adopt-a-Pet Saturday, Study Slam Wednesday, Rainy Jazz Friday, Latte Masterclass Sunday). One of you hosts, the other joins, and both are rewarded. Adopt-a-Pet raises your café's popularity for good.
 - **Chalkboard** (café panel): pick a message to draw in certain guests, with a small tip boost.
 - **Rating** now includes sofas, pets, the kitchen pair (oven and fridge stock the pantry), register (+15% tips), Wi-Fi and power. All tip bonuses multiply together (`tipMult`).
+
+### Build 36: couple art, townsfolk, and a full art and design check
+- **No more clipped art.** Every café cut (`slice_cafe`, `slice_cafe2`, `slice_cafe3`, `slice_outfits`) now cuts with extra room and keeps only the main piece. This recovered the fridge, sofas, chairs, cups, lanterns and more that had lost an edge. The unusable prize bubbles were dropped.
+- **New art** (`tools/slice_cafe3.py`, 62 sprites): working together poses, memory wall, guest book, time capsule and plaque, photo frames, surprise gift box, vase and note, invite and waiting banners, townsfolk (12), celebration visitors and families.
+- **Events are always a team effort and never punishing:** a room that is not fully ready now earns half the bonus instead of being blocked, Study Slam is capped, and every event offers a Surprise Me idea. Celebrations show the couple (high five, toast) instead of an emoji.
+- **Gift boxes and vases** appear on a café table when a surprise is waiting for you or sent by you. Townsfolk drop in as café guests. Memory pieces are café decor with style points.

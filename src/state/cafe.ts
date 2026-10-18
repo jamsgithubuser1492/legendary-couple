@@ -149,10 +149,17 @@ export type EventId = 'adopt' | 'study' | 'jazz' | 'latte';
 export interface CafeEvent { id: EventId; name: string; icon: string; badge: string; flyer: string; day: number; blurb: string; need: string; coins: number; shells: number; popularity: boolean }
 export const EVENTS: CafeEvent[] = [
   { id: 'adopt', name: 'Adopt-a-Pet Drive', icon: '🐾', badge: 'cy_badge_pet', flyer: 'cy_flyer_pet', day: 6, blurb: 'A local shelter visits. Clear a 4 by 4 patch of floor for a playpen and welcome the visitors together.', need: 'A free 4 by 4 patch of floor', coins: 70, shells: 4, popularity: true },
-  { id: 'study', name: 'Study Slam', icon: '🎓', badge: 'cy_badge_study', flyer: '', day: 3, blurb: 'Students flood in with laptops. Give them power and Wi-Fi and enough tables, and keep the paths clear.', need: 'A Wi-Fi router, a power strip tile and 3 tables', coins: 80, shells: 3, popularity: false },
+  { id: 'study', name: 'Study Slam', icon: '🎓', badge: 'cy_badge_study', flyer: '', day: 3, blurb: 'Students flood in with laptops. Give them power, Wi-Fi and tables. The bonus is capped so it stays cozy, never stressful.', need: 'A Wi-Fi router, a power strip tile and 3 tables', coins: 80, shells: 3, popularity: false },
   { id: 'jazz', name: 'Rainy Day Jazz Night', icon: '☔', badge: 'cy_badge_jazz', flyer: 'cy_flyer_jazz', day: 5, blurb: 'Moody lights, rain on the window and warm music. A slow evening to spend together.', need: 'A record player or the Vintage Jukebox', coins: 60, shells: 5, popularity: false },
   { id: 'latte', name: 'Latte Art Masterclass', icon: '☕', badge: 'cy_badge_coffee', flyer: 'cy_flyer_latte', day: 0, blurb: 'Pour a cat, a frog or a heart that scores 90 percent or better, then raise a toast.', need: 'A latte art score of 90% or more today', coins: 60, shells: 4, popularity: false },
 ];
+/** A small, kind idea that fits each event, offered as a Surprise Me quest for your partner. */
+export const EVENT_SURPRISE: Record<string, string> = {
+  adopt: 'Bring home a tiny plush animal for them',
+  study: 'Bring them their favorite drink while they work',
+  jazz: 'Put on a song for them and dance in the kitchen',
+  latte: 'Draw a little heart on their coffee tomorrow morning',
+};
 export const eventOf = (id: EventId) => EVENTS.find((e) => e.id === id)!;
 export const eventToday = (day = new Date()) => EVENTS.find((e) => e.day === day.getDay());
 

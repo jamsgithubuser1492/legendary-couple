@@ -158,14 +158,14 @@ export const CAFE_SPRITES = [
     "key": "cx_pothos_bl",
     "file": "cx_pothos_bl.png",
     "w": 92,
-    "h": 134,
+    "h": 138,
     "dw": 46
   },
   {
     "key": "cx_pothos_br",
     "file": "cx_pothos_br.png",
     "w": 92,
-    "h": 134,
+    "h": 137,
     "dw": 46
   },
   {
@@ -235,14 +235,14 @@ export const CAFE_SPRITES = [
     "key": "cx_boba_rack_fr",
     "file": "cx_boba_rack_fr.png",
     "w": 88,
-    "h": 106,
+    "h": 109,
     "dw": 44
   },
   {
     "key": "cx_boba_rack_bl",
     "file": "cx_boba_rack_bl.png",
     "w": 88,
-    "h": 104,
+    "h": 106,
     "dw": 44
   },
   {
@@ -298,28 +298,28 @@ export const CAFE_SPRITES = [
     "key": "cx_case_stocked",
     "file": "cx_case_stocked.png",
     "w": 152,
-    "h": 152,
+    "h": 153,
     "dw": 76
   },
   {
     "key": "cx_espresso",
     "file": "cx_espresso.png",
     "w": 120,
-    "h": 124,
+    "h": 130,
     "dw": 60
   },
   {
     "key": "cx_espresso_steam",
     "file": "cx_espresso_steam.png",
     "w": 120,
-    "h": 121,
+    "h": 130,
     "dw": 60
   },
   {
     "key": "cx_bench_empty",
     "file": "cx_bench_empty.png",
     "w": 176,
-    "h": 144,
+    "h": 159,
     "dw": 88
   },
   {
@@ -333,21 +333,21 @@ export const CAFE_SPRITES = [
     "key": "cx_hang_1",
     "file": "cx_hang_1.png",
     "w": 60,
-    "h": 110,
+    "h": 102,
     "dw": 30
   },
   {
     "key": "cx_hang_2",
     "file": "cx_hang_2.png",
     "w": 60,
-    "h": 136,
+    "h": 112,
     "dw": 30
   },
   {
     "key": "cx_hang_3",
     "file": "cx_hang_3.png",
     "w": 60,
-    "h": 119,
+    "h": 120,
     "dw": 30
   },
   {
@@ -361,7 +361,7 @@ export const CAFE_SPRITES = [
     "key": "cx_frame_1",
     "file": "cx_frame_1.png",
     "w": 56,
-    "h": 73,
+    "h": 72,
     "dw": 28
   },
   {
@@ -389,14 +389,14 @@ export const CAFE_SPRITES = [
     "key": "cx_fx_coin",
     "file": "cx_fx_coin.png",
     "w": 68,
-    "h": 85,
+    "h": 90,
     "dw": 34
   },
   {
     "key": "cx_fx_recipe",
     "file": "cx_fx_recipe.png",
     "w": 72,
-    "h": 50,
+    "h": 62,
     "dw": 36
   },
   {
@@ -410,7 +410,7 @@ export const CAFE_SPRITES = [
     "key": "cx_bub_plant",
     "file": "cx_bub_plant.png",
     "w": 52,
-    "h": 50,
+    "h": 51,
     "dw": 26
   },
   {
@@ -487,49 +487,49 @@ export const CAFE_SPRITES = [
     "key": "cx_room_matcha",
     "file": "cx_room_matcha.png",
     "w": 300,
-    "h": 230,
+    "h": 235,
     "dw": 150
   },
   {
     "key": "cx_room_bistro",
     "file": "cx_room_bistro.png",
     "w": 300,
-    "h": 230,
+    "h": 235,
     "dw": 150
   },
   {
     "key": "cx_room_cloud",
     "file": "cx_room_cloud.png",
     "w": 300,
-    "h": 230,
+    "h": 232,
     "dw": 150
   },
   {
     "key": "cx_g_cake",
     "file": "cx_g_cake.png",
     "w": 72,
-    "h": 72,
+    "h": 80,
     "dw": 36
   },
   {
     "key": "cx_g_croissant",
     "file": "cx_g_croissant.png",
     "w": 76,
-    "h": 64,
+    "h": 71,
     "dw": 38
   },
   {
     "key": "cx_g_macarons",
     "file": "cx_g_macarons.png",
     "w": 68,
-    "h": 86,
+    "h": 89,
     "dw": 34
   },
   {
     "key": "cx_g_bread",
     "file": "cx_g_bread.png",
     "w": 76,
-    "h": 79,
+    "h": 80,
     "dw": 38
   },
   {
@@ -550,28 +550,28 @@ export const CAFE_SPRITES = [
     "key": "cx_g_syrup_lime",
     "file": "cx_g_syrup_lime.png",
     "w": 40,
-    "h": 69,
+    "h": 64,
     "dw": 20
   },
   {
     "key": "cx_g_syrup_orange",
     "file": "cx_g_syrup_orange.png",
     "w": 40,
-    "h": 69,
+    "h": 64,
     "dw": 20
   },
   {
     "key": "cx_g_syrup_berry",
     "file": "cx_g_syrup_berry.png",
     "w": 40,
-    "h": 69,
+    "h": 64,
     "dw": 20
   },
   {
     "key": "cx_g_syrup_plum",
     "file": "cx_g_syrup_plum.png",
     "w": 40,
-    "h": 69,
+    "h": 64,
     "dw": 20
   },
   {
@@ -613,14 +613,14 @@ export const CAFE_SPRITES = [
     "key": "cx_g_hoodie",
     "file": "cx_g_hoodie.png",
     "w": 68,
-    "h": 63,
+    "h": 60,
     "dw": 34
   },
   {
     "key": "cx_g_hoodie2",
     "file": "cx_g_hoodie2.png",
     "w": 68,
-    "h": 58,
+    "h": 60,
     "dw": 34
   },
   {
@@ -634,42 +634,42 @@ export const CAFE_SPRITES = [
     "key": "cx_g_box_matcha",
     "file": "cx_g_box_matcha.png",
     "w": 76,
-    "h": 78,
+    "h": 73,
     "dw": 38
   },
   {
     "key": "cx_g_box_brand",
     "file": "cx_g_box_brand.png",
     "w": 76,
-    "h": 80,
+    "h": 75,
     "dw": 38
   },
   {
     "key": "cx_g_box_plain",
     "file": "cx_g_box_plain.png",
     "w": 76,
-    "h": 82,
+    "h": 75,
     "dw": 38
   },
   {
     "key": "cx_g_box_green",
     "file": "cx_g_box_green.png",
     "w": 76,
-    "h": 76,
+    "h": 73,
     "dw": 38
   },
   {
     "key": "cx_g_pallet",
     "file": "cx_g_pallet.png",
     "w": 84,
-    "h": 74,
+    "h": 77,
     "dw": 42
   },
   {
     "key": "cx_g_crate",
     "file": "cx_g_crate.png",
     "w": 80,
-    "h": 72,
+    "h": 73,
     "dw": 40
   },
   {
@@ -683,7 +683,7 @@ export const CAFE_SPRITES = [
     "key": "cx_p_student_sit",
     "file": "cx_p_student_sit.png",
     "w": 68,
-    "h": 107,
+    "h": 108,
     "dw": 34
   },
   {
@@ -697,7 +697,7 @@ export const CAFE_SPRITES = [
     "key": "cx_p_creative_sit",
     "file": "cx_p_creative_sit.png",
     "w": 68,
-    "h": 110,
+    "h": 104,
     "dw": 34
   },
   {
@@ -711,14 +711,14 @@ export const CAFE_SPRITES = [
     "key": "cx_p_enthusiast_sit",
     "file": "cx_p_enthusiast_sit.png",
     "w": 68,
-    "h": 111,
+    "h": 108,
     "dw": 34
   },
   {
     "key": "cx_p_regular",
     "file": "cx_p_regular.png",
     "w": 58,
-    "h": 119,
+    "h": 118,
     "dw": 29
   },
   {
@@ -732,28 +732,28 @@ export const CAFE_SPRITES = [
     "key": "cx_p_gardener",
     "file": "cx_p_gardener.png",
     "w": 58,
-    "h": 119,
+    "h": 118,
     "dw": 29
   },
   {
     "key": "cx_p_gardener_sit",
     "file": "cx_p_gardener_sit.png",
     "w": 68,
-    "h": 104,
+    "h": 106,
     "dw": 34
   },
   {
     "key": "cx_p_scholar",
     "file": "cx_p_scholar.png",
     "w": 58,
-    "h": 134,
+    "h": 116,
     "dw": 29
   },
   {
     "key": "cx_p_scholar_sit",
     "file": "cx_p_scholar_sit.png",
     "w": 68,
-    "h": 110,
+    "h": 104,
     "dw": 34
   },
   {
@@ -767,21 +767,21 @@ export const CAFE_SPRITES = [
     "key": "cx_p_nomad_sit",
     "file": "cx_p_nomad_sit.png",
     "w": 68,
-    "h": 111,
+    "h": 107,
     "dw": 34
   },
   {
     "key": "cx_p_artist",
     "file": "cx_p_artist.png",
     "w": 58,
-    "h": 120,
+    "h": 117,
     "dw": 29
   },
   {
     "key": "cx_p_artist_sit",
     "file": "cx_p_artist_sit.png",
     "w": 68,
-    "h": 115,
+    "h": 116,
     "dw": 34
   },
   {
@@ -816,21 +816,21 @@ export const CAFE_SPRITES = [
     "key": "cx_f_happy",
     "file": "cx_f_happy.png",
     "w": 44,
-    "h": 45,
+    "h": 44,
     "dw": 22
   },
   {
     "key": "cx_f_neutral",
     "file": "cx_f_neutral.png",
     "w": 44,
-    "h": 42,
+    "h": 43,
     "dw": 22
   },
   {
     "key": "cx_f_sad",
     "file": "cx_f_sad.png",
     "w": 44,
-    "h": 44,
+    "h": 45,
     "dw": 22
   },
   {
@@ -851,14 +851,14 @@ export const CAFE_SPRITES = [
     "key": "cx_f_confused",
     "file": "cx_f_confused.png",
     "w": 44,
-    "h": 45,
+    "h": 44,
     "dw": 22
   },
   {
     "key": "cx_f_excited",
     "file": "cx_f_excited.png",
     "w": 44,
-    "h": 42,
+    "h": 43,
     "dw": 22
   }
 ] as const;

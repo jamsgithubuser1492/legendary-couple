@@ -529,3 +529,11 @@ for (const [k, n, icon] of [['book', 'Open Study Book', '📖'], ['pens', 'Highl
 for (const [k, n, coins, eff] of [['rattan', 'Rattan Weave Floor', 50, undefined], ['pebble', 'Pebble Mosaic Floor', 50, undefined], ['tatami2', 'Tatami Corner Floor', 50, undefined], ['rug', 'Cozy Rug Pattern', 60, undefined], ['cables', 'Cabled Power Mat', 60, 'power'], ['strip', 'Power Strip Tile', 60, 'power'], ['strip2', 'Cream Power Strip Tile', 60, 'power']] as const) {
   cx(`cy_floor_${k}`, n, '🟫', 'floor', 'floor', coins, 1, 1, `cy_floor_${k}`, { h: 0, ...(eff ? { effect: eff, style: 3, styleCap: 1 } : {}) });
 }
+
+// ---- Build 36: memory keepsakes for the café (sheet 89) ----
+cx('cz_memorywall', 'Better Together Memory Wall', '🖼️', 'cafe', 'walldecor', 300, 1, 1, 'cz_memorywall', { style: 8, lift: 62 });
+cx('cz_plaque', 'First Matcha Chalk Plaque', '🍵', 'cafe', 'walldecor', 160, 1, 1, 'cz_plaque', { style: 6, lift: 56 });
+for (let i = 1; i <= 6; i++) cx(`cz_frame_${i}`, ['Garden Photo Frame', 'Sunset Photo Frame', 'Wooden Photo Frame', 'Seaside Photo Frame', 'Evening Photo Frame', 'Heart Photo Frame'][i - 1], '🖼️', 'cafe', 'walldecor', 90, 1, 1, `cz_frame_${i}`, { style: 5, lift: 54 });
+cx('cz_guestbook', 'Our Guest Book', '📖', 'cafe', 'object', 120, 1, 1, 'cz_guestbook', { style: 5, h: 8, onSurface: true });
+cx('cz_capsule', 'Time Capsule Jar', '🫙', 'cafe', 'object', 200, 1, 1, 'cz_capsule', { style: 6, h: 26 });
+cx('cz_camera', 'Camera and Film', '📷', 'cafe', 'object', 80, 1, 1, 'cz_camera', { style: 4, h: 8, onSurface: true });

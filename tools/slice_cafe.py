@@ -15,6 +15,17 @@ s41 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s41)
 ROOT, OUT = s41.ROOT, s41.OUT
 
+# Boxes in these scripts were read by eye and sometimes clip an object. Every cut is made with a little extra room, and the
+# flood fill keeps only the main piece, so nothing is cut off. (tools/audit_clips.py lists what the padding recovered.)
+_o = s41.Sheet.cutbox
+def _p(self, half, x0, y0, x1, y1, keep_all=False):
+    if half != 'o':
+        return _o(self, half, x0, y0, x1, y1, keep_all)
+    P = 6 if keep_all else 14
+    return _o(self, 'o', x0 - P, y0 - P, x1 + P, y1 + P, keep_all)
+s41.Sheet.cutbox = _p
+
+
 SHEETS = {
     'goods': 'sheet_cafe_goods.jpg', 'props': 'sheet_cafe_props.jpg', 'cust2': 'sheet_cafe_customers2.jpg',
     'cust1': 'sheet_cafe_customers1.jpg', 'inter': 'sheet_cafe_interior.jpg',

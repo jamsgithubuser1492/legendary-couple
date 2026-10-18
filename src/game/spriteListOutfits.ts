@@ -38,23 +38,23 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_miffy_barista",
     "file": "outfit_miffy_barista.png",
-    "w": 52,
+    "w": 61,
     "h": 92,
-    "dw": 26
+    "dw": 30
   },
   {
     "key": "outfit_miffy_golden",
     "file": "outfit_miffy_golden.png",
-    "w": 53,
+    "w": 54,
     "h": 92,
-    "dw": 26
+    "dw": 27
   },
   {
     "key": "outfit_miffy_pajamas",
     "file": "outfit_miffy_pajamas.png",
-    "w": 62,
+    "w": 58,
     "h": 92,
-    "dw": 31
+    "dw": 29
   },
   {
     "key": "outfit_kitty_winter",
@@ -66,16 +66,16 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_kitty_garden",
     "file": "outfit_kitty_garden.png",
-    "w": 66,
+    "w": 67,
     "h": 76,
-    "dw": 33
+    "dw": 34
   },
   {
     "key": "outfit_kitty_chef",
     "file": "outfit_kitty_chef.png",
-    "w": 50,
+    "w": 53,
     "h": 76,
-    "dw": 25
+    "dw": 26
   },
   {
     "key": "outfit_kitty_jogger",
@@ -108,14 +108,14 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_kitty_golden",
     "file": "outfit_kitty_golden.png",
-    "w": 47,
+    "w": 46,
     "h": 76,
-    "dw": 24
+    "dw": 23
   },
   {
     "key": "outfit_kitty_holiday",
     "file": "outfit_kitty_holiday.png",
-    "w": 52,
+    "w": 51,
     "h": 76,
     "dw": 26
   },
@@ -136,16 +136,16 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_kitty_rain",
     "file": "outfit_kitty_rain.png",
-    "w": 56,
+    "w": 62,
     "h": 76,
-    "dw": 28
+    "dw": 31
   },
   {
     "key": "outfit_snoopy_beach",
     "file": "outfit_snoopy_beach.png",
-    "w": 68,
+    "w": 63,
     "h": 98,
-    "dw": 34
+    "dw": 32
   },
   {
     "key": "outfit_snoopy_barista",
@@ -164,9 +164,9 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_snoopy_concert",
     "file": "outfit_snoopy_concert.png",
-    "w": 72,
+    "w": 74,
     "h": 98,
-    "dw": 36
+    "dw": 37
   },
   {
     "key": "outfit_snoopy_rain",
@@ -185,8 +185,8 @@ export const OUTFIT_SPRITES = [
   {
     "key": "outfit_snoopy_jogger",
     "file": "outfit_snoopy_jogger.png",
-    "w": 46,
+    "w": 54,
     "h": 98,
-    "dw": 23
+    "dw": 27
   }
 ] as const;

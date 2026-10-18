@@ -36,7 +36,7 @@ export default function MomentOverlay() {
       ))}
       <div className="absolute inset-x-0 top-24 flex justify-center px-4">
         <button onClick={() => setM(null)} className="animate-pop pointer-events-auto max-w-sm rounded-3xl bg-cream p-5 text-center shadow-2xl">
-          <div className="text-4xl">{m.icon}</div>
+          {m.art ? <img src={`${import.meta.env.BASE_URL}assets/sprites/${m.art}.png`} alt="" className="mx-auto max-h-36" draggable={false} /> : <div className="text-4xl">{m.icon}</div>}
           <div className="mt-1 font-display text-xl font-bold text-cocoa">{m.title}</div>
           <p className="mt-1 text-sm text-cocoa/80">{m.text}</p>
         </button>

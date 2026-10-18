@@ -16,6 +16,17 @@ s41 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(s41)
 ROOT, OUT = s41.ROOT, s41.OUT
 
+# Boxes in these scripts were read by eye and sometimes clip an object. Every cut is made with a little extra room, and the
+# flood fill keeps only the main piece, so nothing is cut off. (tools/audit_clips.py lists what the padding recovered.)
+_o = s41.Sheet.cutbox
+def _p(self, half, x0, y0, x1, y1, keep_all=False):
+    if half != 'o':
+        return _o(self, half, x0, y0, x1, y1, keep_all)
+    P = 6 if keep_all else 14
+    return _o(self, 'o', x0 - P, y0 - P, x1 + P, y1 + P, keep_all)
+s41.Sheet.cutbox = _p
+
+
 SHEETS = {k: f'sheet_cafe_{k}.jpg' for k in ['baristas', 'cozy', 'anchors', 'goods2', 'mail_lantern', 'luckycat', 'chalkboard', 'router', 'board_b', 'study', 'latte_kit']}
 jobs = []
 
@@ -126,12 +137,12 @@ def main():
     # goods (sheet 79)
     for k, b, dw in [('curry', (55, 150, 152, 255), 34), ('focaccia', (318, 160, 422, 250), 38), ('hamcroissant', (592, 160, 692, 255), 36), ('baguette', (858, 158, 962, 255), 38),
                      ('bobajar', (68, 466, 165, 566), 34), ('condensed', (342, 478, 420, 566), 28), ('yuzu', (606, 478, 684, 572), 24), ('oatmilk', (862, 466, 952, 572), 30),
-                     ('tallboba', (286, 768, 350, 860), 24), ('tote', (492, 774, 582, 860), 32), ('box_artisan', (755, 740, 845, 825), 38), ('box_plain', (990, 740, 1065, 825), 36),
+                     ('tallboba', (286, 792, 350, 860), 24), ('tote', (492, 774, 582, 860), 32), ('box_artisan', (755, 740, 845, 825), 38), ('box_plain', (990, 740, 1065, 825), 36),
                      ('crate_bottles', (880, 830, 972, 900), 40), ('crate_berries', (985, 830, 1072, 900), 40), ('box_green', (765, 825, 852, 902), 38)]:
         one(S, f'cy_g_{k}', 'goods2', b, dw)
     # island anchors (sheet 80)
     one(S, 'cy_mailbox', 'mail_lantern', (578, 140, 832, 382), 60)
-    one(S, 'cy_mailbox_flag', 'mail_lantern', (835, 140, 1085, 382), 60)
+    one(S, 'cy_mailbox_flag', 'mail_lantern', (860, 150, 1070, 372), 60)
     one(S, 'cy_lantern', 'mail_lantern', (38, 495, 158, 668), 30)
     for i, b in enumerate([(425, 500, 525, 672), (578, 500, 685, 672), (425, 722, 542, 900), (578, 722, 685, 900)], 1):
         one(S, f'cy_lantern_f{i}', 'mail_lantern', b, 30)
@@ -143,8 +154,6 @@ def main():
     one(S, 'cy_bobalamp2', 'luckycat', (532, 800, 640, 928), 40)
     for i, b in enumerate([(682, 790, 778, 942), (780, 790, 872, 942), (874, 790, 966, 942), (970, 790, 1064, 942)], 1):
         one(S, f'cy_sun_f{i}', 'luckycat', b, 40, keep_all=True)
-    for k, b in [('empty', (520, 492, 592, 560)), ('common', (590, 492, 660, 560)), ('rare', (520, 592, 592, 660)), ('legendary', (590, 592, 662, 662))]:
-        one(S, f'cy_bubble_{k}', 'luckycat', b, 40)
     one(S, 'cy_coin', 'luckycat', (50, 505, 132, 575), 26)
     # chalkboard (sheet 82)
     one(S, 'cy_sign', 'chalkboard', (28, 108, 325, 392), 70, keep_all=True)

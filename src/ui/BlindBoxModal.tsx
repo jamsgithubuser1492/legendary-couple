@@ -41,6 +41,7 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
       <div className="mt-4 text-center">
         {pending && pending.by === me && (
           <>
+            <img src={`${import.meta.env.BASE_URL}assets/sprites/cz_waiting.png`} alt="" className="mx-auto mb-1 max-h-24 rounded-xl" draggable={false} />
             <p className="text-cocoa">Waiting for {partner} to join you…</p>
             <p className="text-xs text-cocoa/60">The box stays sealed until you both tap.</p>
             <p className="mx-auto mt-2 max-w-xs rounded-xl bg-white p-2 text-xs text-cocoa/70 shadow">

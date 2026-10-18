@@ -14,7 +14,7 @@ import type { PlacedObject, PlayerId } from '../../types';
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.5;
 const DRAG_THRESHOLD = 8;
-const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist'];
+const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist', 'girl', 'boy', 'oldman', 'jogger', 'dogwalker', 'musician', 'painter', 'postal', 'surfer', 'tourist'];
 
 interface Patron {
   img: Phaser.GameObjects.Image;
@@ -50,6 +50,8 @@ export class CafeScene extends Phaser.Scene {
   private staffObjs = new Map<string, Patron>();
   private staffKey = '';
   private fx!: Phaser.GameObjects.Graphics;
+  private gifts: Phaser.GameObjects.Image[] = [];
+  private giftKey = '';
 
   private size = () => getState().cafe.size;
 
@@ -207,6 +209,7 @@ export class CafeScene extends Phaser.Scene {
     if (!this.scene.isActive()) return;
     this.drawFx(t);
     this.syncStaff();
+    this.syncGifts();
     if (this.edit.active) return;
     this.nextPatron -= delta / 1000;
     const st = styleOf(getState());
@@ -236,6 +239,27 @@ export class CafeScene extends Phaser.Scene {
       this.staffObjs.set(id, p);
       this.time.addEvent({ delay: 4500 + Math.random() * 3500, loop: true, callback: () => this.wanderStaff(def.sprite, p) });
     }
+  }
+
+  /** Surprise props appear on a table: a gift box for the one it is meant for, a vase with a note for the one who sent it. */
+  private syncGifts() {
+    const st = getState();
+    const me = getMe();
+    const pend = st.surprises.filter((x) => !x.doneAt);
+    const table = st.cafe.placed.find((o) => itemOf(o.itemId)?.role === 'table');
+    const key = `${table?.id ?? ''}|${pend.map((x) => x.id + (x.to === me)).join(',')}|${this.sig}`;
+    if (key === this.giftKey) return;
+    this.giftKey = key;
+    this.gifts.forEach((g) => g.destroy());
+    this.gifts = [];
+    if (!table || !pend.length) return;
+    const c = tileCenter(table.tileX, table.tileY);
+    const mine = pend.some((x) => x.to === me);
+    const sent = pend.some((x) => x.from === me);
+    const depth = table.tileX + table.tileY + 1.2;
+    if (mine) this.gifts.push(artImage(this, 'cz_gift', c.x, c.y - 4, 0.5, 1).setDepth(depth));
+    if (sent) this.gifts.push(artImage(this, 'cz_vase', c.x + (mine ? 18 : 0), c.y - 4, 0.5, 1).setDepth(depth + 0.1));
+    for (const g of this.gifts) this.tweens.add({ targets: g, y: g.y - 3, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   private wanderStaff(base: string, p: Patron) {
@@ -310,7 +334,7 @@ export class CafeScene extends Phaser.Scene {
     const study = s0.cafe.event?.day === dateKey() && s0.cafe.event.id === 'study';
     const pool = study ? ['student', 'student', 'nomad', 'scholar'] : sign && styleOf(s0).sign && Math.random() < 0.7 ? sign.draws : PATRONS;
     const kind = pool[Math.floor(Math.random() * pool.length)];
-    const key = `cx_p_${kind}`;
+    const key = this.textures.exists(`cx_p_${kind}`) ? `cx_p_${kind}` : `cz_t_${kind}`;
     if (!this.textures.exists(key)) return;
     const home = tileCenter(DOOR_X, 1);
     const img = artImage(this, key, home.x, home.y + 6, 0.5, 1).setDepth(DOOR_X + 1 + 0.2).setAlpha(0);
