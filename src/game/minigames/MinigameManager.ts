@@ -29,6 +29,11 @@ export class MinigameManager {
   constructor(private game: Phaser.Game) {
     gameBus.on(BUS.mgLaunch, this.onLaunch, this);
     gameBus.on(BUS.mgAttach, this.attach, this);
+    // a destroyed game (React strict mode in development builds one extra) must stop listening
+    game.events.once(Phaser.Core.Events.DESTROY, () => {
+      gameBus.off(BUS.mgLaunch, this.onLaunch, this);
+      gameBus.off(BUS.mgAttach, this.attach, this);
+    });
   }
 
   get playing() {
@@ -56,8 +61,19 @@ export class MinigameManager {
     void this.launch(req);
   }
 
+  private launching = false;
+
   async launch(req: LaunchRequest) {
-    if (this.active) return;
+    if (this.active || this.launching) return; // two invites or taps at once must not start two games
+    this.launching = true;
+    try {
+      await this.start(req);
+    } finally {
+      this.launching = false;
+    }
+  }
+
+  private async start(req: LaunchRequest) {
     const info = gameOf(req.type);
     const toast = (text: string) => gameBus.emit(BUS.townToast, { text });
     if (!info.unlocked(getState())) return toast(`🔒 ${info.name}: ${info.lockedText}`);
@@ -95,7 +111,11 @@ export class MinigameManager {
     const launcher = under ?? this.game.scene.getScenes(true)[0];
     launcher.scene.launch(key, data);
     if (under) under.scene.pause();
-    this.game.scene.bringToTop(key);
+    try {
+      this.game.scene.bringToTop(key);
+    } catch {
+      /* the scene launched last is already on top */
+    }
   }
 
   private done(r: MGResult) {

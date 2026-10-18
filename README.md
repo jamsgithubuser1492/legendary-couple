@@ -262,3 +262,12 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Weekly couple goal: pick one shared goal per week (Monday to Sunday). One tick a day, and the other partner confirms it. Finishing pays 60 coins, 4 gems and 3 shells once.
 - Streak ladder: daily question streak rungs at 3, 7, 14, 30, 50 and 100 days pay a bonus once per run. One missed day a month is forgiven automatically (a freeze).
 - Weekly recap: counts of questions, goals, gratitude notes, memories and whispers for last week and this week so far, with a one time 20 coin bonus for looking back. Empty weeks pay nothing.
+
+### Build 32: Pastel Co op Dash (platformer minigame)
+- A fifth Arcade game, unlocked with the Downtown Arcade (town growth 150 and level 4). Level 1 is The Apple Orchard Pier.
+- Partner A is Hello Kitty and partner B is Miffy (they wear their equipped Wardrobe outfit). Practice mode has Mochi play the other one.
+- Each phone simulates its own avatar and sends its position 20 times a second. The host keeps the shared state: apples, gift boxes, the bow aura, the lever meter, the drawbridge and the finish. Boba pearls move on a fixed schedule so nothing needs sending for them.
+- Mechanics: bow glide (hold jump in the air), gift boxes, Mimmy's yellow bow aura, Gudetama trampoline, rolling boba bubbles that trap you in a bubble until your partner touches it, a checkpoint mug, two bow levers held together to lower the bridge, and the friendship archway finish.
+- Rewards: 1 coin per apple plus 40 for finishing together (the economy caps a game at 120), 1 heart shell per strawberry crate.
+- Level data, physics and Mochi's brain are in `src/game/minigames/platformer/level.ts`. `tools/platformer_check.ts` has two bots play the level headless to prove it can be finished.
+- Fixed: the minigame manager of a destroyed game kept listening (a crash when launching in development), and two launch requests at once can no longer start two games.

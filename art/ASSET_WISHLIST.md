@@ -283,3 +283,14 @@ Nothing painted exists. Needed:
 
 ## A note on characters
 Hello Kitty, Miffy, Snoopy, Disney and Miniso are trademarks of their owners. That is fine for a private game for the two of you. If it is ever shared publicly, swap those for original characters.
+
+
+## Part 10: Pastel Co op Dash (platformer) art wish list
+
+The platformer is playable now with simple drawn shapes and your Kitty and Miffy standing sprites. These would make it feel finished.
+1. Run, jump, glide and hurt frames for Hello Kitty and Miffy (side view, 4 frame run, 1 to 2 frame jump, 1 glide with the bow, 1 bubble pose).
+2. A pastel tileset: grass top, dirt, wooden pier planks, tea saucer platforms, stacked books, a drawbridge.
+3. Pickups: golden red apple, strawberry crate, Sanrio gift box (closed and open), Mimmy's yellow bow.
+4. Gudetama on his bacon blanket (idle and bounce), boba pearl bubbles, Cinnamoroll and My Melody waving, the checkpoint mug with steam.
+5. Parallax backdrops: sunset sea with lighthouse, rolling apple orchard hills, Mama Mary's bakery gate, the friendship archway with bell.
+6. Levels 2 and 3 themes (a snowy village and a night market).

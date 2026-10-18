@@ -1,13 +1,14 @@
 import type { GameState } from '../types';
 import { arcadeOpen, growthOf } from './town';
 
-export type MGType = 'MATCHA_MASTERS' | 'STELLAR_FISHING' | 'CRANE_CRAZE' | 'ORCHARD_HARVEST';
+export type MGType = 'MATCHA_MASTERS' | 'STELLAR_FISHING' | 'CRANE_CRAZE' | 'ORCHARD_HARVEST' | 'PASTEL_DASH';
 
 export const MG_SCENE: Record<MGType, string> = {
   MATCHA_MASTERS: 'MatchaMastersScene',
   STELLAR_FISHING: 'StellarFishingScene',
   CRANE_CRAZE: 'CraneCrazeScene',
   ORCHARD_HARVEST: 'OrchardScene',
+  PASTEL_DASH: 'PlatformerScene',
 };
 
 export interface GameInfo {
@@ -49,6 +50,12 @@ export const GAMES: GameInfo[] = [
     blurb: 'Shake the trees and catch the apples, then swap roles halfway.',
     roles: ['Shakes first, then catches', 'Catches first, then shakes'],
     lockedText: 'Grow your town to 36 so the park opens.', unlocked: (s) => growthOf(s) >= 36,
+  },
+  {
+    type: 'PASTEL_DASH', name: 'Pastel Co op Dash', icon: '🎀', where: 'Downtown Arcade', duration: '3:00',
+    blurb: 'Run the Apple Orchard Pier together as Hello Kitty and Miffy. Collect apples, bump gift boxes, hold both bow levers to lower the bridge, and rescue each other from bubbles.',
+    roles: ['Hello Kitty: runs, jumps and holds the red bow lever', 'Miffy: runs, jumps and holds the yellow bow lever'],
+    lockedText: 'The Downtown Arcade opens at town growth 150 and player level 4.', unlocked: (s) => arcadeOpen(s),
   },
 ];
 export const gameOf = (t: MGType) => GAMES.find((g) => g.type === t)!;

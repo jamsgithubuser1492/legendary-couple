@@ -4,6 +4,7 @@ import { TownScene } from './scenes/TownScene';
 import { gameBus } from './events';
 import { createManager } from './minigames/MinigameManager';
 import { OrchardScene } from './minigames/OrchardScene';
+import { PlatformerScene } from './minigames/PlatformerScene';
 import { MatchaMastersScene } from './minigames/MatchaMastersScene';
 import { StellarFishingScene } from './minigames/StellarFishingScene';
 import { CraneCrazeScene } from './minigames/CraneCrazeScene';
@@ -20,7 +21,7 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       height: parent.clientHeight || window.innerHeight,
     },
     input: { activePointers: 2, touch: { capture: true } },
-    scene: [MainScene, TownScene, OrchardScene, MatchaMastersScene, StellarFishingScene, CraneCrazeScene],
+    scene: [MainScene, TownScene, OrchardScene, MatchaMastersScene, StellarFishingScene, CraneCrazeScene, PlatformerScene],
   });
   createManager(game);
   if (new URLSearchParams(location.search).has('debug')) {
