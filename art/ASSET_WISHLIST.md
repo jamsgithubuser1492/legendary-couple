@@ -319,3 +319,16 @@ Still wanted:
 6. **Pet furniture** (calico cat bed, rabbit tunnel, scratch post, food and water bowls) and pets that move.
 7. **Lucky cat tip jar**, **latte art** tracing kit and the **café scrapbook** pages.
 8. **Door and window pieces** in each theme (the room shell uses the existing wall pieces for now), and a **fireplace**, **record player** and **string lights** for seasonal events.
+
+## Part 13: café management art gaps (couple focused)
+
+Saved but not yet cut or wired: barista staff, ovens and fridge, register and pickup counter, couches, pet furniture, new goods, mailbox and lantern, lucky cat jar, chalkboard sign, latte art kit, wifi router, study slam props, community board.
+Still missing, and what makes it a couples game:
+1. **Two seat "date table" set**: a candlelit table for two, shared dessert plate and two mugs, with a heart glow when you both sit.
+2. **Couple roles at stations**: poses of two avatars working side by side (one brews, one serves), and a high five or toast animation when a rush is cleared together.
+3. **Anniversary and memory wall**: frames that show your Journal photos, a "first matcha" plaque, a guest book, and a time capsule jar.
+4. **Surprise delivery props**: a gift box on a table, a flower vase and a sticky note that appear when your partner sends a surprise.
+5. **Event dressing**: rainy window overlay, jazz lighting tint, adoption pen (4 by 4 playpen) and cat, dog and bunny sprites that walk, study slam banner, string lights.
+6. **Customer walk cycles and chair sitting poses** (current ones glide), plus staff idle frames.
+7. **Quiet corner**: a two person reading nook and a "talk" prompt card set, since events should include a slow moment together.
+8. **UI**: star rating, tip jar, order ticket, and weekly goal ribbon in the same painted style.
