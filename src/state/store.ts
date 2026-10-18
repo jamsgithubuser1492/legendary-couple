@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
-import { cafeView, ESPRESSO_RECIPE, eventOf, EVENT_TEAM, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
+import { cafeView, ESPRESSO_RECIPE, eventOf, EVENT_TEAM, MAX_ORDERS, newOrder, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
 import { setGridSize } from '../game/iso';
 import { presetOf } from './presets';
 import { getTheme } from './season';
@@ -109,7 +109,7 @@ function withDefaults(saved: Partial<GameState>): GameState {
     bottleCredits: { ...base.bottleCredits, ...(saved.bottleCredits ?? {}) },
     vault: { ...base.vault, ...(saved.vault ?? {}) },
     ladder: { ...base.ladder, ...(saved.ladder ?? {}) },
-    cafe: { ...base.cafe, ...(saved.cafe ?? {}), avatars: { ...base.cafe.avatars, ...(saved.cafe?.avatars ?? {}) }, themes: [...new Set([...base.cafe.themes, ...(saved.cafe?.themes ?? [])])], placed: saved.cafe?.placed ?? [] },
+    cafe: { ...base.cafe, ...(saved.cafe ?? {}), orders: saved.cafe?.orders ?? [], avatars: { ...base.cafe.avatars, ...(saved.cafe?.avatars ?? {}) }, themes: [...new Set([...base.cafe.themes, ...(saved.cafe?.themes ?? [])])], placed: saved.cafe?.placed ?? [] },
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -746,10 +746,23 @@ export function applyMinigameReward(r: MGResult) {
   for (const f of r.figures) figures[f] = (figures[f] ?? 0) + 1;
   const fauna = { ...state.fauna };
   for (const [k, n] of Object.entries(r.fauna)) fauna[k] = (fauna[k] ?? 0) + n;
+  let cafe = state.cafe;
+  let rushMoment = state.moment;
+  if (r.rush) {
+    const done = new Set(r.cafeServed.map((x) => x.id));
+    cafe = { ...cafe, orders: cafe.orders.filter((o) => !done.has(o.id)), rushes: cafe.rushes + 1 };
+    if (r.cafeServed.length) {
+      const clean = r.cafeServed.every((x) => x.perfect);
+      const tips = r.cafeServed.reduce((n, x) => n + x.tip, 0);
+      rushMoment = moment('cafe', clean ? 'A clean rush!' : 'Rush complete!', `You served ${r.cafeServed.length} guest${r.cafeServed.length > 1 ? 's' : ''} together${clean ? ', every order perfect' : ''}. Tips ${tips}.`, clean ? '🙌' : '☕', clean ? 'cz_highfive' : 'cz_toast');
+    }
+  }
   commit({
     ...state,
     coins: state.coins + mgCoins,
     today: { ...mgDay, mgCoins: mgDay.mgCoins + mgCoins },
+    cafe,
+    moment: rushMoment,
     shells: state.shells + r.shells,
     eventTokens: state.eventTokens + r.eventTokens,
     ingredients: state.ingredients + r.ingredients,
@@ -1146,4 +1159,25 @@ export function finishLatte(score: number): { coins: number; streak: number } {
     cafe: { ...state.cafe, latte: { day, n: l.n + 1, best: Math.max(l.best, score), streak } },
   });
   return { coins, streak };
+}
+
+
+// ---------- café orders and the rush ----------
+
+/** A guest sits down and orders. At most four wait on the rail, and two phones never double up. */
+export function addCafeOrder(kind: string): boolean {
+  const c = state.cafe;
+  const now = Date.now();
+  if (c.orders.length >= MAX_ORDERS || now - c.lastOrderTs < 4000) return false;
+  const o = newOrder(state, kind);
+  commit({ ...state, cafe: { ...c, lastOrderTs: now, orders: [...c.orders, { id: uid(), kind, drink: o.drink, pastry: o.pastry, ts: now }] } });
+  return true;
+}
+
+/** One of you takes an order from the rail. */
+export function takeCafeOrder(by: PlayerId, id: string) {
+  commit({ ...state, cafe: { ...state.cafe, orders: state.cafe.orders.map((o) => (o.id === id && !o.by ? { ...o, by } : o)) } });
+}
+export function untakeCafeOrder(id: string) {
+  commit({ ...state, cafe: { ...state.cafe, orders: state.cafe.orders.map((o) => (o.id === id ? { ...o, by: undefined } : o)) } });
 }

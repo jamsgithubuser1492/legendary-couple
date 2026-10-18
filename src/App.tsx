@@ -26,7 +26,7 @@ import PocketPhone, { type PhoneAction } from './ui/PocketPhone';
 import SurpriseModal from './ui/SurpriseModal';
 import MomentOverlay from './ui/MomentOverlay';
 import CafePanel from './ui/CafePanel';
-import { EventsModal, GachaModal, LatteModal } from './ui/CafeGames';
+import { EventsModal, GachaModal, LatteModal, OrdersModal } from './ui/CafeGames';
 import { startSync } from './lib/sync';
 import type { Quest, StartingPath } from './types';
 
@@ -65,7 +65,7 @@ export default function App() {
   const [phone, setPhone] = useState(false);
   const [surprise, setSurprise] = useState(false);
   const [cafePanel, setCafePanel] = useState(false);
-  const [cafeGame, setCafeGame] = useState<'latte' | 'gacha' | 'events' | null>(null);
+  const [cafeGame, setCafeGame] = useState<'latte' | 'gacha' | 'events' | 'orders' | null>(null);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
@@ -87,7 +87,7 @@ export default function App() {
       if (w === 'streak') { setWeekTab('streak'); setWeek(true); }
       else if (w === 'covenant') { setWeekTab('goal'); setWeek(true); }
       else if (w === 'surprise') setSurprise(true);
-      else if (w === 'latte' || w === 'gacha' || w === 'events') setCafeGame(w);
+      else if (w === 'latte' || w === 'gacha' || w === 'events' || w === 'orders') setCafeGame(w);
       else if (w === 'chalk') setCafePanel(true);
     };
     gameBus.on(BUS.openFocus, openFocus);
@@ -200,6 +200,12 @@ export default function App() {
       {expandOpen && <ExpandModal space={view === 'cafe' ? 'cafe' : 'island'} onClose={() => setExpandOpen(false)} />}
       {cafeGame === 'latte' && <LatteModal onClose={() => setCafeGame(null)} />}
       {cafeGame === 'gacha' && <GachaModal onClose={() => setCafeGame(null)} />}
+      {cafeGame === 'orders' && <OrdersModal onClose={() => setCafeGame(null)} />}
+      {view === 'cafe' && !mgActive && !editing && (
+        <button className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full bg-cream/95 px-4 py-2 font-display text-sm font-bold text-cocoa shadow active:scale-95" onClick={() => setCafeGame('orders')}>
+          🧾 Orders ({state.cafe.orders.length}){state.cafe.orders.some((o) => !o.by) && <span className="ml-1 inline-block h-2.5 w-2.5 rounded-full bg-red-500" />}
+        </button>
+      )}
       {cafeGame === 'events' && <EventsModal onClose={() => setCafeGame(null)} />}
       {cafePanel && <CafePanel onClose={() => setCafePanel(false)} onDecorate={startDecorating} />}
       {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} onOpen={(w) => { if (w === 'quests') setQuestsOpen(true); else if (w === 'arcade') setArcade(true); else if (w === 'log') setTogether('log'); else if (w === 'week') { setWeekTab('goal'); setWeek(true); } else setRituals(true); }} />}

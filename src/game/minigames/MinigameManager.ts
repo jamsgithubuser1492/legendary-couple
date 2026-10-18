@@ -12,6 +12,8 @@ export interface LaunchRequest {
   mode: 'solo' | 'together' | 'join';
   role?: PlayerId; // solo practice only: which partner you play
   sessionId?: string;
+  rush?: boolean; // a café rush: Matcha Masters fills your guests' orders
+  swap?: boolean; // the partners swap roles this rush
 }
 
 const PAUSABLE = ['MainScene', 'TownScene'];
@@ -51,8 +53,8 @@ export class MinigameManager {
     await lobby.join();
     lobby.on((m) => {
       if (m.t === 'invite' && m.from !== getMe() && !this.active) {
-        const p = m.p as { type: MGType; sessionId: string };
-        gameBus.emit(BUS.mgInvite, { type: p.type, sessionId: p.sessionId, from: m.from });
+        const p = m.p as { type: MGType; sessionId: string; rush?: boolean; swap?: boolean };
+        gameBus.emit(BUS.mgInvite, { type: p.type, sessionId: p.sessionId, from: m.from, rush: p.rush, swap: p.swap });
       }
     });
   }
@@ -92,7 +94,7 @@ export class MinigameManager {
       await net.join();
       if (req.mode === 'together') {
         await this.attach();
-        this.lobby?.send('invite', { type: req.type, sessionId });
+        this.lobby?.send('invite', { type: req.type, sessionId, rush: !!req.rush, swap: req.swap ?? getState().cafe.rushes % 2 === 1 });
       }
     }
     if (req.type === 'CRANE_CRAZE' && host) spendToken();
@@ -103,7 +105,7 @@ export class MinigameManager {
     this.active = { key, net, under, type: req.type, sessionId, role, solo };
     gameBus.emit(BUS.mgState, { active: true, type: req.type });
     const data = {
-      role, solo, net, names,
+      role, solo, net, names, rush: !!req.rush, swap: req.rush ? req.swap ?? getState().cafe.rushes % 2 === 1 : false,
       onDone: (r: MGResult) => this.done(r),
       onQuit: () => this.close(),
     };

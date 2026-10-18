@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_W_HALF, TILE_H, cartesianToIso, findPath, inBounds, isoToCartesian, tileCenter } from '../iso';
 import { BUS, gameBus, type EditPayload } from '../events';
-import { collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
+import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
 import { dateKey } from '../../state/questions';
 import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, STAFF, styleOf, themeOf } from '../../state/cafe';
 import { canPlace, tilesOf } from '../../state/placement';
@@ -435,6 +435,7 @@ export class CafeScene extends Phaser.Scene {
     }
     this.walkPatron(p, path, () => {
       this.bubble(p, 'cx_b_menu');
+      addCafeOrder(kind);
       this.time.delayedCall(2600, () => {
         this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
         this.time.delayedCall(2200, () => this.leaveDoor(p));
@@ -574,7 +575,7 @@ export class CafeScene extends Phaser.Scene {
     if (wasDrag) return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     const guest = this.patrons.find((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4);
-    if (guest && !this.edit.active) return this.say('☕ A guest is ordering. Serve them in Matcha Masters (Arcade, then Games), and your café earns a bonus on every round.');
+    if (guest && !this.edit.active) return gameBus.emit(BUS.openFocus, 'orders');
     const t = this.pointerTile(p) ?? this.doorTap(p);
     if (!t) return;
     if (this.edit.active) return this.editAt(t);

@@ -13,6 +13,8 @@ export interface MGInit {
   solo: boolean; // practice against the Mochi bot
   net: MinigameNet | null;
   names: Record<PlayerId, string>;
+  rush: boolean; // a café rush: orders come from your guests
+  swap: boolean; // roles swapped: partner B is the Sous Chef
   onDone: (r: MGResult) => void;
   onQuit: () => void;
 }

@@ -57,6 +57,8 @@ export interface PlacedObject {
   rotation: 0 | 90 | 180 | 270;
 }
 
+/** A guest's order. Orders wait on the ticket rail with no timer; a rush of Matcha Masters fills them. */
+export interface CafeOrder { id: string; kind: string; drink: string | null; pastry: string | null; by?: PlayerId; ts: number }
 export type CafeTheme = 'matcha' | 'bistro' | 'cloud';
 /** The café interior: its own room, grid and furniture, kept apart from the island outside. */
 export interface CafeState {
@@ -74,6 +76,9 @@ export interface CafeState {
   event: { day: string; id: string; by: PlayerId; joined: boolean; full?: boolean } | null;
   latte: { day: string; n: number; best: number; streak: number };
   gacha: { n: number; day: string; pity: number };
+  orders: CafeOrder[]; // open orders on the ticket rail
+  rushes: number; // finished rushes, used to swap roles each time
+  lastOrderTs: number;
 }
 
 export interface Memory {

@@ -152,12 +152,12 @@ export function useMinigameActive(): boolean {
 }
 
 export function MinigameOverlays() {
-  const [invite, setInvite] = useState<{ type: MGType; sessionId: string; from: PlayerId } | null>(null);
+  const [invite, setInvite] = useState<{ type: MGType; sessionId: string; from: PlayerId; rush?: boolean; swap?: boolean } | null>(null);
   const [result, setResult] = useState<MGResult | null>(null);
   const [bottle, setBottle] = useState(false);
   const [note, setNote] = useState('');
   useEffect(() => {
-    const a = (p: { type: MGType; sessionId: string; from: PlayerId }) => setInvite(p);
+    const a = (p: { type: MGType; sessionId: string; from: PlayerId; rush?: boolean; swap?: boolean }) => setInvite(p);
     const b = (r: MGResult) => setResult(r);
     const c = () => setBottle(true);
     gameBus.on(BUS.mgInvite, a);
@@ -175,9 +175,9 @@ export function MinigameOverlays() {
       {invite && (
         <div className="absolute inset-x-0 top-3 z-40 mx-auto flex w-[92%] max-w-md items-center justify-between gap-2 rounded-2xl bg-cream p-3 text-cocoa shadow-2xl">
           <img src={`${import.meta.env.BASE_URL}assets/sprites/cz_invite.png`} alt="" className="h-12 shrink-0" draggable={false} />
-          <span className="font-display font-bold">{gameOf(invite.type).icon} {s.names[invite.from]} invites you to {gameOf(invite.type).name}!</span>
+          <span className="font-display font-bold">{gameOf(invite.type).icon} {s.names[invite.from]} invites you to {invite.rush ? 'a café rush' : gameOf(invite.type).name}!</span>
           <span className="flex gap-2">
-            <button className={primaryBtn} onClick={() => { gameBus.emit(BUS.mgLaunch, { type: invite.type, mode: 'join', sessionId: invite.sessionId }); setInvite(null); }}>Join</button>
+            <button className={primaryBtn} onClick={() => { gameBus.emit(BUS.mgLaunch, { type: invite.type, mode: 'join', sessionId: invite.sessionId, rush: invite.rush, swap: invite.swap }); setInvite(null); }}>Join</button>
             <button className={softBtn} onClick={() => setInvite(null)}>Later</button>
           </span>
         </div>

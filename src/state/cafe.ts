@@ -22,7 +22,7 @@ export const CAFE_STEPS: { size: number; coins: number }[] = [
 
 export const newCafe = (): CafeState => ({
   theme: 'matcha', themes: ['matcha'], size: CAFE_START, placed: [], avatars: { A: { x: 3, y: 2 }, B: { x: 4, y: 2 } }, tipsAt: Date.now(), sitDay: '', pantryDay: '',
-  staff: [], sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 },
+  staff: [], sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 }, orders: [], rushes: 0, lastOrderTs: 0,
 });
 
 export const DOOR_X = 3; // the front door is in the back right wall, here
@@ -197,3 +197,39 @@ export const sitToday = (s: GameState) => s.cafe.sitDay === dateKey();
 
 export const ESPRESSO_RECIPE = 'Velvet Espresso Matcha';
 export const isCafeItem = (it: CatalogItem) => it.category !== 'landmark';
+
+// ---------------------------------------------------------------------------------------------------------------
+// Orders: guests ask for a drink, a pastry or both. Matcha Masters fills them.
+
+export const PASTRY_IDS = ['cx_g_cake', 'cx_g_croissant', 'cx_g_macarons', 'cx_g_bread', 'cy_g_curry', 'cy_g_focaccia', 'cy_g_hamcroissant', 'cy_g_baguette'];
+/** Pastries that stand on a pastry case (or counter). The goods stay as decor: nothing is ever used up. */
+export function pastryStock(s: GameState): string[] {
+  const out = new Set<string>();
+  for (const g of s.cafe.placed) {
+    if (!PASTRY_IDS.includes(g.itemId)) continue;
+    const base = s.cafe.placed.find((o) => o !== g && itemOf(o.itemId)?.effect === 'pastry' && o.tileX <= g.tileX && o.tileY <= g.tileY && o.tileX + 2 > g.tileX && o.tileY + 2 > g.tileY);
+    if (base) out.add(g.itemId);
+  }
+  return [...out];
+}
+export const MENU_DRINKS: { name: string; recipe: string[] }[] = [
+  { name: 'Matcha Latte', recipe: ['Matcha', 'Oat Milk', 'Ice'] },
+  { name: 'Boba Matcha', recipe: ['Matcha', 'Oat Milk', 'Ice', 'Boba'] },
+  { name: 'Strawberry Matcha', recipe: ['Matcha', 'Milk', 'Strawberry'] },
+  { name: 'Iced Coffee', recipe: ['Espresso', 'Ice', 'Milk'] },
+  { name: 'Strawberry Latte', recipe: ['Espresso', 'Milk', 'Strawberry'] },
+  { name: ESPRESSO_RECIPE, recipe: ['Matcha', 'Espresso', 'Milk'] },
+];
+export const drinkOf = (name: string | null) => MENU_DRINKS.find((d) => d.name === name);
+export const pastryName = (id: string | null) => (id ? itemOf(id)?.name ?? 'Pastry' : '');
+
+/** A fresh order for a guest, drawn from what this café can make today. */
+export function newOrder(s: GameState, kind: string): { drink: string | null; pastry: string | null } {
+  const stock = pastryStock(s);
+  const drinks = MENU_DRINKS.filter((d) => d.name !== ESPRESSO_RECIPE || s.recipes.includes(ESPRESSO_RECIPE));
+  const pastry = stock.length && Math.random() < 0.55 ? stock[Math.floor(Math.random() * stock.length)] : null;
+  const pastryOnly = !!pastry && Math.random() < 0.22;
+  void kind;
+  return { drink: pastryOnly ? null : drinks[Math.floor(Math.random() * drinks.length)].name, pastry };
+}
+export const MAX_ORDERS = 4;

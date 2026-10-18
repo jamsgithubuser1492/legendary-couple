@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { BUS, gameBus } from '../game/events';
-import { finishLatte, joinCafeEvent, otherPlayer, pullGacha, startCafeEvent, useGameState, useMe } from '../state/store';
-import { eventOf, EVENT_TEAM, eventReady, EVENT_SURPRISE, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
+import { getRoom } from '../lib/sync';
+import { MinigameNet } from '../game/minigames/net';
+import { finishLatte, takeCafeOrder, untakeCafeOrder, joinCafeEvent, otherPlayer, pullGacha, startCafeEvent, useGameState, useMe } from '../state/store';
+import { drinkOf, pastryName, eventOf, EVENT_TEAM, eventReady, EVENT_SURPRISE, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
 import { dateKey } from '../state/questions';
 import { itemOf } from '../state/catalog';
 import { Amount } from './Currency';
@@ -236,6 +238,49 @@ export function EventsModal({ onClose }: { onClose: () => void }) {
       <div className="mt-3 text-xs font-bold uppercase text-cocoa/50">This week's calendar</div>
       <div className="mt-1 space-y-2">{EVENTS.map((e) => <Row key={e.id} id={e.id} />)}</div>
       <p className="mt-3 text-center text-xs text-cocoa/60">Events are a team effort. One of you opens it, the other joins, and a friendly crowd only needs your room to be ready.</p>
+    </Sheet>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------- the ticket rail
+/** Guests' orders wait here with no timer. Take the ones you want, then start a rush of Matcha Masters to fill them. */
+export function OrdersModal({ onClose }: { onClose: () => void }) {
+  const s = useGameState();
+  const me = useMe();
+  const partner = s.names[otherPlayer(me)];
+  const orders = s.cafe.orders;
+  const taken = orders.filter((o) => o.by);
+  const swap = s.cafe.rushes % 2 === 1;
+  const sousName = s.names[swap ? 'B' : 'A'], barName = s.names[swap ? 'A' : 'B'];
+  const together = !!getRoom() || MinigameNet.localOnly();
+  const start = () => {
+    onClose();
+    gameBus.emit(BUS.mgLaunch, { type: 'MATCHA_MASTERS', mode: together ? 'together' : 'solo', role: me, rush: true, swap });
+  };
+  return (
+    <Sheet title="Orders 🧾" onClose={onClose}>
+      <p className="text-xs text-cocoa/70">Guests place orders as they sit down. There is no timer, and nobody leaves upset. Take the orders you want to cook, then start a rush together.</p>
+      {orders.length === 0 && <p className="mt-3 rounded-2xl bg-white p-4 text-center text-sm text-cocoa shadow">No orders yet. Guests arrive while your café is open (it needs a seat and a table).</p>}
+      <div className="mt-3 space-y-2">
+        {orders.map((o) => {
+          const d = drinkOf(o.drink);
+          return (
+            <div key={o.id} className={`flex items-center gap-2 rounded-2xl p-2 shadow ${o.by ? 'bg-emerald-50' : 'bg-white'}`}>
+              <SpriteImg sprite={['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist'].includes(o.kind) ? `cx_p_${o.kind}` : `cz_t_${o.kind}`} size={48} />
+              <div className="flex-1 text-cocoa">
+                <div className="font-display text-sm font-bold">{d ? d.name : pastryName(o.pastry)}{d && o.pastry ? ` + ${pastryName(o.pastry)}` : ''}</div>
+                <div className="text-[11px] opacity-70">{d ? d.recipe.join(', ') : 'A pastry on its own'}{o.pastry && d ? ' · plated by the Sous Chef' : ''}</div>
+              </div>
+              {o.by ? <button className={`${softBtn} !px-3 !py-1 text-xs`} onClick={() => untakeCafeOrder(o.id)}>Taken by {s.names[o.by]} ✓</button> : <button className={`${primaryBtn} !px-3 !py-1 text-xs`} onClick={() => takeCafeOrder(me, o.id)}>Take it</button>}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3 text-center text-sm text-cocoa">
+        This rush: <b>{sousName}</b> preps as Sous Chef and <b>{barName}</b> brews as Barista. You swap roles every rush.
+      </div>
+      <button className={`${primaryBtn} mt-3 w-full`} disabled={!taken.length} onClick={start}>Start the rush with {together ? partner : 'Mochi'} ({taken.length}) ☕</button>
+      <p className="mt-2 text-center text-[11px] text-cocoa/60">Up to four orders a rush. Anything you do not cook stays on the rail for next time. Tips come from the Matcha Masters round, with your café bonuses.</p>
     </Sheet>
   );
 }

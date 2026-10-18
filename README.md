@@ -318,3 +318,8 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - `displayWidth()` in `placedRender.ts` sets one scale for the café: people about 54 px tall, chair seats at their knee, tables at their waist. Guests, staff and walkers now share the same height.
 - Guests walk with a 4 step frame swap per tile, a soft shadow that follows them, and depth sorting.
 - Cutesy café backdrop: a pastel gradient, soft glow, polka dots, scalloped bunting and drifting little leaves, hearts or clouds that follow the room theme (Build 38).
+
+### Build 39: serving guests (café orders and the Matcha rush)
+- Guests who sit down place an order: a drink, a drink plus a pastry (only if a pastry good stands on a pastry case, and goods are never used up), or sometimes a pastry on its own. Orders wait on the Orders rail (🧾 button in the café, or tap a guest) with no timers.
+- Take the orders you want, then Start the rush. It launches Matcha Masters with those orders as the tickets (up to four). In a rush nobody leaves unhappy. Pastry orders add a "Plate it" step for the Sous Chef before the Barista serves. Roles swap every rush.
+- Finished orders leave the rail and the round's tips pay as usual (still under the daily Matcha cap, with your café bonuses). A clean rush shows the high five.

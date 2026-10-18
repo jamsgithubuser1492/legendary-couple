@@ -111,6 +111,8 @@ export interface MGResult {
   items: string[];
   recipes: string[];
   notes: string[];
+  cafeServed: { id: string; tip: number; perfect: boolean }[]; // café orders filled in a rush
+  rush: boolean;
   award: boolean; // only the host's device applies the reward, so a synced game never pays twice
 }
-export const emptyResult = (type: MGType): MGResult => ({ type, score: 0, stars: 0, coins: 0, shells: 0, eventTokens: 0, ingredients: 0, driftwood: 0, fauna: {}, figures: [], items: [], recipes: [], notes: [], award: true });
+export const emptyResult = (type: MGType): MGResult => ({ type, score: 0, stars: 0, coins: 0, shells: 0, eventTokens: 0, ingredients: 0, driftwood: 0, fauna: {}, figures: [], items: [], recipes: [], notes: [], cafeServed: [], rush: false, award: true });
