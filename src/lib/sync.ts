@@ -21,6 +21,9 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let dirty = false;
 let started = false;
 
+let lastError = '';
+export const getSyncError = () => lastError;
+
 const setStatus = (s: SyncStatus) => {
   status = s;
   listeners.forEach((l) => l());
@@ -94,8 +97,10 @@ async function push() {
     .upsert({ room_code: room, state: getState(), updated_at: new Date().toISOString() });
   if (error) {
     dirty = true;
+    lastError = `${error.message}${error.code ? ` (${error.code})` : ''}`;
     setStatus('error');
   } else {
+    lastError = '';
     dirty = false;
     setStatus('synced');
   }
@@ -115,6 +120,7 @@ async function connect() {
   const code = room;
   const { data, error } = await sb.from('game_state').select('state').eq('room_code', code).maybeSingle();
   if (error) {
+    lastError = `${error.message}${error.code ? ` (${error.code})` : ''}`;
     setStatus('error');
     return;
   }

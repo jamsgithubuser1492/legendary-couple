@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateRoomCode, getRoom, inviteLink, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
+import { generateRoomCode, getRoom, getSyncError, inviteLink, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
 import { otherPlayer, setNames, setMe, useGameState, useMe } from '../state/store';
 import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
 
@@ -82,6 +82,7 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
           ))}
         </div>
         <p className="mt-3 text-xs text-cocoa/60">Status: {STATUS[status]}</p>
+        {status === 'error' && <p className="mt-1 break-words rounded-xl bg-white p-2 text-xs text-cocoa/70">Reason: {getSyncError() || 'could not reach the server'}</p>}
         {onChangePath && <button className="mt-3 w-full rounded-full bg-peach py-2 font-display font-bold text-cocoa" onClick={() => { onClose(); onChangePath(); }}>🗺️ Change starting path</button>}
         {onCheats && <button className="mt-3 w-full rounded-full bg-white py-2 font-display font-bold text-cocoa/70" onClick={() => { onClose(); onCheats(); }}>🧪 Cheats</button>}
         <button className="mt-3 w-full rounded-full bg-blush py-2 font-display font-bold text-cocoa" onClick={onClose}>Done</button>
