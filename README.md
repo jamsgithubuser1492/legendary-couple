@@ -289,3 +289,12 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - **Café that does things:** pastry cases add 10% to Matcha Masters coins (two count), the espresso station teaches a new recipe, the window bench gives a daily sit together bonus (the couple appear on the bench), the whisk station stocks the pantry each day, and matching sets plus decor raise a style score that sets a 1 to 5 star rating. An open café (a seat and a table) earns tips you collect, and little customers walk in, stand at a table or counter and leave happy or confused.
 - **Goods stand on surfaces:** display goods (cakes, jars, hoodies, bulk boxes) go on tables, counters and cases.
 - **The lantern and postbox moved** to the island's far back corner, so they never crowd your build space.
+
+### Build 35: café management, wired from sheets 75 to 87
+- **Art** (`tools/slice_cafe2.py`, 163 sprites): staff, ovens, fridge, register, pickup, couches, pet furniture, bakery goods, Wi-Fi router, power strips, study clutter, lucky cat, rare prizes, chalkboard signs, community board, latte art kit, plus the island lantern and postbox (now your painted versions).
+- **Staff**: four hireable baristas (300 to 1200 coins, no wages). They walk the room, and each adds a perk (tips, pantry, Matcha bonus, pet bonus).
+- **Latte Art Studio** (tap the espresso station): trace a cat, frog or heart. The score comes from how much of the dotted line you cover and how far you stray. Three paid pours a day, with a streak multiplier.
+- **Lucky Cat** (tap it): one free pull a day, then 40 coins. Rare prize guaranteed every 10th pull. Prizes include the Vintage Jukebox.
+- **Community Board** (tap it): a weekly calendar of four events (Adopt-a-Pet Saturday, Study Slam Wednesday, Rainy Jazz Friday, Latte Masterclass Sunday). One of you hosts, the other joins, and both are rewarded. Adopt-a-Pet raises your café's popularity for good.
+- **Chalkboard** (café panel): pick a message to draw in certain guests, with a small tip boost.
+- **Rating** now includes sofas, pets, the kitchen pair (oven and fridge stock the pantry), register (+15% tips), Wi-Fi and power. All tip bonuses multiply together (`tipMult`).

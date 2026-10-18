@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
-import { cafeView, ESPRESSO_RECIPE, matchaBonus, newCafe, nextCafeStep, sitToday, styleOf, tipsPending, themeOf } from './cafe';
+import { cafeView, ESPRESSO_RECIPE, eventOf, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
 import { setGridSize } from '../game/iso';
 import { presetOf } from './presets';
 import { getTheme } from './season';
@@ -1058,10 +1058,89 @@ export function sitTogether(): boolean {
   return true;
 }
 
-/** Walking in: each day a matcha whisk station stocks the pantry with one ingredient. */
-export function stockPantry(): boolean {
+/** Walking in: each day the pantry is stocked by the whisk station, the kitchen (oven and fridge) and an apprentice. */
+export function stockPantry(): number {
   const day = dateKey();
-  if (!styleOf(state).whisk || state.cafe.pantryDay === day) return false;
-  commit({ ...state, ingredients: state.ingredients + 1, cafe: { ...state.cafe, pantryDay: day } });
+  const st = styleOf(state);
+  const n = (st.whisk ? 1 : 0) + (st.kitchen ? 1 : 0) + (state.cafe.staff.includes('apprentice') ? 1 : 0);
+  if (!n || state.cafe.pantryDay === day) return 0;
+  commit({ ...state, ingredients: state.ingredients + n, cafe: { ...state.cafe, pantryDay: day } });
+  return n;
+}
+
+/** Hires a barista. There are no wages: each one just adds something to the café. */
+export function hireStaff(id: string): boolean {
+  const st = STAFF.find((x) => x.id === id);
+  if (!st || state.cafe.staff.includes(id) || state.coins < st.price) return false;
+  commit({ ...state, coins: state.coins - st.price, cafe: { ...state.cafe, staff: [...state.cafe.staff, id] }, moment: moment('cafe', `${st.name} joined!`, `${st.role}: ${st.perk}.`, '☕') });
   return true;
+}
+
+export function setSign(id: string): boolean {
+  const sg = SIGNS.find((x) => x.id === id);
+  if (!sg || styleOf(state).stars < sg.stars) return false;
+  commit({ ...state, cafe: { ...state.cafe, sign: id } });
+  return true;
+}
+
+/** One of you opens today's community event. It needs the room to be ready, and the other has to join in. */
+export function startCafeEvent(by: PlayerId, id: EventId): string | null {
+  const day = dateKey();
+  const ev = eventToday();
+  if (!ev || ev.id !== id) return 'That event is not on today.';
+  if (state.cafe.event?.day === day) return 'Today’s event is already under way.';
+  if (!eventReady(state, id)) return `Your café is not ready yet: ${ev.need}.`;
+  commit({ ...state, cafe: { ...state.cafe, event: { day, id, by, joined: false } } });
+  return null;
+}
+
+/** The other partner joins. Both of you are rewarded, and the café grows more popular. */
+export function joinCafeEvent(by: PlayerId): boolean {
+  const e = state.cafe.event;
+  if (!e || e.day !== dateKey() || e.joined || e.by === by) return false;
+  const ev = eventOf(e.id as EventId);
+  commit({
+    ...state,
+    coins: state.coins + ev.coins,
+    shells: state.shells + ev.shells,
+    xp: state.xp + 15,
+    cafe: { ...state.cafe, event: { ...e, joined: true }, popularity: Math.min(10, state.cafe.popularity + (ev.popularity ? 1 : 0)) },
+    moment: moment('cafe', `${ev.name} done!`, `You hosted it together. +${ev.coins} coins and +${ev.shells} shells${ev.popularity ? ', and your café is more popular for good' : ''}.`, ev.icon),
+  });
+  return true;
+}
+
+/** The lucky cat: one free pull a day, then a few coins a pull. A rare prize is guaranteed every 10th pull. */
+export function pullGacha(): { tier: 'common' | 'rare' | 'legendary'; itemId: string } | null {
+  const free = freePullToday(state);
+  if (!free && state.coins < GACHA_COST) return null;
+  const g = state.cafe.gacha;
+  const r = Math.random();
+  const pity = g.pity + 1 >= 10;
+  const tier: 'common' | 'rare' | 'legendary' = r > 0.96 ? 'legendary' : r > 0.74 || pity ? 'rare' : 'common';
+  const list = GACHA[tier];
+  const itemId = list[Math.floor(Math.random() * list.length)];
+  commit({
+    ...state,
+    coins: state.coins - (free ? 0 : GACHA_COST),
+    inventory: addToInventory(state.inventory, itemId, 1),
+    cafe: { ...state.cafe, gacha: { n: g.n + 1, day: free ? dateKey() : g.day, pity: tier === 'common' ? g.pity + 1 : 0 } },
+  });
+  return { tier, itemId };
+}
+
+/** A finished pour. Up to three a day pay coins, and a streak of good pours raises the tip. */
+export function finishLatte(score: number): { coins: number; streak: number } {
+  const day = dateKey();
+  const l = state.cafe.latte.day === day ? state.cafe.latte : { day, n: 0, best: 0, streak: state.cafe.latte.streak };
+  const streak = score >= 80 ? l.streak + 1 : 0;
+  const paid = l.n < 3;
+  const coins = paid ? Math.round((score / 100) * 20 * (1 + 0.1 * Math.min(8, streak))) : 0;
+  commit({
+    ...state,
+    coins: state.coins + coins,
+    shells: state.shells + (paid && score >= 90 && l.best < 90 ? 1 : 0),
+    cafe: { ...state.cafe, latte: { day, n: l.n + 1, best: Math.max(l.best, score), streak } },
+  });
+  return { coins, streak };
 }

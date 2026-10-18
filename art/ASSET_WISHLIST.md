@@ -332,3 +332,8 @@ Still missing, and what makes it a couples game:
 6. **Customer walk cycles and chair sitting poses** (current ones glide), plus staff idle frames.
 7. **Quiet corner**: a two person reading nook and a "talk" prompt card set, since events should include a slow moment together.
 8. **UI**: star rating, tip jar, order ticket, and weekly goal ribbon in the same painted style.
+
+
+## Part 14: still unused from the café sheets
+
+Saved but not wired: the hanging menu board, pickup station variants, tea sampler colour variants, study student sprites (typing, cramming, headphones), power strip animation frames, mailbox open door and sparkle, wall mounted and ceiling lanterns, prize bubbles (the crop is unusable, a cleaner sheet would help), gacha particle sheets, latte pitcher cursors and the tulip stencil (locked). Pets from the Pet Sitter picture and a rain overlay are drawn in code for now.

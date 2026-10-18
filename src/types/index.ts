@@ -68,6 +68,12 @@ export interface CafeState {
   tipsAt: number; // when tips last started to build up
   sitDay: string; // the day the couple last sat together on the window bench
   pantryDay: string; // the day the matcha whisk station last stocked the pantry
+  staff: string[]; // hired baristas
+  sign: string; // the sidewalk chalkboard message in use
+  popularity: number; // grows each time a community event is hosted together
+  event: { day: string; id: string; by: PlayerId; joined: boolean } | null;
+  latte: { day: string; n: number; best: number; streak: number };
+  gacha: { n: number; day: string; pity: number };
 }
 
 export interface Memory {

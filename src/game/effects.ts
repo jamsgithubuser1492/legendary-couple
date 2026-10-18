@@ -23,6 +23,7 @@ export class IslandEffects {
   private lanternImg?: Phaser.GameObjects.Image;
   private lanternTier = -1;
   private envelope?: Phaser.GameObjects.Text;
+  private mailbox?: Phaser.GameObjects.Image;
   private lastBid = 0;
   private last = 0;
 
@@ -37,21 +38,17 @@ export class IslandEffects {
     this.drawPorch();
   }
 
-  /** The Synergy Lantern on its post, and the striped postbox: tap either to open it. */
+  /** The Synergy Lantern and the postbox, from your painted sheet: tap either to open it. */
   private drawPorch() {
     const sc = this.scene;
     const lc = tileCenter(LANTERN.x, LANTERN.y);
     const depth = LANTERN.x + LANTERN.y + 0.5;
-    const post = sc.add.graphics().setDepth(depth - 0.05);
-    post.fillStyle(0x8a5a44, 1);
-    post.fillRect(lc.x - 2, lc.y - 50, 4, 62);
-    post.fillRect(lc.x - 2, lc.y - 52, 14, 4);
     this.lanternGlow.setDepth(depth - 0.1);
-    if (sc.textures.exists('fx_lantern_4')) this.lanternImg = sc.add.image(lc.x + 10, lc.y - 44, 'fx_lantern_4').setOrigin(0.5, 0).setScale(0.5).setDepth(depth);
+    if (sc.textures.exists('cy_lantern')) this.lanternImg = sc.add.image(lc.x, lc.y + 14, 'cy_lantern').setOrigin(0.5, 1).setScale(0.46).setDepth(depth);
     const pc = tileCenter(POST.x, POST.y);
-    if (sc.textures.exists('mailbox_red')) sc.add.image(pc.x, pc.y + 12, 'mailbox_red').setOrigin(0.5, 1).setScale(0.85).setDepth(POST.x + POST.y + 0.5);
-    this.envelope = sc.add.text(pc.x, pc.y - 56, '✉️', { fontSize: '20px' }).setOrigin(0.5).setDepth(POST.x + POST.y + 0.6).setVisible(false);
-    sc.tweens.add({ targets: this.envelope, y: pc.y - 62, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.mailbox = sc.textures.exists('cy_mailbox') ? sc.add.image(pc.x, pc.y + 14, 'cy_mailbox').setOrigin(0.5, 1).setScale(0.42).setDepth(POST.x + POST.y + 0.5) : undefined;
+    this.envelope = sc.add.text(pc.x, pc.y - 66, '✉️', { fontSize: '20px' }).setOrigin(0.5).setDepth(POST.x + POST.y + 0.6).setVisible(false);
+    sc.tweens.add({ targets: this.envelope, y: pc.y - 72, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   /** Warmer as the streak grows: unlit, pastel blue, soft pink, golden sparkle, then a rainbow aura. */
@@ -61,7 +58,7 @@ export class IslandEffects {
     const lc = tileCenter(LANTERN.x, LANTERN.y);
     if (this.lanternImg && tier !== this.lanternTier) {
       this.lanternTier = tier;
-      this.lanternImg.setTexture(['fx_lantern_4', 'fx_lantern_2', 'fx_lantern_1', 'fx_lantern_3', 'fx_lantern_3'][tier]);
+      this.lanternImg.setTexture(['cy_lantern', 'cy_lantern_f1', 'cy_lantern_f2', 'cy_lantern_f3', 'cy_lantern_f4'][tier]);
     }
     const g = this.lanternGlow;
     g.clear();
@@ -69,19 +66,21 @@ export class IslandEffects {
       const col = [0, 0x9fd0ff, 0xffb0cf, 0xffd966, Phaser.Display.Color.HSLToColor((time / 4000) % 1, 0.8, 0.75).color][tier];
       const pulse = 0.5 + 0.5 * Math.sin(time / 600);
       g.fillStyle(col, 0.16 + pulse * 0.1);
-      g.fillCircle(lc.x + 10, lc.y - 24, 30 + tier * 8);
+      g.fillCircle(lc.x, lc.y - 22, 30 + tier * 8);
       g.fillStyle(col, 0.22);
-      g.fillCircle(lc.x + 10, lc.y - 24, 18 + tier * 3);
+      g.fillCircle(lc.x, lc.y - 22, 18 + tier * 3);
       if (tier >= 3) {
         g.fillStyle(0xffffff, 0.9);
         for (let i = 0; i < 5; i++) {
           const a = time / 900 + i * 1.26;
-          g.fillCircle(lc.x + 10 + Math.cos(a) * 34, lc.y - 24 + Math.sin(a * 1.3) * 26, 1.8);
+          g.fillCircle(lc.x + Math.cos(a) * 34, lc.y - 22 + Math.sin(a * 1.3) * 26, 1.8);
         }
       }
     }
     const me = getMe();
-    this.envelope?.setVisible(s.surprises.some((x) => x.to === me && !x.doneAt));
+    const waiting = s.surprises.some((x) => x.to === me && !x.doneAt);
+    this.envelope?.setVisible(waiting);
+    this.mailbox?.setTexture(waiting && this.scene.textures.exists('cy_mailbox_flag') ? 'cy_mailbox_flag' : 'cy_mailbox');
   }
 
   /** How big the tree looks for a number of notes. */

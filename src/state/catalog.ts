@@ -1,7 +1,7 @@
 import type { Theme } from './season';
 
 export type Layer = 'floor' | 'wall' | 'walldecor' | 'object';
-export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'park' | 'decor' | 'pets' | 'landmark' | 'seasonal' | 'goods';
+export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'park' | 'decor' | 'pets' | 'landmark' | 'seasonal' | 'goods' | 'prize';
 export type Shape = 'box' | 'round' | 'tree';
 
 export interface CatalogItem {
@@ -36,7 +36,9 @@ export interface CatalogItem {
   styleCap?: number;
   set?: 'maple' | 'bistro';
   role?: 'chair' | 'table';
-  effect?: 'pastry' | 'espresso' | 'bench' | 'whisk';
+  effect?: 'pastry' | 'espresso' | 'bench' | 'whisk' | 'register' | 'oven' | 'fridge' | 'pet' | 'wifi' | 'power' | 'luckycat' | 'sign' | 'board';
+  /** How many seats a piece gives (a sofa seats two). */
+  seats?: number;
   /** Goods sit on a surface (a table, a counter or a case) instead of the floor. */
   surface?: boolean;
   onSurface?: boolean;
@@ -491,4 +493,39 @@ for (const [k, n, icon, coins] of GOODS) cx(`cx_g_${k}`, n, icon, 'goods', 'obje
 for (const id of ['table_cafe', 'cafe_round_set', 'cafe_cushion_set', 'cafe_counter', 'cafe_pastry_case', 'cafe_bread_shelf', 'dining_table', 'kitchen_island']) {
   const it = CATALOG.find((i) => i.id === id);
   if (it) it.surface = true;
+}
+
+// ---- Build 35: café management (sheets 75 to 87) ----
+const cy4 = (id: string, name: string, icon: string, cat: ShopCategory, coins: number, w: number, d: number, base: string, o: Cx = {}) =>
+  cx(id, name, icon, cat, 'object', coins, w, d, `${base}_fl`, { sprite4: base, h: 22, ...o });
+cy4('cy_loveseat', 'Padded Maple Loveseat', '🛋️', 'cafe', 260, 2, 1, 'cy_loveseat', { style: 5, seats: 2 });
+cy4('cy_sofa', 'Cream Cushion Sofa', '🛋️', 'cafe', 260, 2, 1, 'cy_sofa', { style: 5, seats: 2 });
+cy4('cy_wicker', 'Woven Bistro Sofa', '🛋️', 'cafe', 300, 2, 1, 'cy_wicker', { style: 5, seats: 2 });
+cy4('cy_catchair', 'Cat Ears Accent Chair', '🐱', 'cafe', 150, 1, 1, 'cy_catchair', { style: 5, seats: 1, h: 16 });
+cy4('cy_catbed', 'Fluffy Calico Cat Bed', '🐈', 'cafe', 110, 1, 1, 'cy_catbed', { style: 4, effect: 'pet', h: 8 });
+cy4('cy_tunnel', 'Rabbit Ears Play Tunnel', '🐰', 'cafe', 140, 1, 1, 'cy_tunnel', { style: 4, effect: 'pet', h: 12 });
+cy4('cy_foodbowl', 'Mini Food and Water Station', '🥣', 'cafe', 80, 1, 1, 'cy_foodbowl', { style: 3, effect: 'pet', h: 8 });
+cy4('cy_scratch', 'Vine Scratch Post', '🌿', 'cafe', 120, 1, 1, 'cy_scratch', { style: 4, effect: 'pet', h: 36 });
+cy4('cy_oven', 'Industrial Baking Oven', '🔥', 'cafe', 520, 1, 1, 'cy_oven', { style: 4, effect: 'oven', h: 28 });
+cx('cy_fridge', 'Commercial Refrigerator', '🧊', 'cafe', 'object', 560, 1, 1, 'cy_fridge', { style: 4, effect: 'fridge', h: 44 });
+cy4('cy_pos', 'Point of Sale Counter', '🧾', 'cafe', 420, 2, 1, 'cy_pos', { style: 4, effect: 'register', h: 24, surface: true });
+cy4('cy_pickup', 'Order Ready Pickup Station', '🛎️', 'cafe', 320, 2, 1, 'cy_pickup', { style: 3, h: 22, surface: true });
+cy4('cy_cart', 'Pastry Display Cart', '🍰', 'cafe', 380, 2, 1, 'cy_cart', { style: 4, effect: 'pastry', h: 24, surface: true });
+cy4('cy_tea', 'Steaming Tea Sampler', '🍵', 'cafe', 90, 1, 1, 'cy_tea', { style: 3, h: 8, onSurface: true, styleCap: 2 });
+cx('cy_router', 'Cutesy Wi-Fi Router', '📶', 'cafe', 'object', 200, 1, 1, 'cy_router', { style: 3, effect: 'wifi', h: 18 });
+cx('cy_cat', 'Lucky Cat Tip Jar', '🐱', 'cafe', 'object', 240, 1, 1, 'cy_cat_idle', { style: 5, effect: 'luckycat', h: 26 });
+cx('cy_signpost', 'Sidewalk Chalkboard', '🪧', 'cafe', 'object', 180, 1, 1, 'cy_sign', { style: 3, effect: 'sign', h: 30 });
+cx('cy_boardpost', 'Community Board', '📌', 'cafe', 'object', 220, 1, 1, 'cy_board', { style: 3, effect: 'board', h: 30 });
+cx('cy_sun', 'Hanging Prism Suncatcher', '🌈', 'cafe', 'walldecor', 140, 1, 1, 'cy_sun_f3', { style: 6, lift: 60 });
+cx('cy_jukebox', 'Vintage Vinyl Jukebox', '🎵', 'prize', 'object', 900, 1, 1, 'cy_jukebox', { style: 9, h: 34 });
+cx('cy_bobalamp', 'Boba Cat Lamp Post', '🏮', 'prize', 'object', 600, 1, 1, 'cy_bobalamp', { style: 7, h: 34 });
+cx('cy_bobalamp2', 'Boba Cat Lantern', '🏮', 'prize', 'object', 600, 1, 1, 'cy_bobalamp2', { style: 7, h: 30 });
+for (const [k, n, icon, coins] of [['curry', 'Curry Bun', '🥯', 35], ['focaccia', 'Tomato Focaccia', '🍕', 40], ['hamcroissant', 'Ham and Cheese Croissant', '🥐', 40], ['baguette', 'Baguette and Butter', '🥖', 35], ['bobajar', 'Matcha Boba Pearls Jar', '🫙', 40], ['condensed', 'Condensed Milk Tin', '🥫', 25], ['yuzu', 'Yuzu Honey Bottle', '🍯', 30], ['oatmilk', 'Oat Milk Carton', '🥛', 30], ['tallboba', 'Tall Boba Cup', '🧋', 35], ['tote', 'Branded Tote Bag', '👜', 55], ['box_artisan', 'Artisan Ingredient Box', '📦', 30], ['box_plain', 'Carton', '📦', 20], ['box_green', 'Green Stock Box', '📦', 30], ['crate_bottles', 'Glass Bottle Crate', '🍾', 40], ['crate_berries', 'Berry Crate', '🫐', 40]] as const) {
+  cx(`cy_g_${k}`, n, icon, 'goods', 'object', coins, 1, 1, `cy_g_${k}`, { h: 8, style: 1, styleCap: 1, onSurface: true });
+}
+for (const [k, n, icon] of [['book', 'Open Study Book', '📖'], ['pens', 'Highlighters', '🖍️'], ['laptop', 'Laptop', '💻'], ['boba', 'Study Boba', '🧋'], ['papers', 'Notes and Mug', '📝']] as const) {
+  cx(`cy_clu_${k}`, n, icon, 'goods', 'object', 25, 1, 1, `cy_clu_${k}`, { h: 8, style: 1, styleCap: 1, onSurface: true });
+}
+for (const [k, n, coins, eff] of [['rattan', 'Rattan Weave Floor', 50, undefined], ['pebble', 'Pebble Mosaic Floor', 50, undefined], ['tatami2', 'Tatami Corner Floor', 50, undefined], ['rug', 'Cozy Rug Pattern', 60, undefined], ['cables', 'Cabled Power Mat', 60, 'power'], ['strip', 'Power Strip Tile', 60, 'power'], ['strip2', 'Cream Power Strip Tile', 60, 'power']] as const) {
+  cx(`cy_floor_${k}`, n, '🟫', 'floor', 'floor', coins, 1, 1, `cy_floor_${k}`, { h: 0, ...(eff ? { effect: eff, style: 3, styleCap: 1 } : {}) });
 }

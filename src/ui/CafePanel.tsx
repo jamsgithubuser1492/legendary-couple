@@ -1,5 +1,5 @@
-import { collectTips, expandCafe, setCafeTheme, useGameState } from '../state/store';
-import { CAFE_STEPS, matchaBonus, nextCafeStep, SET_NAMES, sitToday, STAR_AT, styleOf, THEMES, tipCap, tipRate, tipsPending } from '../state/cafe';
+import { collectTips, expandCafe, hireStaff, setCafeTheme, setSign, useGameState } from '../state/store';
+import { CAFE_STEPS, matchaBonus, nextCafeStep, SET_NAMES, SIGNS, sitToday, STAFF, STAR_AT, styleOf, THEMES, tipCap, tipMult, tipRate, tipsPending } from '../state/cafe';
 import { Amount } from './Currency';
 import { SpriteImg } from './ItemIcon';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
@@ -25,7 +25,7 @@ export default function CafePanel({ onClose, onDecorate }: { onClose: () => void
       <div className="mt-3 rounded-2xl bg-white p-3 shadow">
         <div className="font-display font-bold text-cocoa">Tips jar 🪙</div>
         <p className="text-xs text-cocoa/60">
-          {open ? `Your café is open. It earns ${tipRate(st.stars)} coins an hour (up to ${tipCap(st.stars)}) and more with a higher rating.` : 'Add at least one seat and one table to open the café for business.'}
+          {open ? `Your café is open. It earns ${tipRate(s).toFixed(1)} coins an hour (up to ${tipCap(s)}), x${tipMult(s).toFixed(2)} from your rating, register, pets, sign, popularity and staff.` : 'Add at least one seat and one table to open the café for business.'}
         </p>
         <button className={`${primaryBtn} mt-2 w-full`} disabled={tips < 1} onClick={collectTips}>
           Collect <Amount kind="coin" n={tips} size={16} />
@@ -39,8 +39,39 @@ export default function CafePanel({ onClose, onDecorate }: { onClose: () => void
           <li>☕ Espresso station: {st.espresso ? 'placed, and it taught the café a recipe' : 'not placed yet, it unlocks a new recipe'}</li>
           <li>💞 Window bench: {st.bench ? (sitToday(s) ? 'you sat together today' : 'tap it to sit together today (+15 coins, +1 shell)') : 'not placed yet'}</li>
           <li>🍵 Whisk station: {st.whisk ? 'stocks your pantry each day you visit' : 'not placed yet'}</li>
+          <li>🧾 Register {st.register ? '✓ +15% tips' : '(a point of sale counter adds 15% tips)'} · 🐾 Pet corner {st.pets} (+3% each, up to 5) · 🍳 Kitchen {st.kitchen ? '✓ oven and fridge stock the pantry' : '(an oven and fridge stock the pantry)'}</li>
           <li>🪑 Matching sets: {st.sets.length ? st.sets.map((k) => SET_NAMES[k]).join(', ') + ' (+10 each)' : 'a table with two matching chairs gives +10 style'}</li>
         </ul>
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-3 shadow">
+        <div className="font-display font-bold text-cocoa">Baristas ☕</div>
+        <p className="text-xs text-cocoa/60">Hire help over time. There are no wages and nothing to manage, each one just adds a perk.</p>
+        <div className="mt-2 space-y-2">
+          {STAFF.map((m) => {
+            const own = s.cafe.staff.includes(m.id);
+            return (
+              <div key={m.id} className="flex items-center gap-2 rounded-xl bg-cream p-2">
+                <SpriteImg sprite={`${m.sprite}_fl`} size={44} />
+                <div className="flex-1 text-xs text-cocoa"><div className="font-display text-sm font-bold">{m.name} · {m.role}</div><div className="opacity-70">{m.perk}</div></div>
+                {own ? <span className="text-xs font-bold text-emerald-700">Hired ✓</span> : <button className={`${softBtn} !px-3 !py-1 text-xs`} disabled={s.coins < m.price} onClick={() => hireStaff(m.id)}><Amount kind="coin" n={m.price} size={12} /></button>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-3 shadow">
+        <div className="font-display font-bold text-cocoa">Sidewalk chalkboard 🪧</div>
+        <p className="text-xs text-cocoa/60">{st.sign ? 'Pick today’s message. It decides which guests drop in and adds a small tip boost.' : 'Place the Sidewalk Chalkboard in your café to choose a message.'}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {SIGNS.map((g) => (
+            <button key={g.id} disabled={!st.sign || st.stars < g.stars} onClick={() => setSign(g.id)} className={`relative overflow-hidden rounded-xl ${s.cafe.sign === g.id ? 'ring-4 ring-amber-300' : ''} disabled:opacity-50`}>
+              <img src={`${import.meta.env.BASE_URL}assets/sprites/${g.art}.png`} alt={g.name} draggable={false} />
+              {st.stars < g.stars && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs font-bold text-white">🔒 {g.stars}⭐</span>}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3">

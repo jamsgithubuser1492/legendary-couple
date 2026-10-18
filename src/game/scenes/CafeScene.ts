@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { TILE_W_HALF, TILE_H, cartesianToIso, findPath, inBounds, isoToCartesian, tileCenter } from '../iso';
 import { BUS, gameBus, type EditPayload } from '../events';
-import { getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
-import { cafeBlocked, cafeView, DOOR_X, ENTRY, shellPieces, styleOf, themeOf } from '../../state/cafe';
+import { collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
+import { dateKey } from '../../state/questions';
+import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, STAFF, styleOf, themeOf } from '../../state/cafe';
 import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
@@ -36,7 +37,6 @@ export class CafeScene extends Phaser.Scene {
   private itemObjs: Phaser.GameObjects.GameObject[] = [];
   private ghostObjs: Phaser.GameObjects.GameObject[] = [];
   private highlight!: Phaser.GameObjects.Graphics;
-  private backdrop!: Phaser.GameObjects.Rectangle;
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
   private lastHover: { x: number; y: number } | null = null;
   private blocked = new Set<string>();
@@ -47,12 +47,15 @@ export class CafeScene extends Phaser.Scene {
   private pinchDist = 0;
   private patrons: Patron[] = [];
   private nextPatron = 0;
+  private staffObjs = new Map<string, Patron>();
+  private staffKey = '';
+  private fx!: Phaser.GameObjects.Graphics;
 
   private size = () => getState().cafe.size;
 
   create() {
-    this.backdrop = this.add.rectangle(0, 0, 9000, 9000, 0xf6ebdd).setDepth(-100).setScrollFactor(0).setOrigin(0, 0);
     this.highlight = this.add.graphics().setDepth(1000);
+    this.fx = this.add.graphics().setDepth(3000);
     const st = getState();
     this.avatars = {
       A: new Avatar(this, 'A', st.cafe.avatars.A, 1, st.looks.A),
@@ -107,7 +110,8 @@ export class CafeScene extends Phaser.Scene {
     for (const p of this.patrons) this.dropPatron(p);
     this.patrons = [];
     this.nextPatron = 0;
-    if (stockPantry()) gameBus.emit(BUS.townToast, { text: '🍵 The matcha whisk station stocked your pantry with 1 ingredient.' });
+    const stocked = stockPantry();
+    if (stocked) gameBus.emit(BUS.townToast, { text: `🍵 Your café stocked the pantry with ${stocked} ingredient${stocked > 1 ? 's' : ''}.` });
     const me = getMe();
     const door = getState().cafe.avatars[me];
     if (door.y < 1 || door.x < 1) this.avatars[me].snap(ENTRY.x, ENTRY.y + 1);
@@ -152,7 +156,7 @@ export class CafeScene extends Phaser.Scene {
     for (const o of shellPieces(c.theme, c.size)) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view }));
     for (const o of c.placed) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view, skin }));
     this.blocked = cafeBlocked(s);
-    this.backdrop.setFillStyle(c.theme === 'cloud' ? 0xeceaf4 : c.theme === 'bistro' ? 0xf4e1d4 : 0xf6ebdd);
+    this.cameras.main.setBackgroundColor(c.theme === 'cloud' ? 0xeceaf4 : c.theme === 'bistro' ? 0xf4e1d4 : 0xf6ebdd);
     this.refreshHover();
   }
 
@@ -199,8 +203,11 @@ export class CafeScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- the little customers
-  private tick(_t: number, delta: number) {
-    if (!this.scene.isActive() || this.edit.active) return;
+  private tick(t: number, delta: number) {
+    if (!this.scene.isActive()) return;
+    this.drawFx(t);
+    this.syncStaff();
+    if (this.edit.active) return;
     this.nextPatron -= delta / 1000;
     const st = styleOf(getState());
     const open = st.seats > 0 && st.tables > 0;
@@ -211,6 +218,86 @@ export class CafeScene extends Phaser.Scene {
     }
   }
 
+  // ---------------------------------------------------------------- staff and event effects
+  private syncStaff() {
+    const hired = getState().cafe.staff;
+    const key = hired.join(',');
+    if (key === this.staffKey) return;
+    this.staffKey = key;
+    for (const [id, p] of this.staffObjs) if (!hired.includes(id)) { this.dropPatron(p); this.staffObjs.delete(id); }
+    for (const id of hired) {
+      if (this.staffObjs.has(id)) continue;
+      const def = STAFF.find((x) => x.id === id);
+      if (!def || !this.textures.exists(`${def.sprite}_fl`)) continue;
+      const spot = this.patronSpots()[0] ?? { x: 2, y: 2 };
+      const c = tileCenter(spot.x, spot.y);
+      const img = artImage(this, `${def.sprite}_fl`, c.x, c.y + 6, 0.5, 1).setDepth(spot.x + spot.y + 0.25);
+      const p: Patron = { img, tile: spot, busy: false };
+      this.staffObjs.set(id, p);
+      this.time.addEvent({ delay: 4500 + Math.random() * 3500, loop: true, callback: () => this.wanderStaff(def.sprite, p) });
+    }
+  }
+
+  private wanderStaff(base: string, p: Patron) {
+    if (!p.img.scene || p.busy) return;
+    const spots = this.patronSpots();
+    if (!spots.length) return;
+    const to = spots[Math.floor(Math.random() * spots.length)];
+    const path = findPath(p.tile, to, this.pathBlocked(), this.size());
+    if (!path.length) return;
+    p.busy = true;
+    let i = 0;
+    const step = () => {
+      if (!p.img.scene) return;
+      if (i >= path.length) { p.busy = false; return; }
+      const t = path[i++];
+      const dx = t.x - p.tile.x, dy = t.y - p.tile.y;
+      const dir = dx > 0 ? 'fr' : dy > 0 ? 'fl' : dx < 0 ? 'bl' : 'br';
+      if (this.textures.exists(`${base}_${dir}`)) p.img.setTexture(`${base}_${dir}`);
+      const b = tileCenter(t.x, t.y);
+      p.img.setDepth(t.x + t.y + 0.25);
+      this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 420, onComplete: () => { p.tile = t; step(); } });
+    };
+    step();
+  }
+
+  /** Rain for Jazz Night, the playpen for Adopt-a-Pet and a soft glow around each Wi-Fi router. */
+  private drawFx(t: number) {
+    const g = this.fx;
+    g.clear();
+    const s = getState();
+    const live = s.cafe.event && s.cafe.event.day === dateKey() ? s.cafe.event.id : eventToday() && s.cafe.event?.day === dateKey() ? eventToday()!.id : null;
+    for (const o of s.cafe.placed) {
+      if (itemOf(o.itemId)?.effect !== 'wifi') continue;
+      const c = tileCenter(o.tileX, o.tileY);
+      for (let i = 0; i < 3; i++) {
+        const k = ((t / 1400 + i / 3) % 1);
+        g.lineStyle(2, 0x7fe0c0, 0.55 * (1 - k));
+        g.strokeEllipse(c.x, c.y - 4, 30 + k * 90, 15 + k * 45);
+      }
+    }
+    if (live === 'adopt') {
+      const p = freePatch(s);
+      if (p) {
+        g.lineStyle(3, 0xff9db6, 0.9);
+        g.fillStyle(0xffd6e0, 0.25);
+        const a = cartesianToIso(p.x, p.y), b = cartesianToIso(p.x + 4, p.y), c = cartesianToIso(p.x + 4, p.y + 4), d = cartesianToIso(p.x, p.y + 4);
+        g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.closePath(); g.fillPath(); g.strokePath();
+      }
+    }
+    if (live === 'jazz') {
+      const cam = this.cameras.main.worldView;
+      g.fillStyle(0x2a2f5a, 0.28);
+      g.fillRect(cam.x - 50, cam.y - 50, cam.width + 100, cam.height + 100);
+      g.lineStyle(2, 0xcfe4ff, 0.7);
+      for (let i = 0; i < 46; i++) {
+        const x = cam.x + ((i * 97 + t * 0.06) % cam.width);
+        const y = cam.y + ((i * 53 + t * 0.5) % cam.height);
+        g.lineBetween(x, y, x - 3, y + 12);
+      }
+    }
+  }
+
   private dropPatron(p: Patron) {
     this.tweens.killTweensOf(p.img);
     p.bubble?.destroy();
@@ -218,7 +305,11 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private addPatron() {
-    const kind = PATRONS[Math.floor(Math.random() * PATRONS.length)];
+    const s0 = getState();
+    const sign = SIGNS.find((g) => g.id === s0.cafe.sign);
+    const study = s0.cafe.event?.day === dateKey() && s0.cafe.event.id === 'study';
+    const pool = study ? ['student', 'student', 'nomad', 'scholar'] : sign && styleOf(s0).sign && Math.random() < 0.7 ? sign.draws : PATRONS;
+    const kind = pool[Math.floor(Math.random() * pool.length)];
     const key = `cx_p_${kind}`;
     if (!this.textures.exists(key)) return;
     const home = tileCenter(DOOR_X, 1);
@@ -353,7 +444,13 @@ export class CafeScene extends Phaser.Scene {
       return;
     }
     if (it?.effect === 'pastry') return this.say('🍰 Pastry case: +10% coins in Matcha Masters (two count).');
-    if (it?.effect === 'espresso') return this.say('☕ Espresso station: taught the café a new recipe.');
+    if (it?.effect === 'espresso') return gameBus.emit(BUS.openFocus, 'latte');
+    if (it?.effect === 'luckycat') return gameBus.emit(BUS.openFocus, 'gacha');
+    if (it?.effect === 'sign') return gameBus.emit(BUS.openFocus, 'chalk');
+    if (it?.effect === 'board') return gameBus.emit(BUS.openFocus, 'events');
+    if (it?.effect === 'register') { const n = collectTips(); return this.say(n ? `🧾 You collected ${n} coins in tips.` : '🧾 No tips to collect yet. The café earns them while it is open.'); }
+    if (it?.effect === 'wifi') return this.say('📶 Wi-Fi router: students love it. It powers Study Slam.');
+    if (it?.effect === 'pet') return this.say('🐾 A cozy pet corner makes guests happy and adds to your tips.');
     if (it?.effect === 'whisk') return this.say('🍵 Whisk station: stocks the pantry once a day.');
     this.walkTo(t);
   }
