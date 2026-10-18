@@ -10,9 +10,9 @@ export const ISLAND_STEPS: { size: number; coins: number }[] = [
 export const PLOT = { x: 4, y: 4 };
 /** Where the Gratitude Tree grows. */
 export const TREE = { x: 8, y: 1 };
-/** The Synergy Lantern and the postbox stand in the island's far back corner, out of the way of everything you build. */
-export const LANTERN = { x: 0, y: 1 };
-export const POST = { x: 1, y: 0 };
+/** The Synergy Lantern and the postbox stand along the island's back left edge, out of the way of everything you build. */
+export const LANTERN = { x: 0, y: 3 };
+export const POST = { x: 0, y: 7 };
 
 export function tilesOf(itemId: string, x: number, y: number, rotation: number): { x: number; y: number }[] {
   const item = itemOf(itemId);

@@ -44,11 +44,11 @@ export class IslandEffects {
     const lc = tileCenter(LANTERN.x, LANTERN.y);
     const depth = LANTERN.x + LANTERN.y + 0.5;
     this.lanternGlow.setDepth(depth - 0.1);
-    if (sc.textures.exists('cy_lantern')) this.lanternImg = sc.add.image(lc.x, lc.y + 14, 'cy_lantern').setOrigin(0.5, 1).setScale(0.46).setDepth(depth);
+    if (sc.textures.exists('cy_lantern')) this.lanternImg = sc.add.image(lc.x, lc.y + 10, 'cy_lantern').setOrigin(0.5, 1).setScale(0.26).setDepth(depth);
     const pc = tileCenter(POST.x, POST.y);
-    this.mailbox = sc.textures.exists('cy_mailbox') ? sc.add.image(pc.x, pc.y + 14, 'cy_mailbox').setOrigin(0.5, 1).setScale(0.42).setDepth(POST.x + POST.y + 0.5) : undefined;
-    this.envelope = sc.add.text(pc.x, pc.y - 66, '✉️', { fontSize: '20px' }).setOrigin(0.5).setDepth(POST.x + POST.y + 0.6).setVisible(false);
-    sc.tweens.add({ targets: this.envelope, y: pc.y - 72, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.mailbox = sc.textures.exists('cy_mailbox') ? sc.add.image(pc.x, pc.y + 12, 'cy_mailbox').setOrigin(0.5, 1).setScale(0.24).setDepth(POST.x + POST.y + 0.5) : undefined;
+    this.envelope = sc.add.text(pc.x, pc.y - 40, '✉️', { fontSize: '20px' }).setOrigin(0.5).setDepth(POST.x + POST.y + 0.6).setVisible(false);
+    sc.tweens.add({ targets: this.envelope, y: pc.y - 45, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   /** Warmer as the streak grows: unlit, pastel blue, soft pink, golden sparkle, then a rainbow aura. */
@@ -66,14 +66,14 @@ export class IslandEffects {
       const col = [0, 0x9fd0ff, 0xffb0cf, 0xffd966, Phaser.Display.Color.HSLToColor((time / 4000) % 1, 0.8, 0.75).color][tier];
       const pulse = 0.5 + 0.5 * Math.sin(time / 600);
       g.fillStyle(col, 0.16 + pulse * 0.1);
-      g.fillCircle(lc.x, lc.y - 22, 30 + tier * 8);
+      g.fillCircle(lc.x, lc.y - 14, 20 + tier * 5);
       g.fillStyle(col, 0.22);
-      g.fillCircle(lc.x, lc.y - 22, 18 + tier * 3);
+      g.fillCircle(lc.x, lc.y - 14, 12 + tier * 2);
       if (tier >= 3) {
         g.fillStyle(0xffffff, 0.9);
         for (let i = 0; i < 5; i++) {
           const a = time / 900 + i * 1.26;
-          g.fillCircle(lc.x + Math.cos(a) * 34, lc.y - 22 + Math.sin(a * 1.3) * 26, 1.8);
+          g.fillCircle(lc.x + Math.cos(a) * 22, lc.y - 14 + Math.sin(a * 1.3) * 26, 1.8);
         }
       }
     }
