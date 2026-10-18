@@ -1,7 +1,7 @@
 import type { Theme } from './season';
 
 export type Layer = 'floor' | 'wall' | 'walldecor' | 'object';
-export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'park' | 'decor' | 'pets' | 'landmark' | 'seasonal';
+export type ShopCategory = 'floor' | 'wall' | 'walldecor' | 'furniture' | 'cafe' | 'camp' | 'street' | 'park' | 'decor' | 'pets' | 'landmark' | 'seasonal' | 'goods';
 export type Shape = 'box' | 'round' | 'tree';
 
 export interface CatalogItem {
@@ -18,7 +18,7 @@ export interface CatalogItem {
   color2?: number;
   variant?: 'wall' | 'window' | 'door';
   /** Wall surface: plaster (default), pink, sage, brick, batten, wainscot, picket, hedge or glass. */
-  material?: 'seasonal' | 'plaster' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
+  material?: 'seasonal' | 'plaster' | 'lavender' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
   shape?: Shape;
   facing?: boolean;
   /** Texture key from spriteList. Items without one are drawn procedurally. */
@@ -29,6 +29,17 @@ export interface CatalogItem {
   lift?: number;
   /** Limited-time items are only sold while one of these themes is active. */
   seasons?: Theme[];
+  /** A four direction piece: art for every turn is cut as sprite_fl, _fr, _bl and _br (rotation 0, 90, 180, 270). */
+  sprite4?: string;
+  /** Café style score points, how many of a kind count, a matching set, and what the piece does for the café. */
+  style?: number;
+  styleCap?: number;
+  set?: 'maple' | 'bistro';
+  role?: 'chair' | 'table';
+  effect?: 'pastry' | 'espresso' | 'bench' | 'whisk';
+  /** Goods sit on a surface (a table, a counter or a case) instead of the floor. */
+  surface?: boolean;
+  onSurface?: boolean;
 }
 
 const c = (coins: number, gems = 0) => ({ coins, gems });
@@ -180,6 +191,7 @@ export const CATEGORIES: { id: ShopCategory; label: string }[] = [
   { id: 'pets', label: 'Pets' },
   { id: 'landmark', label: 'Landmarks' },
   { id: 'seasonal', label: 'Seasonal' },
+  { id: 'goods', label: 'Café Goods' },
 ];
 
 /** Footprint after rotation (90 degree steps swap width and depth). */
@@ -403,7 +415,7 @@ for (const [id, name, icon, coins] of [
 
 // ---- Build 19: wall materials (sheet 36), drawn on the game's own wall shape so they join, corner and cross on their own ----
 const WALL_MATS: [id: string, name: string, icon: string, coins: number, color: number, open: boolean][] = [
-  ['pink', 'Pastel Pink', '🌸', 50, 0xf8cfdc, true], ['sage', 'Sage Green', '🌿', 50, 0xbcd6aa, true], ['brick', 'Exposed Brick', '🧱', 90, 0xc9725a, true],
+  ['pink', 'Pastel Pink', '🌸', 50, 0xf8cfdc, true], ['lavender', 'Soft Lavender', '💜', 60, 0xd5cde6, true], ['sage', 'Sage Green', '🌿', 50, 0xbcd6aa, true], ['brick', 'Exposed Brick', '🧱', 90, 0xc9725a, true],
   ['batten', 'Board and Batten', '🪵', 70, 0xeec9a2, true], ['wainscot', 'Wainscot', '🏠', 70, 0xf3e6d2, true],
   ['picket', 'White Picket Fence', '🏡', 40, 0xf8f4ec, false], ['hedge', 'Boxwood Hedge', '🌳', 60, 0x6aa04c, false], ['glass', 'Glass Panel Wall', '🪟', 110, 0xcfeaf5, false],
 ];
@@ -435,3 +447,48 @@ for (const [id, name, icon, coins, w, d, sprite] of [
   ['plaza_stall_fruit', 'Fruit Stall', '🍎', 220, 1, 1, 'town_stall_fruit'], ['plaza_stall_crafts', 'Crafts Stall', '🧵', 220, 1, 1, 'town_stall_crafts'],
   ['plaza_stall_bakery', 'Bakery Stall', '🥐', 220, 1, 1, 'town_stall_bakery'], ['plaza_pavilion', 'Park Pavilion', '🏛️', 700, 3, 3, 'town_pavilion'],
 ] as const) add(id, name, icon, 'park', 'object', coins, 0, w, d, sprite);
+
+// ---- Build 34: the café interior (sheets 70 to 74) ----
+type Cx = Partial<CatalogItem>;
+const cx = (id: string, name: string, icon: string, cat: ShopCategory, layer: Layer, coins: number, w: number, d: number, sprite: string, o: Cx = {}) =>
+  CATALOG.push({ id, name, icon, category: cat, layer, price: c(coins), w, d, h: 18, color: 0xd9a86c, sprite, ...o });
+
+// seating and tables: four directions
+cx('cx_chair_maple', 'Padded Maple Chair', '🪑', 'cafe', 'object', 70, 1, 1, 'cx_chair_maple_fl', { sprite4: 'cx_chair_maple', style: 3, set: 'maple', role: 'chair', h: 14 });
+cx('cx_chair_bistro', 'Woven Bistro Chair', '🪑', 'cafe', 'object', 70, 1, 1, 'cx_chair_bistro_fl', { sprite4: 'cx_chair_bistro', style: 3, set: 'bistro', role: 'chair', h: 14 });
+cx('cx_table_round', 'Round Wood Accent Table', '🟤', 'cafe', 'object', 120, 1, 1, 'cx_table_round_fl', { sprite4: 'cx_table_round', style: 3, set: 'maple', role: 'table', h: 16, surface: true });
+cx('cx_table_marble', 'Marble Café Table', '⬜', 'cafe', 'object', 140, 1, 1, 'cx_table_marble_fl', { sprite4: 'cx_table_marble', style: 3, set: 'bistro', role: 'table', h: 16, surface: true });
+// plants and décor
+cx('cx_fig', 'Fiddle Leaf Fig', '🪴', 'cafe', 'object', 90, 1, 1, 'cx_fig_fl', { sprite4: 'cx_fig', style: 4, h: 30 });
+cx('cx_pothos', 'Hanging Pothos Basket', '🌿', 'cafe', 'walldecor', 60, 1, 1, 'cx_pothos_fl', { style: 4, lift: 64 });
+for (let i = 1; i <= 4; i++) cx(`cx_hang_${i}`, ['Hanging Fern', 'Hanging Palm', 'Potted Spider Plant', 'Hanging Moss Basket'][i - 1], '🌿', 'cafe', 'walldecor', 70, 1, 1, `cx_hang_${i}`, { style: 5, lift: 62 });
+for (let i = 1; i <= 5; i++) cx(`cx_clock_${i}`, ['Cat Clock', 'Walnut Cat Clock', 'Calico Cat Clock', 'Cocoa Cat Clock', 'Grey Cat Clock'][i - 1], '🐱', 'cafe', 'walldecor', 80, 1, 1, `cx_clock_${i}`, { style: 5, lift: 52 });
+for (let i = 1; i <= 4; i++) cx(`cx_frame_${i}`, ['Blush Abstract Print', 'Fern Leaf Print', 'Landscape Trio', 'Sunrise Window Print'][i - 1], '🖼️', 'cafe', 'walldecor', 90, 1, 1, `cx_frame_${i}`, { style: 5, lift: 52 });
+// counters, stations and the bench: what the café does
+cx('cx_pastry_wood', 'Wood and Glass Pastry Case', '🍰', 'cafe', 'object', 300, 2, 1, 'cx_pastry_wood_fl', { sprite4: 'cx_pastry_wood', style: 4, effect: 'pastry', h: 24, surface: true });
+cx('cx_case_empty', 'Glass Pastry Case', '🍰', 'cafe', 'object', 260, 2, 1, 'cx_case_empty', { style: 3, effect: 'pastry', h: 24, surface: true });
+cx('cx_case_stocked', 'Stocked Pastry Case', '🥐', 'cafe', 'object', 340, 2, 1, 'cx_case_stocked', { style: 4, effect: 'pastry', h: 24, surface: true });
+cx('cx_whisk_station', 'Matcha Whisk Station', '🍵', 'cafe', 'object', 380, 2, 1, 'cx_whisk_station_fl', { sprite4: 'cx_whisk_station', style: 4, effect: 'whisk', h: 24, surface: true });
+cx('cx_espresso', 'Espresso Station', '☕', 'cafe', 'object', 450, 1, 1, 'cx_espresso', { style: 4, effect: 'espresso', h: 26 });
+cx('cx_boba_rack', 'Boba Cup Display Rack', '🧋', 'cafe', 'object', 160, 1, 1, 'cx_boba_rack_fl', { sprite4: 'cx_boba_rack', style: 4, h: 28 });
+cx('cx_bench', "Window Bench and Couple's Seat", '💞', 'cafe', 'object', 520, 2, 2, 'cx_bench_empty', { style: 6, effect: 'bench', h: 34 });
+// café floors, drawn as isometric tiles
+for (const [k, n, coins] of [['light', 'Light Oak Planks', 30], ['light2', 'Pale Parquet', 30], ['herring', 'Herringbone Oak', 40], ['planks', 'Walnut Planks', 40], ['diamond', 'Cream Diamond Tile', 40], ['chevron', 'Chevron Wood', 40], ['terrazzo', 'Cream Terrazzo', 50], ['tatami', 'Traditional Tatami', 50], ['woven', 'Woven Rattan', 50], ['dark', 'Dark Wood', 40]] as const) {
+  cx(`cx_floor_${k}`, n, '🟫', 'floor', 'floor', coins, 1, 1, `cx_floor_${k}`, { h: 0 });
+}
+// café goods: small things to display on counters and tables, each kind adds a little style
+const GOODS: [string, string, string, number][] = [
+  ['cake', 'Pistachio Chiffon Slice', '🍰', 35], ['croissant', 'Strawberry Croissant', '🥐', 35], ['macarons', 'Cat Macaron Tower', '🍬', 50], ['bread', 'Matcha Swirl Bread', '🍞', 40],
+  ['matcha_jar', 'Matcha Concentrate Jar', '🍵', 40], ['beans', 'Espresso Bean Bag', '☕', 40], ['syrup_lime', 'Lime Syrup', '🍋', 25], ['syrup_orange', 'Orange Syrup', '🍊', 25],
+  ['syrup_berry', 'Berry Syrup', '🍓', 25], ['syrup_plum', 'Plum Syrup', '🍇', 25], ['milk', 'Oat Milk Cartons', '🥛', 30], ['pins', 'Enamel Pin Set', '📌', 45],
+  ['pins2', 'Cat Pin Set', '📌', 45], ['boba', 'Reusable Boba Cup', '🧋', 35], ['boba2', 'Brown Sugar Boba Cup', '🧋', 35], ['hoodie', 'Matcha Masters Hoodie', '🧥', 60],
+  ['hoodie2', 'Cat Logo Hoodie', '🧥', 60], ['postcards', 'Signed Postcard Pack', '💌', 40], ['box_matcha', 'Bulk Matcha Box', '📦', 30], ['box_brand', 'Branded Cartons', '📦', 30],
+  ['box_plain', 'Plain Carton', '📦', 20], ['box_green', 'Green Stock Box', '📦', 30], ['pallet', 'Branded Pallet', '📦', 50], ['crate', 'Fruit Crate', '🍓', 35],
+];
+for (const [k, n, icon, coins] of GOODS) cx(`cx_g_${k}`, n, icon, 'goods', 'object', coins, 1, 1, `cx_g_${k}`, { h: 8, style: 1, styleCap: 1, onSurface: true });
+
+// the older café pieces are surfaces too, so goods can stand on them
+for (const id of ['table_cafe', 'cafe_round_set', 'cafe_cushion_set', 'cafe_counter', 'cafe_pastry_case', 'cafe_bread_shelf', 'dining_table', 'kitchen_island']) {
+  const it = CATALOG.find((i) => i.id === id);
+  if (it) it.surface = true;
+}

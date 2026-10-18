@@ -2,14 +2,17 @@ import type { GameState } from '../types';
 import { footprint, itemOf } from './catalog';
 import { PRESET_ORDER, type Preset } from './presets';
 
-export const ISLAND_STEPS: { size: number; coins: number }[] = [{ size: 12, coins: 500 }, { size: 14, coins: 1200 }, { size: 16, coins: 2500 }];
+export const ISLAND_STEPS: { size: number; coins: number }[] = [
+  { size: 12, coins: 500 }, { size: 14, coins: 1200 }, { size: 16, coins: 2500 }, { size: 20, coins: 4500 },
+  { size: 24, coins: 7500 }, { size: 28, coins: 12000 }, { size: 32, coins: 18000 },
+];
 /** Tile occupied by the starting RV, shop or foundation. */
 export const PLOT = { x: 4, y: 4 };
 /** Where the Gratitude Tree grows. */
 export const TREE = { x: 8, y: 1 };
-/** The Synergy Lantern hangs on the porch, and the postbox stands at the gate. Both stay put and cannot be built over. */
-export const LANTERN = { x: 6, y: 5 };
-export const POST = { x: 3, y: 6 };
+/** The Synergy Lantern and the postbox stand in the island's far back corner, out of the way of everything you build. */
+export const LANTERN = { x: 0, y: 1 };
+export const POST = { x: 1, y: 0 };
 
 export function tilesOf(itemId: string, x: number, y: number, rotation: number): { x: number; y: number }[] {
   const item = itemOf(itemId);
@@ -50,6 +53,7 @@ export function canPlace(
   rotation: number,
   extraBlocked: { x: number; y: number }[] = [],
   ignoreInventory = false,
+  room = false, // the café interior: no island landmarks to avoid
 ): PlaceCheck {
   const item = itemOf(itemId);
   if (!item) return { ok: false, reason: 'Unknown item' };
@@ -64,9 +68,10 @@ export function canPlace(
   }
   const tiles = tilesOf(itemId, x, y, rotation);
   for (const t of tiles) {
-    if (t.x < 0 || t.y < 0 || t.x >= s.islandSize || t.y >= s.islandSize) return { ok: false, reason: 'Off the island' };
+    if (t.x < 0 || t.y < 0 || t.x >= s.islandSize || t.y >= s.islandSize) return { ok: false, reason: room ? 'Outside the room' : 'Off the island' };
     if (item.layer !== 'floor') {
-      if (t.x === TREE.x && t.y === TREE.y) return { ok: false, reason: 'The Gratitude Tree is there' };
+      if (!room && t.x === TREE.x && t.y === TREE.y) return { ok: false, reason: 'The Gratitude Tree is there' };
+      if (!room && ((t.x === LANTERN.x && t.y === LANTERN.y) || (t.x === POST.x && t.y === POST.y))) return { ok: false, reason: 'The lantern and postbox live there' };
       if (!s.starterRemoved && t.x === PLOT.x && t.y === PLOT.y) return { ok: false, reason: 'Your starter spot is in the way' };
       if (extraBlocked.some((b) => b.x === t.x && b.y === t.y)) return { ok: false, reason: 'Someone is standing there' };
     }
@@ -74,9 +79,18 @@ export function canPlace(
   if (item.layer !== 'floor' && s.memories.some((m) => tiles.some((t) => t.x === m.tileX && t.y === m.tileY))) {
     return { ok: false, reason: 'A memory plaque is there' };
   }
+  if (item.onSurface) {
+    // display goods stand on a table, counter or case, one to a tile
+    const under = (t: { x: number; y: number }) => s.placed.some((o) => itemOf(o.itemId)?.surface && tilesOf(o.itemId, o.tileX, o.tileY, o.rotation).some((a) => a.x === t.x && a.y === t.y));
+    const crowded = (t: { x: number; y: number }) => s.placed.some((o) => itemOf(o.itemId)?.onSurface && o.tileX === t.x && o.tileY === t.y);
+    if (!tiles.every(under)) return { ok: false, reason: 'Set this on a table, counter or case' };
+    if (tiles.some(crowded)) return { ok: false, reason: 'That spot already has something on it' };
+    return { ok: true };
+  }
   for (const o of s.placed) {
     const oi = itemOf(o.itemId);
     if (!oi || oi.layer === 'walldecor') continue;
+    if (oi.onSurface) continue; // goods do not block the floor under a surface
     const occupied = tilesOf(o.itemId, o.tileX, o.tileY, o.rotation);
     const sameLayer = (oi.layer === 'floor') === (item.layer === 'floor');
     if (!sameLayer) continue;

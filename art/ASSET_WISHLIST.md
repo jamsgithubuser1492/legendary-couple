@@ -305,3 +305,17 @@ The lantern, postbox and scroll use saved art for now. Dedicated art would make 
 4. **Grace Shield** blanket animation: the sleepy avatar under a blanket with the note "Rest day used".
 5. **Confetti and sparkle sheet** (pastel paper, hearts, stars) for the celebration card.
 6. **Pocket Phone** frame and app icons in your painted style.
+
+
+## Part 12: café interior (what is in and what is still wanted)
+
+In now (from sheets 70 to 74): three room themes, seating and tables, plants, pastry cases, whisk station, espresso station, window bench, boba rack, cat clocks, frames, hanging plants, floors, goods and 8 customer archetypes (standing).
+Still wanted:
+1. **Customer walk cycles** that are consistent. The walk rows on your sheets show different numbers of frames per character, so customers currently slide with a small hop. Four frames in each of four directions per archetype would fix it.
+2. **Seated customers on real chairs.** The "sit" poses sit on a wooden bench. A pose without the bench would let customers use chairs.
+3. **Barista staff** (for hiring): stand, carry tray, brew loop, in four directions.
+4. **Storefront exterior** with open and closed sign states, awnings, patio fence and the A frame chalkboard.
+5. **Point of sale register, industrial oven and fridge, wash sink, trash bin** with four turns.
+6. **Pet furniture** (calico cat bed, rabbit tunnel, scratch post, food and water bowls) and pets that move.
+7. **Lucky cat tip jar**, **latte art** tracing kit and the **café scrapbook** pages.
+8. **Door and window pieces** in each theme (the room shell uses the existing wall pieces for now), and a **fireplace**, **record player** and **string lights** for seasonal events.

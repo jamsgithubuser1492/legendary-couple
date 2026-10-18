@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
-import type { CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
+import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
+import { cafeView, ESPRESSO_RECIPE, matchaBonus, newCafe, nextCafeStep, sitToday, styleOf, tipsPending, themeOf } from './cafe';
 import { setGridSize } from '../game/iso';
 import { presetOf } from './presets';
 import { getTheme } from './season';
@@ -77,6 +78,7 @@ const initial = (): GameState => ({
   weekly: {},
   surprises: [],
   moment: null,
+  cafe: newCafe(),
   ladder: { claimed: [], frozen: [] },
   recapClaimed: [],
 });
@@ -107,6 +109,7 @@ function withDefaults(saved: Partial<GameState>): GameState {
     bottleCredits: { ...base.bottleCredits, ...(saved.bottleCredits ?? {}) },
     vault: { ...base.vault, ...(saved.vault ?? {}) },
     ladder: { ...base.ladder, ...(saved.ladder ?? {}) },
+    cafe: { ...base.cafe, ...(saved.cafe ?? {}), avatars: { ...base.cafe.avatars, ...(saved.cafe?.avatars ?? {}) }, themes: [...new Set([...base.cafe.themes, ...(saved.cafe?.themes ?? [])])], placed: saved.cafe?.placed ?? [] },
     wardrobe: {
       ...base.wardrobe,
       ...w,
@@ -420,12 +423,25 @@ export function buyItem(itemId: string): boolean {
   return true;
 }
 
-export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 90 | 180 | 270, extraBlocked: { x: number; y: number }[] = []): boolean {
-  if (!canPlace(state, itemId, x, y, rotation, extraBlocked).ok) return false;
+export type Space = 'island' | 'cafe';
+
+export function placeObject(itemId: string, x: number, y: number, rotation: 0 | 90 | 180 | 270, extraBlocked: { x: number; y: number }[] = [], space: Space = 'island'): boolean {
+  const cafe = space === 'cafe';
+  if (!canPlace(cafe ? cafeView(state) : state, itemId, x, y, rotation, extraBlocked, false, cafe).ok) return false;
+  const piece = { id: uid(), itemId, tileX: x, tileY: y, rotation };
+  const inventory = addToInventory(state.inventory, itemId, -1);
+  if (!cafe) {
+    commit({ ...state, inventory, placed: [...state.placed, piece] });
+    return true;
+  }
+  // the espresso station teaches the café a new recipe the first time it is set up
+  const recipe = itemOf(itemId)?.effect === 'espresso' && !state.recipes.includes(ESPRESSO_RECIPE);
   commit({
     ...state,
-    inventory: addToInventory(state.inventory, itemId, -1),
-    placed: [...state.placed, { id: uid(), itemId, tileX: x, tileY: y, rotation }],
+    inventory,
+    cafe: { ...state.cafe, placed: [...state.cafe.placed, piece] },
+    recipes: recipe ? [...state.recipes, ESPRESSO_RECIPE] : state.recipes,
+    moment: recipe ? moment('cafe', 'A new recipe!', `Your espresso station taught the café "${ESPRESSO_RECIPE}". Find it in the Arcade recipe book.`, '☕') : state.moment,
   });
   return true;
 }
@@ -447,18 +463,21 @@ export function buyPreset(presetId: string, x: number, y: number, extraBlocked: 
 }
 
 /** Picks an object back up into the bag. */
-export function removeObject(id: string) {
-  const o = state.placed.find((p) => p.id === id);
+export function removeObject(id: string, space: Space = 'island') {
+  const cafe = space === 'cafe';
+  const list = cafe ? state.cafe.placed : state.placed;
+  const o = list.find((p) => p.id === id);
   if (!o) return;
   // taking down a wall also takes down whatever hangs on it
   const attached =
     itemOf(o.itemId)?.layer === 'wall'
-      ? state.placed.filter((p) => p.id !== id && p.tileX === o.tileX && p.tileY === o.tileY && itemOf(p.itemId)?.layer === 'walldecor')
+      ? list.filter((p) => p.id !== id && p.tileX === o.tileX && p.tileY === o.tileY && itemOf(p.itemId)?.layer === 'walldecor')
       : [];
   const gone = new Set([id, ...attached.map((a) => a.id)]);
   let inventory = state.inventory;
   for (const r of [o, ...attached]) inventory = addToInventory(inventory, r.itemId, 1);
-  commit({ ...state, placed: state.placed.filter((p) => !gone.has(p.id)), inventory });
+  const kept = list.filter((p) => !gone.has(p.id));
+  commit(cafe ? { ...state, cafe: { ...state.cafe, placed: kept }, inventory } : { ...state, placed: kept, inventory });
 }
 
 // ---------- wardrobe ----------
@@ -718,7 +737,8 @@ export function buyToken(): boolean {
 /** Pays out a finished minigame. Only the host's device calls this, so a shared game never pays twice. */
 export function applyMinigameReward(r: MGResult) {
   const mgDay = dayStats();
-  const mgCoins = Math.max(0, Math.min(Math.round(Math.min(r.coins, MG_COINS_PER_GAME) * coinMultiplier()), DAILY_MG_COINS - mgDay.mgCoins));
+  const cafeBonus = r.type === 'MATCHA_MASTERS' ? 1 + matchaBonus(state) : 1; // pastry cases and a high café rating
+  const mgCoins = Math.max(0, Math.min(Math.round(Math.min(r.coins, MG_COINS_PER_GAME) * coinMultiplier() * cafeBonus), DAILY_MG_COINS - mgDay.mgCoins));
   let inventory = state.inventory;
   for (const id of r.items) inventory = addToInventory(inventory, id, 1);
   const figures = { ...state.figures };
@@ -988,4 +1008,60 @@ export function completeSurprise(by: PlayerId, id: string): string | null {
     moment: moment('surprise', 'A surprise, unwrapped!', sp.note ? `${state.names[sp.from]} left you a note: “${sp.note}”` : `${state.names[by]} did it: ${sp.act}`, '🎁'),
   });
   return null;
+}
+
+
+// ---------- the café interior ----------
+
+/** Grows the café room, so there is more space inside to design. */
+export function expandCafe(): boolean {
+  const step = nextCafeStep(state);
+  if (!step || state.coins < step.coins) return false;
+  commit({ ...state, coins: state.coins - step.coins, cafe: { ...state.cafe, size: step.size } });
+  return true;
+}
+
+/** Switches the room's look. The other two themes cost a little the first time. */
+export function setCafeTheme(theme: CafeTheme): boolean {
+  const info = themeOf(theme);
+  const owned = state.cafe.themes.includes(theme);
+  if (!owned && state.coins < info.price) return false;
+  commit({ ...state, coins: state.coins - (owned ? 0 : info.price), cafe: { ...state.cafe, theme, themes: owned ? state.cafe.themes : [...state.cafe.themes, theme] } });
+  return true;
+}
+
+export function setCafePos(p: PlayerId, x: number, y: number) {
+  const cur = state.cafe.avatars[p];
+  if (cur.x === x && cur.y === y) return;
+  commit({ ...state, cafe: { ...state.cafe, avatars: { ...state.cafe.avatars, [p]: { x, y } } } });
+}
+
+/** Tips the café earned while it was open: it needs a seat and a table, and a higher rating earns more. */
+export function collectTips(): number {
+  const n = tipsPending(state);
+  if (n < 1) return 0;
+  commit({ ...state, coins: state.coins + n, cafe: { ...state.cafe, tipsAt: Date.now() } });
+  return n;
+}
+
+/** The window bench: once a day you sit together and both of you are rewarded. */
+export function sitTogether(): boolean {
+  if (!styleOf(state).bench || sitToday(state)) return false;
+  commit({
+    ...state,
+    coins: state.coins + 15,
+    shells: state.shells + 1,
+    xp: state.xp + 5,
+    cafe: { ...state.cafe, sitDay: dateKey() },
+    moment: moment('cafe', 'Sitting together', 'A few quiet minutes on the window bench. +15 coins and +1 heart shell.', '💞'),
+  });
+  return true;
+}
+
+/** Walking in: each day a matcha whisk station stocks the pantry with one ingredient. */
+export function stockPantry(): boolean {
+  const day = dateKey();
+  if (!styleOf(state).whisk || state.cafe.pantryDay === day) return false;
+  commit({ ...state, ingredients: state.ingredients + 1, cafe: { ...state.cafe, pantryDay: day } });
+  return true;
 }

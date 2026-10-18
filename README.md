@@ -280,3 +280,12 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - **Surprise quests**: you stake 10 coins, your partner does the act (no sooner than 15 minutes later), then a sealed note unwraps for both and you earn 30 coins and 4 shells. One a day each.
 - **Celebrations**: one shared `moment` in the game state drives a confetti card on both phones for goal, streak, Grace Shield, surprise and recap.
 - **Memory Vault** (Together, Memory Vault tab) keeps everything written: daily answers, whispers, thank yous, bottles and surprise notes. A love letter in a bottle is now saved the moment it is sealed (the writer can reread it) and shows for the reader as soon as they open it.
+
+### Build 34: the café interior, 4 direction furniture and a much bigger build area
+- **Inside and outside are separate spaces.** Tap the café on the island (or Pocket Phone, Our café) to step in; tap the front door, or the 🚪 button, to go back out. The room is its own walled grid with its own furniture (`CafeScene`, `state/cafe.ts`), so the island and the café never mix.
+- **Three room themes** from your interior sheet (Matcha Sanctuary free, Sunset Bistro and Cloud Café 400 coins each), each with its own walls and floor. The shell (back walls, windows, front door) is part of the room.
+- **Bigger rooms and a bigger island.** The café grows from 8 by 8 up to 24 by 24 in six steps, and the island from 10 to 32 tiles in seven steps (costs 500 up to 18,000 coins).
+- **New art** (`tools/slice_cafe.py`, 123 sprites from sheets 70 to 74): chairs, tables, plants, pastry cases, whisk station and boba rack with all four turns, the window bench, espresso station, cat clocks, frames, hanging plants, 10 floors, 24 goods and 8 customer archetypes. Rotating a four direction piece now shows its true front left, front right, back right or back left art.
+- **Café that does things:** pastry cases add 10% to Matcha Masters coins (two count), the espresso station teaches a new recipe, the window bench gives a daily sit together bonus (the couple appear on the bench), the whisk station stocks the pantry each day, and matching sets plus decor raise a style score that sets a 1 to 5 star rating. An open café (a seat and a table) earns tips you collect, and little customers walk in, stand at a table or counter and leave happy or confused.
+- **Goods stand on surfaces:** display goods (cakes, jars, hoodies, bulk boxes) go on tables, counters and cases.
+- **The lantern and postbox moved** to the island's far back corner, so they never crowd your build space.

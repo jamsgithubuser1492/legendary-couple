@@ -5,14 +5,15 @@ import {
 } from '../iso';
 import { gameBus, BUS, loadStartingPath, type PathPayload, type EditPayload } from '../events';
 import { buyPreset, getMe, getState, onStateChange, placeObject, removeObject, removeStarter, setAvatarPos } from '../../state/store';
-import { blockedTiles, canPlace, canPlacePreset, decorFace, presetOrder, tilesOf, PLOT } from '../../state/placement';
+import { blockedTiles, canPlace, canPlacePreset, presetOrder, tilesOf, PLOT } from '../../state/placement';
 import { presetOf } from '../../state/presets';
-import { footprint, itemOf, type CatalogItem } from '../../state/catalog';
-import { drawPlaced, box, diamond as isoDiamond } from '../draw';
+import { itemOf } from '../../state/catalog';
+import { box, diamond as isoDiamond } from '../draw';
+import { DW, spawnPlaced } from '../placedRender';
 import { SPRITES } from '../spriteList';
 import { Avatar, createWalkAnims, preloadWalkStrips } from '../Avatar';
 import { drawWall } from '../walls';
-import { ensureFloorTextures, floorKey, FLOOR_STYLES, FLOOR_VARIANTS } from '../floors';
+import { ensureFloorTextures, floorKey, FLOOR_STYLES } from '../floors';
 import { Companion } from '../Companion';
 import { focusActive } from '../../state/store';
 import { figureOf } from '../../state/minigames';
@@ -21,7 +22,6 @@ import { preloadNpcStrips } from '../town/npcs';
 import { outfitOf } from '../../state/wardrobe';
 import { Ambient } from '../ambient';
 import { starterStage, STARTER_PROPS } from '../../state/town';
-import { FLOOR_FY } from '../floorOrigins';
 import { IslandEffects } from '../effects';
 import { LANTERN, POST, TREE } from '../../state/placement';
 import { getTheme, onThemeChange } from '../../state/season';
@@ -30,9 +30,6 @@ import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
 const DRAG_THRESHOLD = 8;
-const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
-/** Which way each art wall piece runs as drawn: 'y' rises to the right, 'x' falls to the right. */
-const WALL_NATIVE: Record<string, 'x' | 'y'> = { wall_single: 'y', wall_window: 'x', wall_door: 'x' };
 
 export class MainScene extends Phaser.Scene {
   private highlight!: Phaser.GameObjects.Graphics;
@@ -107,7 +104,9 @@ export class MainScene extends Phaser.Scene {
     const onCenter = () => this.scene.isActive() && this.centerCamera();
     const onZoom = (d: number) => this.scene.isActive() && this.zoomBy(d);
     const onView = (v: string) => {
-      if (v === 'town' && this.scene.isActive()) this.scene.switch('TownScene');
+      if (!this.scene.isActive()) return;
+      if (v === 'town') this.scene.switch('TownScene');
+      else if (v === 'cafe') this.scene.switch('CafeScene');
     };
     const onEdit = (e: EditPayload) => {
       this.edit = e;
@@ -503,72 +502,7 @@ export class MainScene extends Phaser.Scene {
 
   /** Builds the visuals for one placed object: art sprites when available, procedural shapes otherwise. */
   private spawn(o: PlacedObject, wallAt: (x: number, y: number) => boolean, alpha = 1, tint?: number): Phaser.GameObjects.GameObject[] {
-    const item = itemOf(o.itemId);
-    if (!item) return [];
-    if (item.layer === 'floor' && FLOOR_STYLES[item.id]) {
-      const c = tileCenter(o.tileX, o.tileY);
-      const v = Math.floor((Math.sin(o.tileX * 12.9898 + o.tileY * 78.233) * 43758.5453 % 1 + 1) * 1000) % FLOOR_VARIANTS;
-      const im = this.add.image(c.x, c.y, floorKey(item.id, v)).setScale(0.5).setAlpha(alpha).setDepth(-30);
-      if (tint !== undefined) im.setTint(tint);
-      return [im];
-    }
-    if (item.layer === 'wall') {
-      const g = this.add.graphics().setDepth(o.tileX + o.tileY + 0.1);
-      drawWall(g, o.tileX, o.tileY, item.variant ?? 'wall', o.rotation, {
-        W: wallAt(o.tileX - 1, o.tileY), E: wallAt(o.tileX + 1, o.tileY), N: wallAt(o.tileX, o.tileY - 1), S: wallAt(o.tileX, o.tileY + 1),
-      }, alpha, tint, item.material);
-      return [g];
-    }
-    if (item.sprite && this.textures.exists(item.sprite)) return this.spawnSprite(item, o, wallAt, alpha, tint);
-    if (item.layer === 'walldecor') return [];
-    const g = this.add.graphics();
-    g.setDepth(drawPlaced(g, o, { wallAt, alpha }));
-    return [g];
-  }
-
-  private spawnSprite(item: CatalogItem, o: PlacedObject, wallAt: (x: number, y: number) => boolean, alpha: number, tint?: number) {
-    const key = item.sprite!;
-    const mk = (k: string, x: number, y: number, ox: number, oy: number, flip = false) => {
-      const im = this.img(k, x, y, ox, oy, flip, alpha);
-      if (tint !== undefined) im.setTint(tint);
-      return im;
-    };
-    if (item.layer === 'floor') {
-      const c = tileCenter(o.tileX, o.tileY);
-      return [mk(key, c.x, c.y, 0.5, FLOOR_FY[key] ?? 0.39).setDepth(-30 + (o.tileX + o.tileY) * 0.0005)]; // tiles in front cover the edge of the ones behind
-    }
-    if (item.layer === 'wall') {
-      const { tileX: x, tileY: y } = o;
-      const hasX = wallAt(x - 1, y) || wallAt(x + 1, y);
-      const hasY = wallAt(x, y - 1) || wallAt(x, y + 1);
-      const depth = x + y + 0.1;
-      if (hasX && hasY && this.textures.exists('wall_corner')) {
-        const back = cartesianToIso(x, y), left = cartesianToIso(x, y + 1);
-        return [mk('wall_corner', back.x, left.y + 2, 0.5, 1).setDepth(depth)];
-      }
-      const run: 'x' | 'y' = hasX ? 'x' : hasY ? 'y' : o.rotation % 180 === 0 ? 'x' : 'y';
-      const flip = WALL_NATIVE[key] !== run;
-      if (run === 'y') {
-        const left = cartesianToIso(x, y + 1); // west edge, left vertex
-        return [mk(key, left.x, left.y + 2, 0, 1, flip).setDepth(depth)];
-      }
-      const right = cartesianToIso(x + 1, y); // north edge, right vertex
-      return [mk(key, right.x, right.y + 2, 1, 1, flip).setDepth(depth)];
-    }
-    if (item.layer === 'walldecor') {
-      const face = decorFace(this.stateOverride ?? getState(), o.tileX, o.tileY, o.rotation);
-      if (!face) return [];
-      const { tileX: x, tileY: y } = o;
-      // sit on the middle of the wall's visible face, a little in front of it
-      const mid = face === 'y' ? cartesianToIso(x, y + 0.5) : cartesianToIso(x + 0.5, y);
-      const nx = face === 'y' ? 2.6 : -2.6;
-      const im = mk(key, mid.x + nx, mid.y + 1.3 - (item.lift ?? 34), 0.5, 0.5, face === 'x');
-      return [im.setDepth(x + y + 0.3)]; // always just above its wall (wall depth is x + y + 0.1)
-    }
-    const fp = footprint(item, o.rotation);
-    const front = cartesianToIso(o.tileX + fp.w, o.tileY + fp.d);
-    const depth = o.tileX + fp.w - 1 + (o.tileY + fp.d - 1) + 0.4;
-    return [mk(key, front.x, front.y - 8 + (item.oy ?? 0), 0.5, 1, o.rotation % 180 === 90).setDepth(depth)];
+    return spawnPlaced(this, o, wallAt, { alpha, tint, decor: this.stateOverride ?? getState() });
   }
 
   // ---------- input & camera ----------
@@ -698,6 +632,12 @@ export class MainScene extends Phaser.Scene {
     }
     if (t && t.x === TREE.x && t.y === TREE.y) {
       gameBus.emit(BUS.together, 'gratitude');
+      return;
+    }
+    const cafeDoor = t && ((this.hasStarter && getState().startingPath === 'shop' && t.x === PLOT.x && t.y === PLOT.y) || this.objectAt(t.x, t.y)?.itemId === 'lm_cafe');
+    if (cafeDoor) {
+      this.scene.switch('CafeScene');
+      gameBus.emit(BUS.viewSync, 'cafe');
       return;
     }
     if (t && t.x === LANTERN.x && t.y === LANTERN.y) {

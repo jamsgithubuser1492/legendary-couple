@@ -40,7 +40,7 @@ export interface Neighbours {
   S: boolean;
 }
 
-export type WallMaterial = 'seasonal' | 'plaster' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
+export type WallMaterial = 'seasonal' | 'plaster' | 'lavender' | 'pink' | 'sage' | 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
 type Pattern = 'brick' | 'batten' | 'wainscot' | 'picket' | 'hedge' | 'glass';
 interface Mat { plaster: number; trim: number; wood: number; h: number; pattern?: Pattern; accent?: number; opening: boolean }
 
@@ -54,6 +54,7 @@ const SEASON_MATS: Record<'spring' | 'summer' | 'autumn' | 'winter', Mat> = {
 };
 const MATS: Record<FixedMat, Mat> = {
   plaster: { plaster: PLASTER, trim: TRIM, wood: WOOD, h: WALL_H, opening: true },
+  lavender: { plaster: 0xd5cde6, trim: 0xc4bad8, wood: 0xb1a6ca, h: WALL_H, opening: true },
   pink: { plaster: 0xf8cfdc, trim: 0xf2b5c8, wood: 0xe7a3b8, h: WALL_H, opening: true },
   sage: { plaster: 0xbcd6aa, trim: 0xa4c492, wood: 0x8fb27f, h: WALL_H, opening: true },
   brick: { plaster: 0xc9725a, trim: 0xb4604b, wood: 0x9b4e3c, h: WALL_H, pattern: 'brick', accent: 0xe8c9b8, opening: true },

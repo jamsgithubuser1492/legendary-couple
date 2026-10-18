@@ -57,6 +57,19 @@ export interface PlacedObject {
   rotation: 0 | 90 | 180 | 270;
 }
 
+export type CafeTheme = 'matcha' | 'bistro' | 'cloud';
+/** The café interior: its own room, grid and furniture, kept apart from the island outside. */
+export interface CafeState {
+  theme: CafeTheme;
+  themes: CafeTheme[]; // themes you own
+  size: number; // tiles per side, walls included
+  placed: PlacedObject[];
+  avatars: Record<PlayerId, { x: number; y: number }>;
+  tipsAt: number; // when tips last started to build up
+  sitDay: string; // the day the couple last sat together on the window bench
+  pantryDay: string; // the day the matcha whisk station last stocked the pantry
+}
+
 export interface Memory {
   id: string;
   title: string;
@@ -126,7 +139,7 @@ export interface WeeklyGoal { title: string; target: number; by: PlayerId; ticks
 /** A secret act of kindness one partner sets for the other. The note stays sealed until it is done. */
 export interface Surprise { id: string; from: PlayerId; to: PlayerId; act: string; note?: string; ts: number; doneAt?: number }
 /** A shared celebration. Every new mechanic writes one, and both phones show it once. */
-export interface Moment { id: string; kind: 'goal' | 'streak' | 'grace' | 'surprise' | 'recap'; title: string; text: string; icon: string; ts: number }
+export interface Moment { id: string; kind: 'goal' | 'streak' | 'grace' | 'surprise' | 'recap' | 'cafe'; title: string; text: string; icon: string; ts: number }
 
 export interface GameState {
   startingPath: StartingPath | null;
@@ -181,6 +194,7 @@ export interface GameState {
   celebration: Celebration | null;
   customPrompts: Record<string, { from: PlayerId; text: string }>; // secret prompts for a future day's question
   today: { day: string; questCoins: number; quests: number; tokens: number; mgCoins: number; wells: number; duoPaid: boolean }; // daily limits
+  cafe: CafeState;
   surprises: Surprise[];
   moment: Moment | null;
   weekly: Record<string, WeeklyGoal>; // keyed by the Monday of the week

@@ -29,6 +29,7 @@ export const BUS = {
   hover: 'hover',               // Phaser -> React: {x, y} | null
 } as const;
 
+export type View = 'island' | 'town' | 'cafe';
 export type EditPayload = { active: boolean; mode: 'place' | 'remove'; itemId: string | null; rotation: 0 | 90 | 180 | 270; presetId?: string | null };
 export type HoverPayload = { x: number; y: number } | null;
 export type PathPayload = StartingPath | null;

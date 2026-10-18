@@ -4,6 +4,7 @@ import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 import { SpriteImg } from './ItemIcon';
 import { CurrencyIcon } from './Currency';
 import { BUS, gameBus } from '../game/events';
+import { ESPRESSO_RECIPE } from '../state/cafe';
 import { FAUNA, FIGURES, FIGURE_CARD, GAMES, RECIPES, gameOf, type Figure, type MGResult, type MGType } from '../state/minigames';
 import { addBottleNote, buyToken, getMe, getState, setFigureFree, useGameState, useMe } from '../state/store';
 import type { PlayerId } from '../types';
@@ -97,6 +98,11 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
                 </div>
               );
             })}
+            <div className="text-center">
+              <div className="relative flex h-[150px] items-center justify-center rounded-2xl bg-white text-6xl shadow">☕{!s.recipes.includes(ESPRESSO_RECIPE) && <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-cream/80 text-3xl backdrop-blur-[2px]">🔒</div>}</div>
+              <div className="mt-1 text-sm font-bold">{s.recipes.includes(ESPRESSO_RECIPE) ? ESPRESSO_RECIPE : 'A café recipe'}</div>
+              {!s.recipes.includes(ESPRESSO_RECIPE) && <div className="text-[11px] opacity-70">Set up an espresso station in your café.</div>}
+            </div>
           </div>
           <div className="mt-2 text-center text-sm">🪵 Driftwood {s.driftwood} · 🐚 Heart Shells {s.shells}</div>
         </div>
@@ -107,7 +113,7 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
             <SpriteImg sprite="mg_book_cover" size={72} />
             <div>
               <div className="font-display text-lg font-bold">Our Recipe Memory Book</div>
-              <div className="text-sm opacity-80">{s.recipes.length} of {RECIPES.length} recipes. Earn 3 stars in Matcha Masters to add the next one.</div>
+              <div className="text-sm opacity-80">{RECIPES.filter((r) => s.recipes.includes(r)).length} of {RECIPES.length} recipes. Earn 3 stars in Matcha Masters to add the next one.</div>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">

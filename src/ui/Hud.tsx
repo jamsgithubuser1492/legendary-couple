@@ -1,5 +1,5 @@
 import { usePhoneBadges } from './PocketPhone';
-import type { HoverPayload } from '../game/events';
+import type { HoverPayload, View } from '../game/events';
 import type { StartingPath } from '../types';
 import { levelOf, pendingFor, useGameState, useMe } from '../state/store';
 import { useSyncStatus } from '../lib/sync';
@@ -22,9 +22,9 @@ const DOT: Record<string, string> = {
 interface Props {
   hover: HoverPayload;
   editing: boolean;
-  view: 'island' | 'town';
+  view: View;
   growth: number;
-  onView: (v: 'island' | 'town') => void;
+  onView: (v: View) => void;
   onTownPanel: () => void;
   onCenter: () => void;
   onZoom: (d: number) => void;
@@ -72,7 +72,7 @@ export default function Hud(p: Props) {
 
       {!p.editing && (
         <div className="absolute right-3 top-20 flex flex-col gap-2">
-          <button className={side} onClick={() => p.onView(p.view === 'town' ? 'island' : 'town')} aria-label={p.view === 'town' ? 'Home island' : 'Town map'}>{p.view === 'town' ? '🏝️' : '🌍'}</button>
+          <button className={side} onClick={() => p.onView(p.view === 'island' ? 'town' : 'island')} aria-label={p.view === 'island' ? 'Town map' : p.view === 'cafe' ? 'Back outside' : 'Home island'}>{p.view === 'island' ? '🌍' : p.view === 'cafe' ? '🚪' : '🏝️'}</button>
           <button className={side} onClick={p.onPhone} aria-label="Pocket phone">📱{badgeCount > 0 && <span className={`${badge} !h-3 !min-w-3`} />}</button>
         </div>
       )}

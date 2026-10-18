@@ -19,12 +19,13 @@ import TogetherModal, { BidBanner, type TogetherTab } from './ui/TogetherModal';
 import { DreamMap, TownInteract, TownPanel, TownToast } from './ui/TownUI';
 import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
-import { BUS, gameBus, type HoverPayload } from './game/events';
+import { BUS, gameBus, type HoverPayload, type View } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
 import WeeklyModal, { type Tab as WeekTab } from './ui/WeeklyModal';
 import PocketPhone, { type PhoneAction } from './ui/PocketPhone';
 import SurpriseModal from './ui/SurpriseModal';
 import MomentOverlay from './ui/MomentOverlay';
+import CafePanel from './ui/CafePanel';
 import { startSync } from './lib/sync';
 import type { Quest, StartingPath } from './types';
 
@@ -52,7 +53,7 @@ export default function App() {
   const [together, setTogether] = useState<TogetherTab | null>(null);
   const [interact, setInteract] = useState<string | null>(null);
   const [shopCat, setShopCat] = useState<ShopCategory | undefined>();
-  const [view, setView] = useState<'island' | 'town'>('island');
+  const [view, setView] = useState<View>('island');
   const [townPanel, setTownPanel] = useState(false);
   const [dream, setDream] = useState(false);
   const [arcade, setArcade] = useState(false);
@@ -62,6 +63,7 @@ export default function App() {
   const [weekTab, setWeekTab] = useState<WeekTab>('goal');
   const [phone, setPhone] = useState(false);
   const [surprise, setSurprise] = useState(false);
+  const [cafePanel, setCafePanel] = useState(false);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
@@ -109,7 +111,9 @@ export default function App() {
   }, [editing, edit]);
 
   const phoneAct = (a: PhoneAction) => {
-    if (a === 'checkin') setPanel('checkin');
+    if (a === 'cafe') changeView('cafe');
+    else if (a === 'cafePanel') setCafePanel(true);
+    else if (a === 'checkin') setPanel('checkin');
     else if (a === 'week') { setWeekTab('goal'); setWeek(true); }
     else if (a === 'streak') { setWeekTab('streak'); setWeek(true); }
     else if (a === 'surprise') setSurprise(true);
@@ -153,7 +157,7 @@ export default function App() {
     setReveal(false);
   };
 
-  const changeView = (v: 'island' | 'town') => {
+  const changeView = (v: View) => {
     if (v === view) return;
     setEditing(false);
     setView(v);
@@ -189,7 +193,8 @@ export default function App() {
         onSeeIsland={() => setSeeIsland(true)}
       />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
-      {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
+      {expandOpen && <ExpandModal space={view === 'cafe' ? 'cafe' : 'island'} onClose={() => setExpandOpen(false)} />}
+      {cafePanel && <CafePanel onClose={() => setCafePanel(false)} onDecorate={startDecorating} />}
       {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} onOpen={(w) => { if (w === 'quests') setQuestsOpen(true); else if (w === 'arcade') setArcade(true); else if (w === 'log') setTogether('log'); else if (w === 'week') { setWeekTab('goal'); setWeek(true); } else setRituals(true); }} />}
       {shopOpen && <ShopModal initialCat={view === 'town' ? shopCat : undefined} onClose={() => { setShopOpen(false); setShopCat(undefined); }} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
       {questsOpen && (

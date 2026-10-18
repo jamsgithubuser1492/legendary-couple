@@ -88,7 +88,9 @@ export class TownScene extends Phaser.Scene {
     const onCenter = () => this.scene.isActive() && this.fitAll();
     const onZoom = (d: number) => this.scene.isActive() && this.zoomBy(d * 0.6);
     const onView = (v: string) => {
-      if (v === 'island' && this.scene.isActive()) this.scene.switch('MainScene');
+      if (!this.scene.isActive()) return;
+      if (v === 'island') this.scene.switch('MainScene');
+      else if (v === 'cafe') this.scene.switch('CafeScene');
     };
     const offs = [
       onStateChange(() => {
