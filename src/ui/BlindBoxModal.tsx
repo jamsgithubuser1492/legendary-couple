@@ -5,6 +5,7 @@ import { buyBlindBox, buyBlindBoxWithShells, cancelOpenBox, confirmOpenBox, othe
 import type { BlindReward } from '../types';
 import ItemIcon, { SpriteImg } from './ItemIcon';
 import { BoxImg, boxFor, CurrencyIcon } from './Currency';
+import { getRoom, useSyncStatus } from '../lib/sync';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 export function rewardName(r: BlindReward): string {
@@ -27,6 +28,8 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
   const me = useMe();
   const partner = s.names[otherPlayer(me)];
   const pending = s.pendingBox;
+  const status = useSyncStatus();
+  const room = getRoom();
 
   return (
     <Sheet title="Blind Boxes 🎁" onClose={onClose}>
@@ -40,6 +43,10 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
           <>
             <p className="text-cocoa">Waiting for {partner} to join you…</p>
             <p className="text-xs text-cocoa/60">The box stays sealed until you both tap.</p>
+            <p className="mx-auto mt-2 max-w-xs rounded-xl bg-white p-2 text-xs text-cocoa/70 shadow">
+              You are <b>{s.names[me]}</b> · Room <b>{room ?? 'none'}</b> · {status === 'synced' ? 'Synced ✓' : status}
+              <br />{partner} must be in the same room, playing as {partner}, then tap the 🎁 button (it shows a ! badge).
+            </p>
             <button className={`${softBtn} mt-3`} onClick={cancelOpenBox}>Cancel</button>
           </>
         )}

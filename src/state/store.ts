@@ -488,7 +488,11 @@ export function buyBlindBox(): boolean {
 
 /** One partner asks to open a box. It stays sealed until the other joins. */
 export function startOpenBox(by: PlayerId) {
-  if (state.blindBoxes < 1 || state.pendingBox) return;
+  if (state.blindBoxes < 1) return;
+  if (state.pendingBox) {
+    if (state.pendingBox.by !== by) confirmOpenBox(by); // both tapped start: the second tap joins
+    return;
+  }
   commit({ ...state, pendingBox: { by } });
 }
 
