@@ -271,3 +271,12 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Rewards: 1 coin per apple plus 40 for finishing together (the economy caps a game at 120), 1 heart shell per strawberry crate.
 - Level data, physics and Mochi's brain are in `src/game/minigames/platformer/level.ts`. `tools/platformer_check.ts` has two bots play the level headless to prove it can be finished.
 - Fixed: the minigame manager of a destroyed game kept listening (a crash when launching in development), and two launch requests at once can no longer start two games.
+
+### Build 33: mechanics expansion and a calmer HUD
+- **Pocket Phone** 📱: the stack of round HUD buttons is now one drawer (daily question, together, postbox, memory vault, arcade, rituals, blind boxes, wardrobe, journal, decorate, town tools), with badges. The screen keeps the currency pill, the view switch, the phone and Quests.
+- **In world anchors**: the Synergy Lantern on the porch (tap for the streak, and it burns unlit, pastel blue, soft pink, golden sparkle, rainbow by streak), the postbox at the gate (tap for secret surprises, an envelope floats over it when one waits), and the Sunday Covenant scroll at the Town Square.
+- **Streak ladder** now pays 25, 50 + arcade token, 100 + 10 shells, 250 + a Golden Kitty figure (30 days), then 50 and 100 day rungs. Grace Shield (one missed day forgiven a month) now shows a moment.
+- **Weekly goal**: 100 coins, 5 gems, 8 shells and a Weekly Memory Banner over the Town Square for three days. On a Sunday you can set next week's goal.
+- **Surprise quests**: you stake 10 coins, your partner does the act (no sooner than 15 minutes later), then a sealed note unwraps for both and you earn 30 coins and 4 shells. One a day each.
+- **Celebrations**: one shared `moment` in the game state drives a confetti card on both phones for goal, streak, Grace Shield, surprise and recap.
+- **Memory Vault** (Together, Memory Vault tab) keeps everything written: daily answers, whispers, thank yous, bottles and surprise notes. A love letter in a bottle is now saved the moment it is sealed (the writer can reread it) and shows for the reader as soon as they open it.

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { CompanionId, GameState, Memory, MessageKind, PlayerId, Quest, StartingPath } from '../types';
+import type { CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
 import { setGridSize } from '../game/iso';
@@ -8,7 +8,7 @@ import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import { dateKey, journeyFor, prevKey, streakRun, tomorrowKey } from './questions';
-import { FREEZES_PER_MONTH, LADDER, hasActivity, lastWeekKey, mondayOf, RECAP_REWARD, recapOf, WEEKLY_REWARD } from './weekly';
+import { FREEZES_PER_MONTH, LADDER, hasActivity, isSunday, lastWeekKey, mondayOf, nextWeekKey, RECAP_REWARD, recapOf, rungPrize, SURPRISE_COST, SURPRISE_DELAY_MS, SURPRISE_PAY, WEEKLY_BANNER_MS, WEEKLY_REWARD } from './weekly';
 import type { MGResult } from './minigames';
 import { clampReward, DAILY_MG_COINS, DAILY_QUEST_COINS, DAILY_TOKENS, DAILY_WELL_TOSSES, DUO_DAY_COINS, DUO_DAY_SHELLS, emptyDay, MG_COINS_PER_GAME, OVER_CAP_SHARE, START_COINS } from './economy';
 import { BANNER_MS, BLUEPRINTS, BOTTLE_SHELLS, FINANCE_VAULT_SHARE, FOCUS_COINS, FOCUS_MS, otherP, quadrantOf, SYNERGY_MS, SYNERGY_MULT, TEA_COINS, VITALITY_MS } from './quadrants';
@@ -75,6 +75,8 @@ const initial = (): GameState => ({
   customPrompts: {},
   questDays: {},
   weekly: {},
+  surprises: [],
+  moment: null,
   ladder: { claimed: [], frozen: [] },
   recapClaimed: [],
 });
@@ -200,6 +202,7 @@ export function setMe(p: PlayerId) {
 
 const other = (p: PlayerId): PlayerId => (p === 'A' ? 'B' : 'A');
 const uid = () => Math.random().toString(36).slice(2, 10);
+const moment = (kind: Moment['kind'], title: string, text: string, icon: string): Moment => ({ id: uid(), kind, title, text, icon, ts: Date.now() });
 
 /** Adds to the message log. Call just before the commit that saves the action. */
 function addMsg(kind: MessageKind, from: PlayerId, text: string, ctx?: string, ref?: string) {
@@ -547,13 +550,23 @@ export function answerCheckin(player: PlayerId, text: string) {
   const streak = run.n;
   const rung = LADDER.find((r) => r.days === streak && !state.ladder.claimed.includes(`${run.start}:${r.days}`));
   const milestone = !jq.custom && jq.n === 50; // the day 50 celebration
+  const graceUsed = frozen.length > state.ladder.frozen.length;
+  let mom: Moment | null = state.moment;
+  if (rung) {
+    const prize = rungPrize(rung);
+    mom = moment('streak', `${rung.days} day streak!`, `The Synergy Lantern glows brighter. +${rung.coins} coins${prize ? `, ${prize}` : ''}.${graceUsed ? ' A Grace Shield held your streak.' : ''}`, '🔥');
+  } else if (graceUsed) mom = moment('grace', 'Rest day used', 'Your Grace Shield kept the streak safe. Nothing lost, just keep going together.', '🛡️');
+  const figures = rung?.figure ? { ...state.figures, [rung.figure]: (state.figures[rung.figure] ?? 0) + 1 } : state.figures;
   commit({
     ...state,
     checkins,
     ladder: { frozen, claimed: rung ? [...state.ladder.claimed, `${run.start}:${rung.days}`] : state.ladder.claimed },
     coins: state.coins + 15 + (rung?.coins ?? 0),
     gems: state.gems + 2 + (rung?.gems ?? 0) + (milestone ? 10 : 0),
-    shells: state.shells + (milestone ? 10 : 0),
+    shells: state.shells + (rung?.shells ?? 0) + (milestone ? 10 : 0),
+    arcadeTokens: state.arcadeTokens + (rung?.tokens ?? 0),
+    figures,
+    moment: mom,
     xp: state.xp + 15,
     blindBoxes: state.blindBoxes + (streak % 7 === 0 ? 1 : 0) + (milestone ? 1 : 0), // a week of check-ins earns a box, and so does finishing day 50
   });
@@ -853,10 +866,12 @@ export function buildBlueprint(id: string): boolean {
 export function sealBottle(from: PlayerId, text: string, photo?: string): boolean {
   if (state.bottleCredits[from] < 1 || !text.trim()) return false;
   const tile = freeShoreTile(state, state.bottles.filter((b) => !b.opened).map((b) => ({ x: b.tileX, y: b.tileY }))) ?? { x: state.islandSize - 1, y: 0 };
+  const id = uid();
+  addMsg('bottle', from, text, 'Love letter in a bottle', id); // the writer can always reread it in the Memory Vault
   commit({
     ...state,
     bottleCredits: { ...state.bottleCredits, [from]: state.bottleCredits[from] - 1 },
-    bottles: [...state.bottles, { id: uid(), from, text: text.trim(), photo, ts: Date.now(), tileX: tile.x, tileY: tile.y }],
+    bottles: [...state.bottles, { id, from, text: text.trim(), photo, ts: Date.now(), tileX: tile.x, tileY: tile.y }],
   });
   return true;
 }
@@ -865,7 +880,6 @@ export function sealBottle(from: PlayerId, text: string, photo?: string): boolea
 export function openBottle(id: string, reader: PlayerId) {
   const b = state.bottles.find((x) => x.id === id);
   if (!b || b.opened || b.from === reader) return null;
-  addMsg('bottle', b.from, b.text, 'Love letter in a bottle');
   commit({ ...state, shells: state.shells + BOTTLE_SHELLS, bottles: state.bottles.map((x) => (x.id === id ? { ...x, opened: true } : x)) });
   return b;
 }
@@ -887,9 +901,9 @@ export function tossWell(): string | null {
 
 // ---------- weekly couple goal and recap ----------
 
-/** Either partner sets the goal for this week. It can be set once. */
-export function setWeeklyGoal(by: PlayerId, title: string, target: number): boolean {
-  const wk = mondayOf();
+/** Either partner sets a weekly goal. On a Sunday you can also set next week's, the Sunday Covenant. */
+export function setWeeklyGoal(by: PlayerId, title: string, target: number, next = false): boolean {
+  const wk = next && isSunday() ? nextWeekKey() : mondayOf();
   const t = title.trim().slice(0, 60);
   if (!t || state.weekly[wk]) return false;
   commit({ ...state, weekly: { ...state.weekly, [wk]: { title: t, target: Math.min(7, Math.max(1, Math.round(target))), by, ticks: [] } } });
@@ -913,6 +927,7 @@ export function confirmWeeklyTick(by: PlayerId, day: string) {
   if (!g || !tick || tick.ok || tick.by === by) return;
   const ticks = g.ticks.map((t) => (t.day === day ? { ...t, ok: true } : t));
   const done = ticks.filter((t) => t.ok).length >= g.target && !g.paid;
+  const now = Date.now();
   commit({
     ...state,
     weekly: { ...state.weekly, [wk]: { ...g, ticks, paid: g.paid || done } },
@@ -920,6 +935,9 @@ export function confirmWeeklyTick(by: PlayerId, day: string) {
     gems: state.gems + (done ? WEEKLY_REWARD.gems : 0),
     shells: state.shells + (done ? WEEKLY_REWARD.shells : 0),
     xp: state.xp + (done ? WEEKLY_REWARD.xp : 0),
+    // the Weekly Memory Banner flies over the Town Square
+    banners: done ? [...state.banners.filter((b) => b.until > now), { id: uid(), by, title: g.title, ts: now, until: now + WEEKLY_BANNER_MS }] : state.banners,
+    moment: done ? moment('goal', 'Weekly goal complete!', `${g.title}. +${WEEKLY_REWARD.coins} coins, +${WEEKLY_REWARD.shells} shells, and a banner flies over the Town Square.`, '📜') : state.moment,
   });
 }
 
@@ -935,6 +953,39 @@ export function undoWeeklyTick(by: PlayerId, day: string) {
 export function claimRecap(): boolean {
   const wk = lastWeekKey();
   if (state.recapClaimed.includes(wk) || !hasActivity(recapOf(state, wk))) return false;
-  commit({ ...state, recapClaimed: [...state.recapClaimed, wk], coins: state.coins + RECAP_REWARD.coins, shells: state.shells + RECAP_REWARD.shells });
+  commit({ ...state, recapClaimed: [...state.recapClaimed, wk], coins: state.coins + RECAP_REWARD.coins, shells: state.shells + RECAP_REWARD.shells, moment: moment('recap', 'Looking back together', 'A week of little moments, kept. +20 coins and +2 shells.', '📅') });
   return true;
+}
+
+
+// ---------- surprise quests ----------
+
+/** Sets a secret act of kindness for your partner. You stake a few coins, and it pays back more once it is done. */
+export function sendSurprise(from: PlayerId, act: string, note?: string): string | null {
+  const a = act.trim().slice(0, 120);
+  if (!a) return 'Write what you would like them to do.';
+  const to = other(from);
+  if (state.surprises.some((x) => x.from === from && !x.doneAt)) return 'You already have a surprise waiting for them. Wait until they finish it.';
+  const day = dateKey();
+  if (state.surprises.some((x) => x.from === from && dateKey(new Date(x.ts)) === day)) return 'One surprise a day is plenty. Try again tomorrow.';
+  if (state.coins < SURPRISE_COST) return `A surprise costs ${SURPRISE_COST} coins to send.`;
+  commit({ ...state, coins: state.coins - SURPRISE_COST, surprises: [...state.surprises, { id: uid(), from, to, act: a, note: note?.trim().slice(0, 160) || undefined, ts: Date.now() }] });
+  return null;
+}
+
+/** The receiver did the thing. The sealed note unwraps for both of you and both of you are paid. */
+export function completeSurprise(by: PlayerId, id: string): string | null {
+  const sp = state.surprises.find((x) => x.id === id);
+  if (!sp || sp.doneAt || sp.to !== by) return null;
+  if (Date.now() - sp.ts < SURPRISE_DELAY_MS) return 'Give it a little time first. A real surprise takes a few minutes.';
+  if (sp.note) addMsg('surprise', sp.from, sp.note, `Secret surprise: ${sp.act}`, sp.id);
+  commit({
+    ...state,
+    surprises: state.surprises.map((x) => (x.id === id ? { ...x, doneAt: Date.now() } : x)),
+    coins: state.coins + SURPRISE_PAY.coins,
+    shells: state.shells + SURPRISE_PAY.shells,
+    xp: state.xp + SURPRISE_PAY.xp,
+    moment: moment('surprise', 'A surprise, unwrapped!', sp.note ? `${state.names[sp.from]} left you a note: “${sp.note}”` : `${state.names[by]} did it: ${sp.act}`, '🎁'),
+  });
+  return null;
 }

@@ -109,7 +109,7 @@ export interface Bid { from: PlayerId; kind: 'wave' | 'tea' | 'flower'; ts: numb
 export interface LoveRound { answers: { A?: number[]; B?: number[] }; guesses: { A?: number[]; B?: number[] } }
 export interface GratitudeNote { id: string; from: PlayerId; text: string; day: string; opened?: boolean }
 
-export type MessageKind = 'daily' | 'whisper' | 'gratitude' | 'memory' | 'evidence' | 'review' | 'bottle';
+export type MessageKind = 'daily' | 'whisper' | 'gratitude' | 'memory' | 'evidence' | 'review' | 'bottle' | 'surprise';
 /** Everything either partner writes, kept forever with a name and a time. */
 export interface Message { id: string; from: PlayerId; kind: MessageKind; text: string; ctx?: string; ref?: string; ts: number }
 
@@ -122,6 +122,11 @@ export interface Celebration { id: string; quadrant: Quadrant; by: PlayerId; ts:
 export interface WeeklyTick { day: string; by: PlayerId; ok?: boolean }
 /** One shared goal for a week (Monday to Sunday). A tick counts once the other partner confirms it. */
 export interface WeeklyGoal { title: string; target: number; by: PlayerId; ticks: WeeklyTick[]; paid?: boolean }
+
+/** A secret act of kindness one partner sets for the other. The note stays sealed until it is done. */
+export interface Surprise { id: string; from: PlayerId; to: PlayerId; act: string; note?: string; ts: number; doneAt?: number }
+/** A shared celebration. Every new mechanic writes one, and both phones show it once. */
+export interface Moment { id: string; kind: 'goal' | 'streak' | 'grace' | 'surprise' | 'recap'; title: string; text: string; icon: string; ts: number }
 
 export interface GameState {
   startingPath: StartingPath | null;
@@ -176,6 +181,8 @@ export interface GameState {
   celebration: Celebration | null;
   customPrompts: Record<string, { from: PlayerId; text: string }>; // secret prompts for a future day's question
   today: { day: string; questCoins: number; quests: number; tokens: number; mgCoins: number; wells: number; duoPaid: boolean }; // daily limits
+  surprises: Surprise[];
+  moment: Moment | null;
   weekly: Record<string, WeeklyGoal>; // keyed by the Monday of the week
   ladder: { claimed: string[]; frozen: string[] }; // streak rungs paid, and days saved by a monthly freeze
   recapClaimed: string[]; // weeks whose recap bonus was taken

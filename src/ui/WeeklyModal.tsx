@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { claimRecap, confirmWeeklyTick, logWeeklyTick, otherPlayer, setWeeklyGoal, undoWeeklyTick, useGameState, useMe } from '../state/store';
 import { dateKey, streakRun } from '../state/questions';
-import { GOAL_PRESETS, hasActivity, LADDER, lastWeekKey, mondayOf, nextRung, progressOf, RECAP_REWARD, recapOf, WEEKLY_REWARD, type Recap } from '../state/weekly';
+import { GOAL_PRESETS, hasActivity, isSunday, LADDER, lanternTier, lastWeekKey, mondayOf, nextRung, nextWeekKey, progressOf, RECAP_REWARD, recapOf, rungPrize, WEEKLY_REWARD, type Recap } from '../state/weekly';
 import { Amount } from './Currency';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 
-type Tab = 'goal' | 'streak' | 'recap';
+export type Tab = 'goal' | 'streak' | 'recap';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'goal', label: 'Couple goal' },
   { id: 'streak', label: 'Streak' },
@@ -20,19 +20,28 @@ function Goal() {
   const s = useGameState();
   const me = useMe();
   const partner = s.names[otherPlayer(me)];
-  const wk = mondayOf();
+  const [next, setNext] = useState(false); // on a Sunday you can plan the coming week
+  const wk = next ? nextWeekKey() : mondayOf();
   const g = s.weekly[wk];
   const today = dateKey();
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState(2);
 
+  const sundayTabs = isSunday() && (
+    <div className="mb-3 flex gap-2">
+      <button className={`${!next ? primaryBtn : softBtn} !px-3 !py-1 text-sm`} onClick={() => setNext(false)}>This week</button>
+      <button className={`${next ? primaryBtn : softBtn} !px-3 !py-1 text-sm`} onClick={() => setNext(true)}>Next week 📜</button>
+    </div>
+  );
+
   if (!g) {
     return (
       <div>
-        <p className="text-sm text-cocoa/80">Pick one thing to do together this week. Each time you do it, one of you logs it and the other confirms.</p>
+        {sundayTabs}
+        <p className="text-sm text-cocoa/80">Pick one thing to do together {next ? 'next' : 'this'} week. Each time you do it, one of you logs it and the other confirms.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {GOAL_PRESETS.map((p) => (
-            <button key={p.title} className={`${softBtn} !px-3 !py-1 text-sm`} onClick={() => { setTitle(p.title); setTarget(p.target); }}>{p.title}</button>
+            <button key={p.title} className={`${softBtn} !px-3 !py-1 text-sm`} onClick={() => { setTitle(p.title); setTarget(p.target); }}>{p.title} <span className="text-[10px] opacity-60">{p.area}</span></button>
           ))}
         </div>
         <input className={`${fieldCls} mt-3`} placeholder="Or write your own" value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} />
@@ -42,17 +51,31 @@ function Goal() {
           <span className="font-display text-xl font-bold">{target}</span>
           <button className={`${softBtn} !px-3 !py-1`} onClick={() => setTarget((t) => Math.min(7, t + 1))} aria-label="More">+</button>
         </div>
-        <p className="mt-3 text-xs text-cocoa/60">Finish it for <Amount kind="coin" n={WEEKLY_REWARD.coins} size={14} /> <Amount kind="gem" n={WEEKLY_REWARD.gems} size={14} /> and {WEEKLY_REWARD.shells} 🐚 each week.</p>
-        <button className={`${primaryBtn} mt-3 w-full`} disabled={!title.trim()} onClick={() => setWeeklyGoal(me, title, target)}>Set our goal</button>
+        <p className="mt-3 text-xs text-cocoa/60">Finish it for <Amount kind="coin" n={WEEKLY_REWARD.coins} size={14} /> <Amount kind="gem" n={WEEKLY_REWARD.gems} size={14} /> and {WEEKLY_REWARD.shells} 🐚, plus a banner over the Town Square.</p>
+        <button className={`${primaryBtn} mt-3 w-full`} disabled={!title.trim()} onClick={() => setWeeklyGoal(me, title, target, next)}>Set our goal</button>
       </div>
     );
   }
 
+  if (next) {
+    return (
+      <div>
+        {sundayTabs}
+        <div className="rounded-2xl bg-white p-4 text-center shadow">
+          <div className="text-xs font-bold uppercase text-cocoa/60">Our covenant for next week</div>
+          <div className="mt-1 font-display text-lg font-bold text-cocoa">{g.title}</div>
+          <div className="text-sm text-cocoa/70">{g.target} times together</div>
+        </div>
+        <p className="mt-3 text-center text-xs text-cocoa/60">It becomes active on Monday. Sleep well, and enjoy the Sunday.</p>
+      </div>
+    );
+  }
   const done = progressOf(g);
   const todayTick = g.ticks.find((t) => t.day === today);
   const waiting = g.ticks.filter((t) => !t.ok && t.by !== me);
   return (
     <div>
+      {sundayTabs}
       <div className="rounded-2xl bg-white p-4 text-center shadow">
         <div className="font-display text-lg font-bold text-cocoa">{g.title}</div>
         <div className="mt-2 flex justify-center gap-2">
@@ -78,7 +101,7 @@ function Goal() {
           <button className={`${softBtn} ml-2 !px-3 !py-1`} onClick={() => undoWeeklyTick(me, today)}>Undo</button>
         </div>
       )}
-      <p className="mt-3 text-center text-xs text-cocoa/60">One tick a day. Reward: <Amount kind="coin" n={WEEKLY_REWARD.coins} size={13} /> <Amount kind="gem" n={WEEKLY_REWARD.gems} size={13} /> {WEEKLY_REWARD.shells} 🐚</p>
+      <p className="mt-3 text-center text-xs text-cocoa/60">One tick a day. Reward: <Amount kind="coin" n={WEEKLY_REWARD.coins} size={13} /> <Amount kind="gem" n={WEEKLY_REWARD.gems} size={13} /> {WEEKLY_REWARD.shells} 🐚 and a banner over the Town Square</p>
     </div>
   );
 }
@@ -92,7 +115,8 @@ function Streak() {
   return (
     <div>
       <div className="rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 text-center">
-        <div className="font-display text-4xl font-bold text-cocoa">🔥 {run.n}</div>
+        <div className="font-display text-4xl font-bold text-cocoa">🏮 {run.n}</div>
+        <div className="text-xs text-cocoa/60">{['The lantern is waiting to be lit', 'Pastel blue flame', 'Soft pink flame', 'Golden sparkle', 'Radiant rainbow aura'][lanternTier(run.n)]}</div>
         <div className="text-sm text-cocoa/70">{run.n === 1 ? 'day' : 'days'} in a row answering the daily question together</div>
         {nxt && <div className="mt-1 text-xs text-cocoa/60">{nxt.days - run.n} more to reach {nxt.label}</div>}
       </div>
@@ -101,14 +125,14 @@ function Streak() {
           const got = run.n >= r.days;
           return (
             <li key={r.days} className={`flex items-center justify-between rounded-2xl px-3 py-2 ${got ? 'bg-emerald-50' : 'bg-white'} shadow`}>
-              <span className="text-sm font-bold text-cocoa">{got ? '✅' : '🔒'} {r.days} days · {r.label}</span>
+              <span className="text-sm font-bold text-cocoa">{got ? '✅' : '🔒'} {r.days} days · {r.label}{rungPrize(r) ? <span className="block text-[11px] font-normal text-cocoa/60">{rungPrize(r)}</span> : null}</span>
               <span className="text-sm text-cocoa"><Amount kind="coin" n={r.coins} size={14} /> <Amount kind="gem" n={r.gems} size={14} /></span>
             </li>
           );
         })}
       </ul>
       <p className="mt-3 text-xs text-cocoa/60">
-        Each rung pays once per run. Every month one missed day is forgiven automatically so a busy day does not erase your streak. {freezeUsed ? 'This month’s freeze is used.' : 'This month’s freeze is ready.'}
+        Each rung pays once per run. Your Grace Shield: once a month a missed day is forgiven automatically, so a busy day never erases your streak. {freezeUsed ? '🛡️ This month’s shield is used.' : '🛡️ This month’s shield is ready.'}
       </p>
     </div>
   );
@@ -165,8 +189,8 @@ function Recap() {
   );
 }
 
-export default function WeeklyModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>('goal');
+export default function WeeklyModal({ onClose, tab: first = 'goal' }: { onClose: () => void; tab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(first);
   return (
     <Sheet title="Our Week 📅" onClose={onClose}>
       <div className="mb-3 flex gap-2">

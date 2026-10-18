@@ -7,6 +7,9 @@ export const ISLAND_STEPS: { size: number; coins: number }[] = [{ size: 12, coin
 export const PLOT = { x: 4, y: 4 };
 /** Where the Gratitude Tree grows. */
 export const TREE = { x: 8, y: 1 };
+/** The Synergy Lantern hangs on the porch, and the postbox stands at the gate. Both stay put and cannot be built over. */
+export const LANTERN = { x: 6, y: 5 };
+export const POST = { x: 3, y: 6 };
 
 export function tilesOf(itemId: string, x: number, y: number, rotation: number): { x: number; y: number }[] {
   const item = itemOf(itemId);
@@ -87,6 +90,8 @@ export function blockedTiles(s: GameState, hasStarter: boolean): Set<string> {
   const set = new Set<string>();
   if (hasStarter && !s.starterRemoved) set.add(`${PLOT.x},${PLOT.y}`);
   set.add(`${TREE.x},${TREE.y}`);
+  set.add(`${LANTERN.x},${LANTERN.y}`);
+  set.add(`${POST.x},${POST.y}`);
   for (const o of s.placed) {
     const it = itemOf(o.itemId);
     if (!it || it.layer === 'floor' || it.layer === 'walldecor') continue;

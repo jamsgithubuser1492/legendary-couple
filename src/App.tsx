@@ -21,7 +21,10 @@ import type { ShopCategory } from './state/catalog';
 import { growthOf, useGrowthPreview } from './state/town';
 import { BUS, gameBus, type HoverPayload } from './game/events';
 import { setStartingPath, useGameState } from './state/store';
-import WeeklyModal from './ui/WeeklyModal';
+import WeeklyModal, { type Tab as WeekTab } from './ui/WeeklyModal';
+import PocketPhone, { type PhoneAction } from './ui/PocketPhone';
+import SurpriseModal from './ui/SurpriseModal';
+import MomentOverlay from './ui/MomentOverlay';
 import { startSync } from './lib/sync';
 import type { Quest, StartingPath } from './types';
 
@@ -56,6 +59,9 @@ export default function App() {
   const [seeIsland, setSeeIsland] = useState(false);
   const [rituals, setRituals] = useState(false);
   const [week, setWeek] = useState(false);
+  const [weekTab, setWeekTab] = useState<WeekTab>('goal');
+  const [phone, setPhone] = useState(false);
+  const [surprise, setSurprise] = useState(false);
   const mgActive = useMinigameActive();
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
@@ -73,6 +79,12 @@ export default function App() {
     gameBus.on(BUS.townInteract, setInteract);
     const openTogether = (t: string) => setTogether(t as TogetherTab);
     gameBus.on(BUS.together, openTogether);
+    const openFocus = (w: string) => {
+      if (w === 'streak') { setWeekTab('streak'); setWeek(true); }
+      else if (w === 'covenant') { setWeekTab('goal'); setWeek(true); }
+      else if (w === 'surprise') setSurprise(true);
+    };
+    gameBus.on(BUS.openFocus, openFocus);
     const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
     gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
@@ -82,6 +94,7 @@ export default function App() {
       gameBus.off(BUS.viewSync, setView);
       gameBus.off(BUS.townInteract, setInteract);
       gameBus.off(BUS.together, openTogether);
+      gameBus.off(BUS.openFocus, openFocus);
       gameBus.off(BUS.presetPlaced, donePreset);
     };
   }, []);
@@ -94,6 +107,23 @@ export default function App() {
   useEffect(() => {
     gameBus.emit(BUS.edit, { active: editing, ...edit });
   }, [editing, edit]);
+
+  const phoneAct = (a: PhoneAction) => {
+    if (a === 'checkin') setPanel('checkin');
+    else if (a === 'week') { setWeekTab('goal'); setWeek(true); }
+    else if (a === 'streak') { setWeekTab('streak'); setWeek(true); }
+    else if (a === 'surprise') setSurprise(true);
+    else if (a === 'together') setTogether('whisper');
+    else if (a === 'vault') setTogether('log');
+    else if (a === 'arcade') setArcade(true);
+    else if (a === 'boxes') setPanel('boxes');
+    else if (a === 'wardrobe') setPanel('wardrobe');
+    else if (a === 'journal') setJournal({ open: true });
+    else if (a === 'decorate') startDecorating();
+    else if (a === 'rituals') setRituals(true);
+    else if (a === 'townPanel') setTownPanel(true);
+    else if (a === 'dream') setDream(true);
+  };
 
   const startDecorating = () => {
     const first = state.inventory.find((i) => i.count > 0);
@@ -150,26 +180,17 @@ export default function App() {
         onChangePath={() => setModalOpen(true)}
         onQuests={() => setQuestsOpen(true)}
         onUs={() => setUsOpen(true)}
-        onDecorate={startDecorating}
-        onJournal={() => setJournal({ open: true })}
-        onCheckin={() => setPanel('checkin')}
-        onBoxes={() => setPanel('boxes')}
-        onWardrobe={() => setPanel('wardrobe')}
-        onTogether={() => setTogether('whisper')}
+        onPhone={() => setPhone(true)}
         editing={editing}
         view={view}
         growth={growthOf(state)}
         onView={changeView}
         onTownPanel={() => setTownPanel(true)}
-        onDream={() => setDream(true)}
-        onArcade={() => setArcade(true)}
         onSeeIsland={() => setSeeIsland(true)}
-        onRituals={() => setRituals(true)}
-        onWeek={() => setWeek(true)}
       />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal onClose={() => setExpandOpen(false)} />}
-      {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} onOpen={(w) => { if (w === 'quests') setQuestsOpen(true); else if (w === 'arcade') setArcade(true); else if (w === 'log') setTogether('log'); else setRituals(true); }} />}
+      {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} onOpen={(w) => { if (w === 'quests') setQuestsOpen(true); else if (w === 'arcade') setArcade(true); else if (w === 'log') setTogether('log'); else if (w === 'week') { setWeekTab('goal'); setWeek(true); } else setRituals(true); }} />}
       {shopOpen && <ShopModal initialCat={view === 'town' ? shopCat : undefined} onClose={() => { setShopOpen(false); setShopCat(undefined); }} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}
       {questsOpen && (
         <QuestBoard
@@ -191,7 +212,10 @@ export default function App() {
       <MinigameOverlays />
       {!mgActive && <SynergyBannerWrap />}
       {rituals && <RitualsModal onClose={() => setRituals(false)} />}
-      {week && <WeeklyModal onClose={() => setWeek(false)} />}
+      {week && <WeeklyModal tab={weekTab} onClose={() => setWeek(false)} />}
+      {phone && <PocketPhone view={view} onClose={() => setPhone(false)} onAct={phoneAct} />}
+      {surprise && <SurpriseModal onClose={() => setSurprise(false)} />}
+      <MomentOverlay />
       <BottleReader />
       <FocusOverlay />
       {seeIsland && <SeeOnIsland onClose={() => setSeeIsland(false)} onShowIsland={() => { if (view !== 'island') changeView('island'); gameBus.emit(BUS.focus, { x: 4, y: 4 }); gameBus.emit(BUS.zoom, 0.5); }} />}

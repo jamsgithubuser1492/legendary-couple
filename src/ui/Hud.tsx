@@ -1,8 +1,7 @@
-import { hasActivity, lastWeekKey, mondayOf, recapOf } from '../state/weekly';
+import { usePhoneBadges } from './PocketPhone';
 import type { HoverPayload } from '../game/events';
 import type { StartingPath } from '../types';
-import { levelOf, otherPlayer, pendingFor, useGameState, useMe } from '../state/store';
-import { dateKey } from '../state/questions';
+import { levelOf, pendingFor, useGameState, useMe } from '../state/store';
 import { useSyncStatus } from '../lib/sync';
 import { CurrencyIcon } from './Currency';
 
@@ -27,22 +26,13 @@ interface Props {
   growth: number;
   onView: (v: 'island' | 'town') => void;
   onTownPanel: () => void;
-  onDream: () => void;
   onCenter: () => void;
   onZoom: (d: number) => void;
   onChangePath: () => void;
   onQuests: () => void;
   onUs: () => void;
-  onDecorate: () => void;
-  onJournal: () => void;
-  onCheckin: () => void;
-  onBoxes: () => void;
-  onWardrobe: () => void;
-  onTogether: () => void;
-  onArcade: () => void;
+  onPhone: () => void;
   onSeeIsland: () => void;
-  onRituals: () => void;
-  onWeek: () => void;
 }
 
 const btn =
@@ -57,10 +47,8 @@ export default function Hud(p: Props) {
   const sync = useSyncStatus();
   const pending = pendingFor(s, me).length;
   const level = levelOf(s.xp);
-  const unanswered = !s.checkins[dateKey()]?.[me];
-  const wg = s.weekly[mondayOf()];
-  const weekDot = !wg || (!wg.paid && wg.ticks.some((t) => !t.ok && t.by !== me)) || (!s.recapClaimed.includes(lastWeekKey()) && hasActivity(recapOf(s, lastWeekKey())));
-  const boxWaiting = s.pendingBox && s.pendingBox.by === otherPlayer(me);
+  const b = usePhoneBadges();
+  const badgeCount = b.checkin + b.week + b.surprise + b.boxes + b.rituals;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-3">
@@ -82,30 +70,10 @@ export default function Hud(p: Props) {
         </button>
       </div>
 
-      {!p.editing && p.view === 'town' && (
+      {!p.editing && (
         <div className="absolute right-3 top-20 flex flex-col gap-2">
-          <button className={side} onClick={() => p.onView('island')} aria-label="Home island">🏝️</button>
-          <button className={side} onClick={p.onTownPanel} aria-label="Town growth">🌱</button>
-          <button className={side} onClick={p.onDream} aria-label="Dream map">🖼️</button>
-          <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
-          <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
-          <button className={side} onClick={p.onWeek} aria-label="Our week">📅{weekDot && <span className={`${badge} !h-3 !min-w-3`} />}</button>
-          <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
-          <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
-        </div>
-      )}
-      {!p.editing && p.view === 'island' && (
-        <div className="absolute right-3 top-20 flex flex-col gap-2">
-          <button className={side} onClick={() => p.onView('town')} aria-label="Town map">🌍</button>
-          <button className={side} onClick={p.onTogether} aria-label="Together">💞</button>
-          <button className={side} onClick={p.onArcade} aria-label="Arcade">🎮</button>
-          <button className={side} onClick={p.onWeek} aria-label="Our week">📅{weekDot && <span className={`${badge} !h-3 !min-w-3`} />}</button>
-          <button className={side} onClick={p.onRituals} aria-label="Our Rituals">🌟{s.bottleCredits[me] > 0 && <span className={badge}>{s.bottleCredits[me]}</span>}</button>
-          <button className={side} onClick={p.onCheckin} aria-label="Daily question">💬{unanswered && <span className={`${badge} !h-3 !min-w-3`} />}</button>
-          <button className={side} onClick={p.onBoxes} aria-label="Blind boxes"><CurrencyIcon kind="box" size={28} />{(s.blindBoxes > 0 || boxWaiting) && <span className={badge}>{boxWaiting ? '!' : s.blindBoxes}</span>}</button>
-          <button className={side} onClick={p.onWardrobe} aria-label="Wardrobe">👗</button>
-          <button className={side} onClick={p.onJournal} aria-label="Memory Journal">📔</button>
-          <button className={side} onClick={p.onDecorate} aria-label="Decorate">🎨</button>
+          <button className={side} onClick={() => p.onView(p.view === 'town' ? 'island' : 'town')} aria-label={p.view === 'town' ? 'Home island' : 'Town map'}>{p.view === 'town' ? '🏝️' : '🌍'}</button>
+          <button className={side} onClick={p.onPhone} aria-label="Pocket phone">📱{badgeCount > 0 && <span className={`${badge} !h-3 !min-w-3`} />}</button>
         </div>
       )}
 

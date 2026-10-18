@@ -25,6 +25,7 @@ export const BUS = {
   bottleOpen: 'bottleOpen',     // Phaser -> React: you reached a sealed bottle on the shore
   presetPlaced: 'presetPlaced', // Phaser -> React: a room design was placed
   viewSync: 'viewSync',         // Phaser -> React: the scene changed the view itself
+  openFocus: 'openFocus',       // Phaser -> React: tap on the lantern, postbox or scroll ('streak' | 'surprise' | 'covenant')
   hover: 'hover',               // Phaser -> React: {x, y} | null
 } as const;
 

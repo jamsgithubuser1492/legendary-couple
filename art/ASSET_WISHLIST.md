@@ -294,3 +294,14 @@ The platformer is playable now with simple drawn shapes and your Kitty and Miffy
 4. Gudetama on his bacon blanket (idle and bounce), boba pearl bubbles, Cinnamoroll and My Melody waving, the checkpoint mug with steam.
 5. Parallax backdrops: sunset sea with lighthouse, rolling apple orchard hills, Mama Mary's bakery gate, the friendship archway with bell.
 6. Levels 2 and 3 themes (a snowy village and a night market).
+
+
+## Part 11: anchors and celebrations (new mechanics)
+
+The lantern, postbox and scroll use saved art for now. Dedicated art would make them feel finished.
+1. **Synergy Lantern** in four flame tiers: pastel blue, soft pink, golden sparkle and radiant rainbow, plus an unlit version and a small post or hook for the porch.
+2. **Striped postbox** for the gate, closed and with a letter peeking out.
+3. **Sunday Covenant scroll** under a glass dome for the Town Square pavilion, rolled and unrolled.
+4. **Grace Shield** blanket animation: the sleepy avatar under a blanket with the note "Rest day used".
+5. **Confetti and sparkle sheet** (pastel paper, hearts, stars) for the celebration card.
+6. **Pocket Phone** frame and app icons in your painted style.

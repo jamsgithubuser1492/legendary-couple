@@ -187,7 +187,7 @@ export type Activity =
   | { kind: 'shop'; cat: string; line: string }
   | { kind: 'together'; tab: string; title: string; line: string }
   | { kind: 'tip'; title: string; ideas: string[] }
-  | { kind: 'open'; what: 'quests' | 'arcade' | 'log' | 'well' | 'rituals'; title: string; line: string };
+  | { kind: 'open'; what: 'quests' | 'arcade' | 'log' | 'well' | 'rituals' | 'week'; title: string; line: string };
 
 const tip = (title: string, ...ideas: string[]): Activity => ({ kind: 'tip', title, ideas });
 
@@ -217,6 +217,7 @@ export const ACTIVITIES: Record<string, Activity> = {
   'The Mountain Cabin': tip('A cozy cabin day ⛰️', 'Plan a zero agenda cozy day: blankets, tea, no chores.', 'Pick a trail to walk together soon.'),
 };
 Object.assign(ACTIVITIES, {
+  'Town Square': { kind: 'open', what: 'week', title: 'The Sunday Covenant 📜', line: 'A golden scroll under glass. Choose one thing to do together this week, and tick it off as you go.' },
   'Bulletin Board': { kind: 'open', what: 'quests', title: 'Bulletin Board 📌', line: 'Every goal you are working on, pinned where the whole town can see.' },
   'Wishing Well': { kind: 'open', what: 'well', title: 'Wishing Well', line: 'Toss a coin together and make a wish.' },
   'Newspaper Rack': { kind: 'open', what: 'log', title: 'The Town Paper 📰', line: 'Read back everything you have written to each other.' },

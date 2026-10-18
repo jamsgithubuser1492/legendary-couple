@@ -23,7 +23,7 @@ import { Ambient } from '../ambient';
 import { starterStage, STARTER_PROPS } from '../../state/town';
 import { FLOOR_FY } from '../floorOrigins';
 import { IslandEffects } from '../effects';
-import { TREE } from '../../state/placement';
+import { LANTERN, POST, TREE } from '../../state/placement';
 import { getTheme, onThemeChange } from '../../state/season';
 import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
@@ -698,6 +698,14 @@ export class MainScene extends Phaser.Scene {
     }
     if (t && t.x === TREE.x && t.y === TREE.y) {
       gameBus.emit(BUS.together, 'gratitude');
+      return;
+    }
+    if (t && t.x === LANTERN.x && t.y === LANTERN.y) {
+      gameBus.emit(BUS.openFocus, 'streak');
+      return;
+    }
+    if (t && t.x === POST.x && t.y === POST.y) {
+      gameBus.emit(BUS.openFocus, 'surprise');
       return;
     }
     if (t) {

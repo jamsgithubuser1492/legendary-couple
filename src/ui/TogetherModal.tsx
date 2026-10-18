@@ -18,7 +18,7 @@ const TABS: { id: TogetherTab; icon: string; label: string }[] = [
   { id: 'adventure', icon: '🧭', label: 'Adventure' },
   { id: 'lovemap', icon: '🗺️', label: 'Love map' },
   { id: 'gratitude', icon: '🌳', label: 'Gratitude' },
-  { id: 'log', icon: '📜', label: 'Log' },
+  { id: 'log', icon: '🗝️', label: 'Memory Vault' },
 ];
 
 const card = 'rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 font-display text-lg font-bold text-cocoa';
@@ -238,11 +238,12 @@ const KIND: Record<MessageKind, { icon: string; label: string }> = {
   evidence: { icon: '📋', label: 'Quest note' },
   review: { icon: '🔎', label: 'Review note' },
   bottle: { icon: '🍾', label: 'Bottle' },
+  surprise: { icon: '🎁', label: 'Surprise' },
 };
 const fmtDay = (ts: number) => new Date(ts).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
-/** Everything either of you has written, newest first. Sealed messages stay hidden until they are unlocked. */
+/** The Memory Vault: everything either of you has written, newest first. Sealed messages stay hidden until they are unlocked. */
 function Log() {
   const s = useGameState();
   const me = useMe();
@@ -252,7 +253,7 @@ function Log() {
     if (m.from === me) return true;
     if (m.kind === 'daily') return !!s.checkins[m.ref ?? '']?.paid;
     if (m.kind === 'whisper') return !!s.whispers[m.ref ?? '']?.paid;
-    if (m.kind === 'bottle') return Date.now() - m.ts > 12 * 3600 * 1000; // sealed until tomorrow
+    if (m.kind === 'bottle') return m.ref ? !!s.bottles.find((b) => b.id === m.ref)?.opened : Date.now() - m.ts > 12 * 3600 * 1000; // a love letter shows once they unwrap it, a fished one by tomorrow
     if (m.kind === 'gratitude') return !!s.gratitude.find((n) => n.id === m.ref)?.opened;
     return true;
   };

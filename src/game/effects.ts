@@ -2,8 +2,9 @@ import Phaser from 'phaser';
 import type { PlayerId } from '../types';
 import type { Avatar } from './Avatar';
 import { GRID_SIZE, tileCenter } from './iso';
-import { getState } from '../state/store';
-import { TREE } from '../state/placement';
+import { getMe, getState } from '../state/store';
+import { LANTERN, POST, TREE } from '../state/placement';
+import { lanternTier, streakNow } from '../state/weekly';
 import { BIDS } from '../state/together';
 
 const hash = (x: number, y: number) => {
@@ -18,6 +19,10 @@ export class IslandEffects {
   private treeImg?: Phaser.GameObjects.Image;
   private treeDots: Phaser.GameObjects.Graphics;
   private treeCount = -1;
+  private lanternGlow: Phaser.GameObjects.Graphics;
+  private lanternImg?: Phaser.GameObjects.Image;
+  private lanternTier = -1;
+  private envelope?: Phaser.GameObjects.Text;
   private lastBid = 0;
   private last = 0;
 
@@ -27,7 +32,56 @@ export class IslandEffects {
     this.treeDots = scene.add.graphics();
     scene.events.on(Phaser.Scenes.Events.UPDATE, this.update, this);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.UPDATE, this.update, this));
+    this.lanternGlow = scene.add.graphics();
     this.drawTree(getState().gratitude.length);
+    this.drawPorch();
+  }
+
+  /** The Synergy Lantern on its post, and the striped postbox: tap either to open it. */
+  private drawPorch() {
+    const sc = this.scene;
+    const lc = tileCenter(LANTERN.x, LANTERN.y);
+    const depth = LANTERN.x + LANTERN.y + 0.5;
+    const post = sc.add.graphics().setDepth(depth - 0.05);
+    post.fillStyle(0x8a5a44, 1);
+    post.fillRect(lc.x - 2, lc.y - 50, 4, 62);
+    post.fillRect(lc.x - 2, lc.y - 52, 14, 4);
+    this.lanternGlow.setDepth(depth - 0.1);
+    if (sc.textures.exists('fx_lantern_4')) this.lanternImg = sc.add.image(lc.x + 10, lc.y - 44, 'fx_lantern_4').setOrigin(0.5, 0).setScale(0.5).setDepth(depth);
+    const pc = tileCenter(POST.x, POST.y);
+    if (sc.textures.exists('mailbox_red')) sc.add.image(pc.x, pc.y + 12, 'mailbox_red').setOrigin(0.5, 1).setScale(0.85).setDepth(POST.x + POST.y + 0.5);
+    this.envelope = sc.add.text(pc.x, pc.y - 56, '✉️', { fontSize: '20px' }).setOrigin(0.5).setDepth(POST.x + POST.y + 0.6).setVisible(false);
+    sc.tweens.add({ targets: this.envelope, y: pc.y - 62, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  /** Warmer as the streak grows: unlit, pastel blue, soft pink, golden sparkle, then a rainbow aura. */
+  private updatePorch(time: number) {
+    const s = getState();
+    const tier = lanternTier(streakNow(s));
+    const lc = tileCenter(LANTERN.x, LANTERN.y);
+    if (this.lanternImg && tier !== this.lanternTier) {
+      this.lanternTier = tier;
+      this.lanternImg.setTexture(['fx_lantern_4', 'fx_lantern_2', 'fx_lantern_1', 'fx_lantern_3', 'fx_lantern_3'][tier]);
+    }
+    const g = this.lanternGlow;
+    g.clear();
+    if (tier > 0) {
+      const col = [0, 0x9fd0ff, 0xffb0cf, 0xffd966, Phaser.Display.Color.HSLToColor((time / 4000) % 1, 0.8, 0.75).color][tier];
+      const pulse = 0.5 + 0.5 * Math.sin(time / 600);
+      g.fillStyle(col, 0.16 + pulse * 0.1);
+      g.fillCircle(lc.x + 10, lc.y - 24, 30 + tier * 8);
+      g.fillStyle(col, 0.22);
+      g.fillCircle(lc.x + 10, lc.y - 24, 18 + tier * 3);
+      if (tier >= 3) {
+        g.fillStyle(0xffffff, 0.9);
+        for (let i = 0; i < 5; i++) {
+          const a = time / 900 + i * 1.26;
+          g.fillCircle(lc.x + 10 + Math.cos(a) * 34, lc.y - 24 + Math.sin(a * 1.3) * 26, 1.8);
+        }
+      }
+    }
+    const me = getMe();
+    this.envelope?.setVisible(s.surprises.some((x) => x.to === me && !x.doneAt));
   }
 
   /** How big the tree looks for a number of notes. */
@@ -65,6 +119,7 @@ export class IslandEffects {
     const s = getState();
     const now = Date.now();
     if (s.gratitude.length !== this.treeCount) this.drawTree(s.gratitude.length);
+    this.updatePorch(time);
 
     // starry sky and warm firelight while the glow lasts
     this.glow.clear();
