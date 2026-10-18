@@ -108,7 +108,8 @@ export class IslandEffects {
   private emote(from: PlayerId, kind: string) {
     const av = this.avatars()[from];
     const icon = BIDS.find((b) => b.id === kind)?.icon ?? '💞';
-    const t = this.scene.add.text(av.container.x, av.container.y - 70, icon, { fontSize: '28px' }).setOrigin(0.5).setDepth(9500);
+    const key = `cp_e_${kind}`;
+    const t = (this.scene.textures.exists(key) ? this.scene.add.image(av.container.x, av.container.y - 84, key).setScale(0.7) : this.scene.add.text(av.container.x, av.container.y - 70, icon, { fontSize: '28px' }).setOrigin(0.5)).setDepth(9500);
     this.scene.tweens.add({ targets: t, y: t.y - 30, alpha: 0, duration: 2600, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
   }
 

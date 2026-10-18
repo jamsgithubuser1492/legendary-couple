@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
-import { cafeView, ESPRESSO_RECIPE, eventOf, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
+import { cafeView, ESPRESSO_RECIPE, eventOf, EVENT_TEAM, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
 import { setGridSize } from '../game/iso';
 import { presetOf } from './presets';
 import { getTheme } from './season';
@@ -1108,7 +1108,7 @@ export function joinCafeEvent(by: PlayerId): boolean {
     shells: state.shells + shells,
     xp: state.xp + 15,
     cafe: { ...state.cafe, event: { ...e, joined: true }, popularity: Math.min(10, state.cafe.popularity + (ev.popularity && k === 1 ? 1 : 0)) },
-    moment: moment('cafe', `${ev.name} done!`, `You hosted it together. +${coins} coins and +${shells} shells${ev.popularity && k === 1 ? ', and your café is more popular for good' : ''}.${k < 1 ? ' (Half bonus: the room was not fully ready. Get it ready next time for the full reward.)' : ''}`, ev.icon),
+    moment: moment('cafe', `${ev.name} done!`, `You hosted it together. +${coins} coins and +${shells} shells${ev.popularity && k === 1 ? ', and your café is more popular for good' : ''}.${k < 1 ? ' (Half bonus: the room was not fully ready. Get it ready next time for the full reward.)' : ''}`, ev.icon, EVENT_TEAM[ev.id]),
   });
   return true;
 }

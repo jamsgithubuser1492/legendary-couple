@@ -92,10 +92,14 @@ export const loveSet = (week: string): number[] => {
 };
 
 // ---------- 2. Bids ----------
-export type BidKind = 'wave' | 'tea' | 'flower';
+export type BidKind = 'wave' | 'tea' | 'flower' | 'hug' | 'kiss' | 'highfive' | 'cheer';
 export const BIDS: { id: BidKind; icon: string; label: string; text: string }[] = [
   { id: 'wave', icon: '👋', label: 'Wave', text: 'waved at you' },
   { id: 'tea', icon: '🍵', label: 'Send tea', text: 'sent you a cup of tea' },
   { id: 'flower', icon: '🌸', label: 'Drop a flower', text: 'dropped a flower at your feet' },
+  { id: 'hug', icon: '🤗', label: 'Send a hug', text: 'sent you a big hug' },
+  { id: 'kiss', icon: '😘', label: 'Blow a kiss', text: 'blew you a kiss' },
+  { id: 'highfive', icon: '🙌', label: 'High five', text: 'wants a high five' },
+  { id: 'cheer', icon: '🎉', label: 'Cheer you on', text: 'is cheering you on' },
 ];
 export const BID_WINDOW_MS = 30000;

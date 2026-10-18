@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BUS, gameBus } from '../game/events';
 import { finishLatte, joinCafeEvent, otherPlayer, pullGacha, startCafeEvent, useGameState, useMe } from '../state/store';
-import { eventOf, eventReady, EVENT_SURPRISE, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
+import { eventOf, EVENT_TEAM, eventReady, EVENT_SURPRISE, EVENTS, eventToday, freePullToday, GACHA_COST, styleOf, type EventId } from '../state/cafe';
 import { dateKey } from '../state/questions';
 import { itemOf } from '../state/catalog';
 import { Amount } from './Currency';
@@ -211,6 +211,10 @@ export function EventsModal({ onClose }: { onClose: () => void }) {
           <div className="text-xs font-bold uppercase text-cocoa/60">On today</div>
           <div className="font-display text-xl font-bold">{today.icon} {today.name}</div>
           <p className="text-sm">{today.blurb}</p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <SpriteImg sprite={EVENT_TEAM[today.id]} size={72} />
+            <span className="text-xs text-cocoa/70">Team work: you do this one side by side.</span>
+          </div>
           {today.flyer && <img src={art(today.flyer)} alt="" className="mx-auto mt-2 max-h-40 rounded-xl shadow" draggable={false} />}
           <div className="mt-2 text-xs">Reward when you both take part: <Amount kind="coin" n={today.coins} size={13} /> + {today.shells} 🐚{today.popularity ? ' + a lasting popularity boost' : ''}</div>
           {live?.joined ? (

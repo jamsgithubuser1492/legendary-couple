@@ -304,3 +304,11 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - **New art** (`tools/slice_cafe3.py`, 62 sprites): working together poses, memory wall, guest book, time capsule and plaque, photo frames, surprise gift box, vase and note, invite and waiting banners, townsfolk (12), celebration visitors and families.
 - **Events are always a team effort and never punishing:** a room that is not fully ready now earns half the bonus instead of being blocked, Study Slam is capped, and every event offers a Surprise Me idea. Celebrations show the couple (high five, toast) instead of an emoji.
 - **Gift boxes and vases** appear on a café table when a surprise is waiting for you or sent by you. Townsfolk drop in as café guests. Memory pieces are café decor with style points.
+
+### Build 37: couple poses, walking guests, and the last unplaced art
+- **Couple poses** (`tools/slice_cafe4.py`, sheet 88): 10 emotes, couple poses, 13 activity poses and 9 duo scenes.
+  - Bids: Reach now has 7 kinds (wave, tea, flower, hug, blow a kiss, high five, cheer), and the new ones float over the island as your couple emotes.
+  - Activity cards: each area of life shows its pose on the Quest Board and in Our Rituals, and each Arcade game shows its pose.
+  - Duo scenes: a different one tops the weekly recap.
+- **Walking guests:** café customers now use their real step frames (front, side and from behind, mirrored for direction). Eight townsfolk walk using their front and back views. Four townsfolk (old man, postal worker, vendor, dog walker) keep standing poses because their views were not clear enough to cut.
+- **Placed:** the team work poses (one per event), star rows (café rating, game results), the result frame, confetti and the waiting and invite banners.

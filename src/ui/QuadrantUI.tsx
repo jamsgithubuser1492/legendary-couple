@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SpriteImg } from './ItemIcon';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 import { Amount, CurrencyIcon } from './Currency';
 import { shrinkImage } from './imageUtil';
@@ -251,6 +252,7 @@ export function RitualsModal({ onClose, start = 'focus' }: { onClose: () => void
       <div className="mb-3 flex flex-wrap gap-2">
         {tabs.map(([t, l]) => <button key={t} onClick={() => setTab(t)} className={`rounded-full px-3 py-1 font-display font-bold ${tab === t ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{l}</button>)}
       </div>
+      <div className="mb-2 text-center"><SpriteImg sprite={{ focus: 'cp_a_focus', books: 'cp_a_learn', vault: 'cp_a_finance', letters: 'cp_a_romance', square: 'cp_a_social' }[tab]} size={80} /></div>
       {tab === 'focus' && <Focus onClose={onClose} />}
       {tab === 'books' && <Bookshelf />}
       {tab === 'vault' && <Vault />}

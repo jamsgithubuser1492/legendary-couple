@@ -3,8 +3,10 @@ import { claimRecap, confirmWeeklyTick, logWeeklyTick, otherPlayer, setWeeklyGoa
 import { dateKey, streakRun } from '../state/questions';
 import { GOAL_PRESETS, hasActivity, isSunday, LADDER, lanternTier, lastWeekKey, mondayOf, nextRung, nextWeekKey, progressOf, RECAP_REWARD, recapOf, rungPrize, WEEKLY_REWARD, type Recap } from '../state/weekly';
 import { Amount } from './Currency';
+import { SpriteImg } from './ItemIcon';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
 
+const DUO = ['cp_d_sunset', 'cp_d_beach', 'cp_d_adventure', 'cp_d_picnic', 'cp_d_hands', 'cp_d_dance', 'cp_d_road'];
 export type Tab = 'goal' | 'streak' | 'recap';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'goal', label: 'Couple goal' },
@@ -179,6 +181,7 @@ function Recap() {
         <button className={`${which === 'last' ? primaryBtn : softBtn} !px-4 !py-1 text-sm`} onClick={() => setWhich('last')}>Last week</button>
         <button className={`${which === 'this' ? primaryBtn : softBtn} !px-4 !py-1 text-sm`} onClick={() => setWhich('this')}>This week so far</button>
       </div>
+      <div className="mb-2 text-center"><SpriteImg sprite={DUO[Math.abs(wk.charCodeAt(8) + wk.charCodeAt(9)) % DUO.length]} size={96} /></div>
       <RecapCard r={recapOf(s, wk)} />
       {which === 'last' && (
         <button className={`${primaryBtn} mt-4 w-full`} disabled={claimed || !hasActivity(recapOf(s, last))} onClick={claimRecap}>

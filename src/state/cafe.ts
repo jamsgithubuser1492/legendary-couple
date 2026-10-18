@@ -160,6 +160,7 @@ export const EVENT_SURPRISE: Record<string, string> = {
   jazz: 'Put on a song for them and dance in the kitchen',
   latte: 'Draw a little heart on their coffee tomorrow morning',
 };
+export const EVENT_TEAM: Record<string, string> = { adopt: 'cz_team_5', study: 'cz_team_6', jazz: 'cz_team_3', latte: 'cz_toast' };
 export const eventOf = (id: EventId) => EVENTS.find((e) => e.id === id)!;
 export const eventToday = (day = new Date()) => EVENTS.find((e) => e.day === day.getDay());
 

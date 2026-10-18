@@ -8,8 +8,9 @@ import { OUTFIT_SPRITES } from './spriteListOutfits';
 import { CAFE_SPRITES } from './spriteListCafe';
 import { CAFE2_SPRITES } from './spriteListCafe2';
 import { CAFE3_SPRITES } from './spriteListCafe3';
+import { CAFE4_SPRITES } from './spriteListCafe4';
 import { TOWN_SPRITES } from './spriteListTown';
 import { START_SPRITES } from './spriteListStart';
 
 export { WALK_SHEET };
-export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...TOWN_SPRITES, ...START_SPRITES] as const;
+export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...CAFE4_SPRITES, ...TOWN_SPRITES, ...START_SPRITES] as const;

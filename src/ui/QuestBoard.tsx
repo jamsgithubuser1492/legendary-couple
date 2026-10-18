@@ -6,10 +6,13 @@ import { AREAS, areaOf, SEASON_EVENTS, TEMPLATES, type QuestTemplate } from '../
 import { THEMES, useTheme } from '../state/season';
 import { approveQuest, createQuest, todayStats, deleteQuest, otherPlayer, pendingFor, requestEdit, submitQuest, useGameState, useMe } from '../state/store';
 import { shrinkImage } from './imageUtil';
-import { QuadIcon } from './ItemIcon';
+import { QuadIcon, SpriteImg } from './ItemIcon';
 import { CATALOG, itemOf } from '../state/catalog';
 import { QUADRANTS, quadrantInfo, quadrantOf } from '../state/quadrants';
 import type { Quadrant } from '../types';
+
+/** A couple pose for each area of life, from the activity poses sheet. */
+export const QUAD_POSE: Record<Quadrant, string> = { health: 'cp_d_adventure', career: 'cp_a_focus', learning: 'cp_a_learn', finance: 'cp_a_finance', romance: 'cp_a_romance', social: 'cp_a_social', environment: 'cp_d_picnic', recreation: 'cp_d_beach' };
 
 type Tab = 'active' | 'verify' | 'done';
 
@@ -102,7 +105,7 @@ function NewQuestModal({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
-        <p className="-mt-1 text-xs text-cocoa/70"><QuadIcon id={quadrant} size={16} /> {quadrantInfo(quadrant).mechanic}: {quadrantInfo(quadrant).hook}</p>
+        <div className="-mt-1 flex items-center gap-2 text-xs text-cocoa/70"><SpriteImg sprite={QUAD_POSE[quadrant]} size={48} /><p><QuadIcon id={quadrant} size={16} /> {quadrantInfo(quadrant).mechanic}: {quadrantInfo(quadrant).hook}</p></div>
         <input className={field} placeholder="If-Then plan (optional): IF it is 7 AM, THEN I will walk for 20 mins" value={ifThen} onChange={(e) => setIfThen(e.target.value)} />
         <div className="flex items-center gap-2 text-sm text-cocoa">
           <span className="font-bold">Assigned to</span>

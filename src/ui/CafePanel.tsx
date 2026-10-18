@@ -17,7 +17,7 @@ export default function CafePanel({ onClose, onDecorate }: { onClose: () => void
   return (
     <Sheet title="Our Café ☕" onClose={onClose}>
       <div className="rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-4 text-center">
-        <div className="text-3xl">{'⭐'.repeat(st.stars)}<span className="opacity-30">{'⭐'.repeat(5 - st.stars)}</span></div>
+        <div className="relative mx-auto w-44"><img src={`${import.meta.env.BASE_URL}assets/sprites/cz_stars.png`} alt="" className="w-44 opacity-30" draggable={false} /><div className="absolute left-0 top-0 overflow-hidden" style={{ width: `${st.stars * 20}%` }}><img src={`${import.meta.env.BASE_URL}assets/sprites/cz_stars.png`} alt="" className="w-44 max-w-none" draggable={false} /></div></div>
         <div className="font-display text-lg font-bold text-cocoa">Style score {st.score}</div>
         <div className="text-xs text-cocoa/70">{st.next ? `${st.next - st.score} more for the next star` : 'A five star café!'} · stars at {STAR_AT.slice(1).join(', ')}</div>
       </div>

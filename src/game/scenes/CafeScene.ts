@@ -8,7 +8,7 @@ import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
 import { Avatar } from '../Avatar';
-import { artImage, spawnPlaced } from '../placedRender';
+import { artImage, DW, spawnPlaced } from '../placedRender';
 import type { PlacedObject, PlayerId } from '../../types';
 
 const MIN_ZOOM = 0.3;
@@ -18,6 +18,10 @@ const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'sc
 
 interface Patron {
   img: Phaser.GameObjects.Image;
+  stand?: string; // the standing pose
+  down?: string[]; // walking toward the camera, in step order
+  up?: string[]; // walking away
+  frame?: number;
   bubble?: Phaser.GameObjects.Image;
   tile: { x: number; y: number };
   busy: boolean;
@@ -338,7 +342,7 @@ export class CafeScene extends Phaser.Scene {
     if (!this.textures.exists(key)) return;
     const home = tileCenter(DOOR_X, 1);
     const img = artImage(this, key, home.x, home.y + 6, 0.5, 1).setDepth(DOOR_X + 1 + 0.2).setAlpha(0);
-    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true };
+    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, ...this.walkKit(kind) };
     this.patrons.push(p);
     this.tweens.add({ targets: img, alpha: 1, duration: 300 });
     // choose somewhere to stand: beside a table, a counter or a pastry case
@@ -383,17 +387,53 @@ export class CafeScene extends Phaser.Scene {
     return out;
   }
 
+  /** Walking art for a guest: customers have real step frames, townsfolk have front and back views. */
+  private walkKit(kind: string): Pick<Patron, 'down' | 'up'> {
+    const has = (k: string) => this.textures.exists(k);
+    const cw = [1, 2, 3, 4].map((n) => `cw_${kind}_${n}`).filter(has);
+    if (cw.length >= 2) {
+      const steps = cw.length >= 4 ? cw.slice(0, 3) : cw;
+      const loop = steps.length === 3 ? [steps[0], steps[1], steps[2], steps[1]] : steps;
+      return { down: loop, up: cw.length >= 4 ? [cw[3]] : loop };
+    }
+    if (['oldman', 'postal', 'vendor', 'dogwalker'].includes(kind)) return {}; // their views were not drawn clearly enough to use
+    const ct = ['01', '02', '11', '12'].map((n) => `ct_${kind}_${n}`);
+    if (ct.every(has)) return { down: [ct[0], ct[1]], up: [ct[2], ct[3]] };
+    return {};
+  }
+
+  private setArt(img: Phaser.GameObjects.Image, key: string) {
+    img.setTexture(key);
+    img.setScale((DW.get(key) ?? img.width) / img.width);
+  }
+
   private walkPatron(p: Patron, path: { x: number; y: number }[], done: () => void) {
     let i = 0;
     const step = () => {
       if (!p.img.scene) return;
-      if (i >= path.length) return done();
+      if (i >= path.length) {
+        if (p.stand) this.setArt(p.img, p.stand);
+        p.img.setFlipX(false);
+        return done();
+      }
       const t = path[i++];
       const a = tileCenter(p.tile.x, p.tile.y), b = tileCenter(t.x, t.y);
-      p.img.setFlipX(b.x < a.x || (b.x === a.x && b.y > a.y));
+      const right = b.x > a.x || (b.x === a.x && b.y < a.y);
+      const away = t.x < p.tile.x || t.y < p.tile.y; // up the screen
       p.img.setDepth(t.x + t.y + 0.2);
+      const seq = away ? p.up : p.down;
+      if (seq && seq.length) {
+        const f = ((p.frame ?? 0) + 1) % seq.length;
+        p.frame = f;
+        this.setArt(p.img, seq[f]);
+        p.img.setFlipX(right); // the walking art faces screen left
+        this.time.delayedCall(190, () => { if (p.img.scene && seq.length > 1) { p.frame = ((p.frame ?? 0) + 1) % seq.length; this.setArt(p.img, seq[p.frame]); } });
+      } else {
+        p.img.setFlipX(!right);
+      }
+      const base = p.img.scaleY;
       this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 380, ease: 'Linear', onComplete: () => { p.tile = t; step(); } });
-      this.tweens.add({ targets: p.img, scaleY: p.img.scaleY * 0.96, duration: 95, yoyo: true, repeat: 1 });
+      this.tweens.add({ targets: p.img, scaleY: base * 0.97, duration: 95, yoyo: true, repeat: 1, onComplete: () => p.img.setScale(Math.abs(p.img.scaleX), (DW.get(p.img.texture.key) ?? p.img.width) / p.img.width) });
     };
     step();
   }

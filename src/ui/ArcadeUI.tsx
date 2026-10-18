@@ -9,6 +9,7 @@ import { FAUNA, FIGURES, FIGURE_CARD, GAMES, RECIPES, gameOf, type Figure, type 
 import { addBottleNote, buyToken, getMe, getState, setFigureFree, useGameState, useMe } from '../state/store';
 import type { PlayerId } from '../types';
 
+const GAME_ART: Record<MGType, string> = { MATCHA_MASTERS: 'cp_a_matcha', STELLAR_FISHING: 'cp_d_beach', CRANE_CRAZE: 'cp_a_crane', ORCHARD_HARVEST: 'cp_a_orchard', PASTEL_DASH: 'cp_d_road' };
 type Tab = 'play' | 'figures' | 'sea' | 'recipes';
 
 export function ArcadeModal({ onClose }: { onClose: () => void }) {
@@ -46,7 +47,10 @@ export function ArcadeModal({ onClose }: { onClose: () => void }) {
                   <div className="font-display text-lg font-bold">{g.icon} {g.name}</div>
                   <div className="text-xs opacity-70">{g.where} · {g.duration} · best {s.mgBest[g.type] ?? 0}</div>
                 </div>
-                <p className="text-sm">{g.blurb}</p>
+                <div className="flex items-center gap-3">
+                  <SpriteImg sprite={GAME_ART[g.type]} size={64} />
+                  <p className="text-sm">{g.blurb}</p>
+                </div>
                 {!ok && <p className="mt-1 text-sm font-bold">🔒 {g.lockedText}</p>}
                 {ok && pick !== g.type && <button className={`${primaryBtn} mt-2`} onClick={() => setPick(g.type)}>Play</button>}
                 {ok && pick === g.type && (
@@ -181,7 +185,13 @@ export function MinigameOverlays() {
       {result && (
         <Sheet title={`${gameOf(result.type).icon} ${gameOf(result.type).name}`} onClose={() => setResult(null)}>
           <div className="flex flex-col gap-2 text-cocoa">
-            {result.stars > 0 && <div className="text-center text-3xl">{'⭐'.repeat(result.stars)}</div>}
+            {result.stars > 0 && (
+              <div className="relative mx-auto">
+                <SpriteImg sprite="cz_result" size={130} />
+                <div className="relative mx-auto mt-1 w-40"><img src={`${import.meta.env.BASE_URL}assets/sprites/cz_stars.png`} alt="" className="w-40 opacity-30" draggable={false} /><div className="absolute left-0 top-0 overflow-hidden" style={{ width: `${result.stars * 20}%` }}><img src={`${import.meta.env.BASE_URL}assets/sprites/cz_stars.png`} alt="" className="w-40 max-w-none" draggable={false} /></div></div>
+                <SpriteImg sprite="cz_confetti" size={26} />
+              </div>
+            )}
             <div className="text-center font-display text-lg font-bold">Score {result.score}</div>
             {!result.award && <p className="text-center text-sm opacity-70">Your partner's device collects the rewards for you both.</p>}
             <div className="flex flex-wrap justify-center gap-2 text-sm font-bold">

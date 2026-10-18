@@ -7,6 +7,7 @@ import {
   submitLoveAnswers, submitLoveGuesses, turnToward, useGameState, useMe,
 } from '../state/store';
 import { itemOf } from '../state/catalog';
+import { SpriteImg } from './ItemIcon';
 import type { MessageKind, PlayerId } from '../types';
 import ItemIcon, { ArtImg } from './ItemIcon';
 import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
@@ -81,7 +82,7 @@ function Reach() {
       <div className="mt-3 grid grid-cols-3 gap-2">
         {BIDS.map((b) => (
           <button key={b.id} className="flex flex-col items-center rounded-2xl bg-white p-3 shadow active:scale-95" onClick={() => sendBid(me, b.id as BidKind)}>
-            <ArtImg name={`ui_bid_${b.id}_2`} size={64} /><span className="mt-1 font-display text-sm font-bold text-cocoa">{b.label}</span>
+            {['wave', 'tea', 'flower'].includes(b.id) ? <ArtImg name={`ui_bid_${b.id}_2`} size={64} /> : <SpriteImg sprite={`cp_e_${b.id}`} size={64} />}<span className="mt-1 font-display text-sm font-bold text-cocoa">{b.label}</span>
           </button>
         ))}
       </div>
@@ -335,7 +336,7 @@ export function BidBanner() {
   return (
     <div className="absolute inset-x-0 top-16 z-30 flex justify-center px-4">
       <div className="animate-pop flex items-center gap-3 rounded-2xl bg-cream px-4 py-3 shadow-2xl">
-        <ArtImg name={`ui_bid_${b.kind}_4`} size={52} />
+        {['wave', 'tea', 'flower'].includes(b.kind) ? <ArtImg name={`ui_bid_${b.kind}_4`} size={52} /> : <SpriteImg sprite={`cp_e_${b.kind}`} size={52} />}
         <div className="font-display text-sm font-bold text-cocoa">{s.names[b.from]} {info.text}<div className="text-xs font-normal text-cocoa/60">{Math.max(0, 30 - Math.floor((now - b.ts) / 1000))}s left</div></div>
         <button className={primaryBtn} onClick={() => turnToward(me)}>Turn towards 💞</button>
       </div>

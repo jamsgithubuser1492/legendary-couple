@@ -124,7 +124,7 @@ export interface Checkin {
 
 export type WhisperTier = 'light' | 'medium' | 'deep';
 export interface Whisper { tier: WhisperTier; q: string; A?: string; B?: string; paid?: boolean }
-export interface Bid { from: PlayerId; kind: 'wave' | 'tea' | 'flower'; ts: number; turned?: boolean }
+export interface Bid { from: PlayerId; kind: 'wave' | 'tea' | 'flower' | 'hug' | 'kiss' | 'highfive' | 'cheer'; ts: number; turned?: boolean }
 export interface LoveRound { answers: { A?: number[]; B?: number[] }; guesses: { A?: number[]; B?: number[] } }
 export interface GratitudeNote { id: string; from: PlayerId; text: string; day: string; opened?: boolean }
 

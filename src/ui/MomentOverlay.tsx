@@ -34,6 +34,7 @@ export default function MomentOverlay() {
           {b.art.startsWith('sprites/') ? <img src={`${import.meta.env.BASE_URL}assets/${b.art}`} alt="" style={{ width: b.size * 1.5 }} draggable={false} /> : b.art}
         </span>
       ))}
+      <img src={`${import.meta.env.BASE_URL}assets/sprites/cz_confetti.png`} alt="" className="absolute inset-x-0 top-0 mx-auto w-full max-w-md opacity-90" draggable={false} />
       <div className="absolute inset-x-0 top-24 flex justify-center px-4">
         <button onClick={() => setM(null)} className="animate-pop pointer-events-auto max-w-sm rounded-3xl bg-cream p-5 text-center shadow-2xl">
           {m.art ? <img src={`${import.meta.env.BASE_URL}assets/sprites/${m.art}.png`} alt="" className="mx-auto max-h-36" draggable={false} /> : <div className="text-4xl">{m.icon}</div>}
