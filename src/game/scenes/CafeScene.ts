@@ -8,7 +8,7 @@ import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
 import { Avatar } from '../Avatar';
-import { artImage, DW, spawnPlaced } from '../placedRender';
+import { artImage, displayWidth, spawnPlaced } from '../placedRender';
 import type { PlacedObject, PlayerId } from '../../types';
 
 const MIN_ZOOM = 0.3;
@@ -22,6 +22,7 @@ interface Patron {
   down?: string[]; // walking toward the camera, in step order
   up?: string[]; // walking away
   frame?: number;
+  shadow?: Phaser.GameObjects.Ellipse;
   bubble?: Phaser.GameObjects.Image;
   tile: { x: number; y: number };
   busy: boolean;
@@ -331,6 +332,7 @@ export class CafeScene extends Phaser.Scene {
   private dropPatron(p: Patron) {
     this.tweens.killTweensOf(p.img);
     p.bubble?.destroy();
+    p.shadow?.destroy();
     p.img.destroy();
   }
 
@@ -345,8 +347,10 @@ export class CafeScene extends Phaser.Scene {
     const home = tileCenter(DOOR_X, 1);
     const img = artImage(this, key, home.x, home.y + 6, 0.5, 1).setDepth(DOOR_X + 1 + 0.2).setAlpha(0);
     const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, ...this.walkKit(kind) };
+    p.shadow = this.add.ellipse(img.x, img.y - 1, 24, 9, 0x6b4f4f, 0.16).setDepth(DOOR_X + 1 + 0.15);
     this.patrons.push(p);
-    this.tweens.add({ targets: img, alpha: 1, duration: 300 });
+    this.tweens.add({ targets: [img, p.shadow], alpha: { from: 0, to: 1 }, duration: 300 });
+    p.shadow.setAlpha(0.16);
     // choose somewhere to stand: beside a table, a counter or a pastry case
     const spots = this.patronSpots();
     if (!spots.length) {
@@ -406,7 +410,7 @@ export class CafeScene extends Phaser.Scene {
 
   private setArt(img: Phaser.GameObjects.Image, key: string) {
     img.setTexture(key);
-    img.setScale((DW.get(key) ?? img.width) / img.width);
+    img.setScale(displayWidth(key, img.width) / img.width);
   }
 
   private walkPatron(p: Patron, path: { x: number; y: number }[], done: () => void) {
@@ -423,19 +427,20 @@ export class CafeScene extends Phaser.Scene {
       const right = b.x > a.x || (b.x === a.x && b.y < a.y);
       const away = t.x < p.tile.x || t.y < p.tile.y; // up the screen
       p.img.setDepth(t.x + t.y + 0.2);
+      p.shadow?.setDepth(t.x + t.y + 0.15);
       const seq = away ? p.up : p.down;
       if (seq && seq.length) {
         const f = ((p.frame ?? 0) + 1) % seq.length;
         p.frame = f;
         this.setArt(p.img, seq[f]);
         p.img.setFlipX(right); // the walking art faces screen left
-        this.time.delayedCall(190, () => { if (p.img.scene && seq.length > 1) { p.frame = ((p.frame ?? 0) + 1) % seq.length; this.setArt(p.img, seq[p.frame]); } });
+        if (seq.length > 1) for (const d of [95, 190, 285]) this.time.delayedCall(d, () => { if (p.img.scene && p.busy) { p.frame = ((p.frame ?? 0) + 1) % seq.length; this.setArt(p.img, seq[p.frame]); } });
       } else {
         p.img.setFlipX(!right);
       }
       const base = p.img.scaleY;
-      this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 380, ease: 'Linear', onComplete: () => { p.tile = t; step(); } });
-      this.tweens.add({ targets: p.img, scaleY: base * 0.97, duration: 95, yoyo: true, repeat: 1, onComplete: () => p.img.setScale(Math.abs(p.img.scaleX), (DW.get(p.img.texture.key) ?? p.img.width) / p.img.width) });
+      this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 380, ease: 'Linear', onUpdate: () => p.shadow?.setPosition(p.img.x, p.img.y - 1), onComplete: () => { p.tile = t; step(); } });
+      this.tweens.add({ targets: p.img, scaleY: base * 0.97, duration: 95, yoyo: true, repeat: 1, onComplete: () => p.img.setScale(Math.abs(p.img.scaleX), displayWidth(p.img.texture.key, p.img.width) / p.img.width) });
     };
     step();
   }

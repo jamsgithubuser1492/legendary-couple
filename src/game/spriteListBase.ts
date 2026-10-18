@@ -143,128 +143,128 @@ export const SPRITES = [
   {
     "key": "wooden_chair_a",
     "file": "wooden_chair_a.png",
-    "w": 67,
-    "h": 102,
-    "dw": 34
+    "w": 64,
+    "h": 100,
+    "dw": 32
   },
   {
     "key": "wooden_chair_b",
     "file": "wooden_chair_b.png",
-    "w": 65,
-    "h": 102,
-    "dw": 34
+    "w": 63,
+    "h": 99,
+    "dw": 33
   },
   {
     "key": "cushion_set",
     "file": "cushion_set.png",
-    "w": 175,
-    "h": 95,
-    "dw": 100
+    "w": 172,
+    "h": 93,
+    "dw": 98
   },
   {
     "key": "round_table_set",
     "file": "round_table_set.png",
-    "w": 154,
-    "h": 114,
-    "dw": 90
+    "w": 151,
+    "h": 111,
+    "dw": 88
   },
   {
     "key": "square_table_set",
     "file": "square_table_set.png",
-    "w": 173,
-    "h": 109,
-    "dw": 100
+    "w": 171,
+    "h": 105,
+    "dw": 99
   },
   {
     "key": "bookshelf_cafe",
     "file": "bookshelf_cafe.png",
-    "w": 82,
-    "h": 88,
-    "dw": 44
+    "w": 79,
+    "h": 87,
+    "dw": 42
   },
   {
     "key": "counter_pastry",
     "file": "counter_pastry.png",
-    "w": 215,
-    "h": 146,
-    "dw": 150
+    "w": 210,
+    "h": 168,
+    "dw": 147
   },
   {
     "key": "food_matcha",
     "file": "food_matcha.png",
-    "w": 56,
-    "h": 42,
-    "dw": 28
+    "w": 64,
+    "h": 55,
+    "dw": 32
   },
   {
     "key": "food_tray",
     "file": "food_tray.png",
-    "w": 64,
-    "h": 41,
-    "dw": 32
+    "w": 87,
+    "h": 62,
+    "dw": 44
   },
   {
     "key": "food_cake_a",
     "file": "food_cake_a.png",
-    "w": 56,
-    "h": 44,
-    "dw": 28
+    "w": 68,
+    "h": 59,
+    "dw": 34
   },
   {
     "key": "food_cake_b",
     "file": "food_cake_b.png",
-    "w": 56,
-    "h": 40,
-    "dw": 28
+    "w": 68,
+    "h": 57,
+    "dw": 34
   },
   {
     "key": "food_slice",
     "file": "food_slice.png",
-    "w": 56,
-    "h": 44,
-    "dw": 28
+    "w": 68,
+    "h": 60,
+    "dw": 34
   },
   {
     "key": "food_croissant",
     "file": "food_croissant.png",
-    "w": 60,
-    "h": 49,
-    "dw": 30
+    "w": 75,
+    "h": 56,
+    "dw": 38
   },
   {
     "key": "food_display",
     "file": "food_display.png",
-    "w": 64,
-    "h": 48,
-    "dw": 32
+    "w": 79,
+    "h": 57,
+    "dw": 40
   },
   {
     "key": "food_macarons",
     "file": "food_macarons.png",
-    "w": 60,
-    "h": 41,
-    "dw": 30
+    "w": 77,
+    "h": 51,
+    "dw": 38
   },
   {
     "key": "food_loaf",
     "file": "food_loaf.png",
-    "w": 60,
-    "h": 42,
-    "dw": 30
+    "w": 79,
+    "h": 54,
+    "dw": 40
   },
   {
     "key": "food_bread",
     "file": "food_bread.png",
-    "w": 56,
-    "h": 48,
-    "dw": 28
+    "w": 72,
+    "h": 61,
+    "dw": 36
   },
   {
     "key": "plant_a",
     "file": "plant_a.png",
-    "w": 55,
-    "h": 70,
-    "dw": 30
+    "w": 57,
+    "h": 71,
+    "dw": 31
   },
   {
     "key": "plant_b",
@@ -276,23 +276,23 @@ export const SPRITES = [
   {
     "key": "plant_snake",
     "file": "plant_snake.png",
-    "w": 46,
-    "h": 77,
-    "dw": 26
+    "w": 45,
+    "h": 76,
+    "dw": 25
   },
   {
     "key": "lamp",
     "file": "lamp.png",
-    "w": 39,
-    "h": 62,
-    "dw": 22
+    "w": 38,
+    "h": 59,
+    "dw": 21
   },
   {
     "key": "menu_sign",
     "file": "menu_sign.png",
-    "w": 48,
-    "h": 67,
-    "dw": 24
+    "w": 55,
+    "h": 73,
+    "dw": 28
   },
   {
     "key": "suitcase",
@@ -311,30 +311,30 @@ export const SPRITES = [
   {
     "key": "pastry_case",
     "file": "pastry_case.png",
-    "w": 200,
-    "h": 187,
-    "dw": 100
+    "w": 214,
+    "h": 201,
+    "dw": 107
   },
   {
     "key": "bread_shelf",
     "file": "bread_shelf.png",
-    "w": 168,
-    "h": 180,
-    "dw": 84
+    "w": 171,
+    "h": 183,
+    "dw": 86
   },
   {
     "key": "menu_stand_a",
     "file": "menu_stand_a.png",
-    "w": 52,
-    "h": 75,
-    "dw": 26
+    "w": 64,
+    "h": 92,
+    "dw": 32
   },
   {
     "key": "menu_stand_b",
     "file": "menu_stand_b.png",
-    "w": 56,
-    "h": 81,
-    "dw": 28
+    "w": 64,
+    "h": 92,
+    "dw": 32
   },
   {
     "key": "plush_kitty",

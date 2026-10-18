@@ -312,3 +312,8 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
   - Duo scenes: a different one tops the weekly recap.
 - **Walking guests:** café customers now use their real step frames (front, side and from behind, mirrored for direction). Eight townsfolk walk using their front and back views. Four townsfolk (old man, postal worker, vendor, dog walker) keep standing poses because their views were not clear enough to cut.
 - **Placed:** the team work poses (one per event), star rows (café rating, game results), the result frame, confetti and the waiting and invite banners.
+
+### Build 38: one scale for the café, and recut base pieces
+- The service counter, pastry cases, shelves, chairs, tables, menus, food, plants and lamp from sheets 6 and 8 were recut with extra room (`tools/recut_cafe_base.py`), so no edge or corner is lost. The counter gained its missing front corner.
+- `displayWidth()` in `placedRender.ts` sets one scale for the café: people about 54 px tall, chair seats at their knee, tables at their waist. Guests, staff and walkers now share the same height.
+- Guests walk with a 4 step frame swap per tile, a soft shadow that follows them, and depth sorting.
