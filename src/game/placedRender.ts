@@ -30,9 +30,9 @@ export interface RenderOpts {
  */
 const PERSON_H = 54;
 const SIZE_BY_WIDTH: [RegExp, number][] = [ // [pattern, display width]
-  [/^cx_chair_/, 32], [/^cy_catchair_/, 34], [/^cx_table_round_/, 40], [/^cx_table_marble_/, 44], [/^cy_loveseat_|^cy_sofa_|^cy_wicker_/, 56], [/^cx_fig_/, 34], [/^cx_pothos_/, 34],
+  [/^cx_chair_/, 32], [/^cy_catchair_/, 34], [/^cx_table_round_/, 40], [/^cx_table_marble_/, 44], [/^cy_loveseat_|^cy_sofa_|^cy_wicker_/, 56], [/^cx_fig_/, 34], [/^cx_pothos_/, 34], [/^cy_capy_/, 34], [/^cy_drone_/, 22],
 ];
-const HEIGHT_BY_KEY: [RegExp, number][] = [[/^cx_p_.*(?<!_sit)$/, PERSON_H], [/^cx_p_.*_sit$/, 50], [/^cw_/, PERSON_H], [/^ct_/, 50], [/^cz_t_/, PERSON_H], [/^cy_staff_/, PERSON_H], [/^cy_tray_/, PERSON_H]];
+const HEIGHT_BY_KEY: [RegExp, number][] = [[/^cx_p_.*(?<!_sit)$/, PERSON_H], [/^cx_p_.*_sit$/, 50], [/^cy_(granny|grannyb|mail|mailb|cam|coffee|crane)_\d/, PERSON_H], [/^cs_crane_/, PERSON_H], [/^cs_/, 50], [/^cw_/, PERSON_H], [/^ct_/, 50], [/^cz_t_/, PERSON_H], [/^cy_staff_/, PERSON_H], [/^cy_tray_/, PERSON_H]];
 
 /** The on screen width for a sprite, after the café's common scale. */
 export function displayWidth(key: string, natural: number): number {

@@ -7,6 +7,7 @@ import { findPath } from '../iso';
 import { getMe, getState, onStateChange, setTownPos } from '../../state/store';
 import type { PlayerId } from '../../types';
 import { getTheme, onThemeChange } from '../../state/season';
+import { SkyLife } from '../skylife';
 import {
   HOME_PIN, LOTS, lotOpen, REGIONS, TOWN, activityOf, growthOf, onGrowthPreviewChange, regionById, unlockedRegions,
   type Lot, type RegionId,
@@ -67,6 +68,7 @@ export class TownScene extends Phaser.Scene {
     this.backdrop.setTheme(getTheme());
     this.ambient = new Ambient(this, { island: false });
     this.ambient.apply(getTheme());
+    new SkyLife(this); // cleans itself up when the scene shuts down
     this.drawWorld();
     this.refresh(false);
     const ta = getState().townAvatars;

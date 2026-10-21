@@ -14,7 +14,23 @@ import type { PlacedObject, PlayerId } from '../../types';
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2.5;
 const DRAG_THRESHOLD = 8;
-const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist', 'girl', 'boy', 'oldman', 'jogger', 'dogwalker', 'musician', 'painter', 'postal', 'surfer', 'tourist'];
+const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist', 'girl', 'boy', 'oldman', 'jogger', 'dogwalker', 'musician', 'painter', 'postal', 'surfer', 'tourist', 'granny', 'mail', 'cam', 'coffee', 'capy', 'drone', 'crane'];
+
+/** Guests drawn with full walk cycles (down, and the back view when there is one) and, for some, a seated pose per chair facing. */
+const WALKERS: Record<string, { down: string[]; up?: string[] }> = {
+  granny: { down: [1, 2, 3, 4].map((n) => `cy_granny_${n}`), up: [1, 2, 3, 4].map((n) => `cy_grannyb_${n}`) },
+  mail: { down: [1, 2, 3, 4].map((n) => `cy_mail_${n}`), up: [1, 2, 3, 4].map((n) => `cy_mailb_${n}`) },
+  cam: { down: [1, 2, 3, 4].map((n) => `cy_cam_${n}`) },
+  coffee: { down: [1, 2, 3, 4].map((n) => `cy_coffee_${n}`) },
+  capy: { down: [1, 2].map((n) => `cy_capy_${n}`) },
+  drone: { down: [1, 2].map((n) => `cy_drone_${n}`) },
+  crane: { down: [1, 2, 3].map((n) => `cy_crane_${n}`) },
+};
+const SEATED: Record<string, string[]> = {
+  granny: ['cs_granny_1a', 'cs_granny_1b'], mail: ['cs_mail_1a', 'cs_mail_1b', 'cs_mail_1c'], cam: ['cs_cam_1a', 'cs_cam_1b'],
+  coffee: ['cs_coffee_1a', 'cs_coffee_1b', 'cs_boy_1a'], crane: ['cs_crane_1a', 'cs_crane_1b'],
+};
+const isChair = (id: string) => { const it = itemOf(id); return !!it && it.layer === 'object' && it.w === 1 && it.d === 1 && (it.role === 'chair' || /chair/.test(it.id)); };
 
 interface Patron {
   img: Phaser.GameObjects.Image;
@@ -26,6 +42,9 @@ interface Patron {
   bubble?: Phaser.GameObjects.Image;
   tile: { x: number; y: number };
   busy: boolean;
+  kind?: string;
+  float?: boolean; // hovers, with a gentle bob
+  seat?: { chair: string; from: { x: number; y: number } };
 }
 
 /**
@@ -40,6 +59,9 @@ export class CafeScene extends Phaser.Scene {
   private avatars!: Record<PlayerId, Avatar>;
   private floorObjs: Phaser.GameObjects.GameObject[] = [];
   private itemObjs: Phaser.GameObjects.GameObject[] = [];
+  private placedObjs = new Map<string, Phaser.GameObjects.GameObject[]>(); // art of each placed object, so an occupied chair can be hidden
+  private decorObjs: Phaser.GameObjects.GameObject[] = [];
+  private seated = new Map<string, Patron>(); // chair id to the guest sitting on it
   private ghostObjs: Phaser.GameObjects.GameObject[] = [];
   private highlight!: Phaser.GameObjects.Graphics;
   private edit: EditPayload = { active: false, mode: 'place', itemId: null, rotation: 0 };
@@ -142,7 +164,7 @@ export class CafeScene extends Phaser.Scene {
   private render(force: boolean) {
     const s = getState();
     const c = s.cafe;
-    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
+    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay}|${c.event?.day === dateKey() ? c.event.id : ''}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
     if (!force && sig === this.sig) return;
     this.sig = sig;
     if (c.size !== this.lastSize) {
@@ -152,8 +174,11 @@ export class CafeScene extends Phaser.Scene {
     const view = cafeView(s);
     this.floorObjs.forEach((o) => o.destroy());
     this.itemObjs.forEach((o) => o.destroy());
+    this.decorObjs.forEach((o) => o.destroy());
     this.floorObjs = [];
     this.itemObjs = [];
+    this.decorObjs = [];
+    this.placedObjs.clear();
     const th = themeOf(c.theme);
     // the room's own floor, one diamond per tile inside the walls
     const key = this.textures.exists(th.floor) ? th.floor : '';
@@ -168,10 +193,37 @@ export class CafeScene extends Phaser.Scene {
     const wallAt = (x: number, y: number) => view.placed.some((o) => o.tileX === x && o.tileY === y && itemOf(o.itemId)?.layer === 'wall');
     const skin = (o: PlacedObject) => (itemOf(o.itemId)?.effect === 'bench' && s.cafe.sitDay === this.today() ? 'cx_bench_couple' : undefined);
     for (const o of shellPieces(c.theme, c.size)) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view }));
-    for (const o of c.placed) this.itemObjs.push(...spawnPlaced(this, o, wallAt, { decor: view, skin }));
+    for (const o of c.placed) {
+      const objs = spawnPlaced(this, o, wallAt, { decor: view, skin });
+      this.placedObjs.set(o.id, objs);
+      this.itemObjs.push(...objs);
+    }
+    for (const id of this.seated.keys()) this.showChair(id, false); // a rebuilt room keeps its sitters' chairs covered
+    this.hangEventDecor(c.size, c.event?.day === dateKey() ? c.event.id : null);
     this.blocked = cafeBlocked(s);
     this.paintBackdrop();
     this.refreshHover();
+  }
+
+  /** String lights across the back wall on an event day, and the Study Slam banner on top of them. */
+  private hangEventDecor(size: number, event: string | null) {
+    if (!event) return;
+    const along = (key: string, x0: number, y0: number, x1: number, y1: number, lift: number, depth: number) => {
+      if (!this.textures.exists(key)) return;
+      const a = cartesianToIso(x0, y0), b = cartesianToIso(x1, y1);
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      const im = this.add.image((a.x + b.x) / 2, (a.y + b.y) / 2 - lift, key).setDepth(depth).setRotation(Math.atan2(b.y - a.y, b.x - a.x));
+      im.setScale(len / im.width);
+      this.decorObjs.push(im);
+    };
+    const lights = event === 'study' ? 'sk_lights_star' : 'sk_lights_globe';
+    along(lights, 1, 0.5, size, 0.5, 74, -8);
+    along(lights, 0.5, size, 0.5, 1, 74, -8);
+    if (event === 'study') along('sk_banner_study', 2.2, 0.5, size - 1.2, 0.5, 112, -7);
+  }
+
+  private showChair(id: string, visible: boolean) {
+    for (const o of this.placedObjs.get(id) ?? []) (o as Phaser.GameObjects.Image).setVisible?.(visible);
   }
 
   private today() {
@@ -223,6 +275,7 @@ export class CafeScene extends Phaser.Scene {
     this.drawFx(t);
     this.syncStaff();
     this.syncGifts();
+    for (const q of this.patrons) if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
     if (this.edit.active) return;
     this.nextPatron -= delta / 1000;
     const st = styleOf(getState());
@@ -398,6 +451,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private dropPatron(p: Patron) {
+    if (p.seat) { this.showChair(p.seat.chair, true); this.seated.delete(p.seat.chair); }
     this.tweens.killTweensOf(p.img);
     p.bubble?.destroy();
     p.shadow?.destroy();
@@ -410,15 +464,21 @@ export class CafeScene extends Phaser.Scene {
     const study = s0.cafe.event?.day === dateKey() && s0.cafe.event.id === 'study';
     const pool = study ? ['student', 'student', 'nomad', 'scholar'] : sign && styleOf(s0).sign && Math.random() < 0.7 ? sign.draws : PATRONS;
     const kind = pool[Math.floor(Math.random() * pool.length)];
-    const key = this.textures.exists(`cx_p_${kind}`) ? `cx_p_${kind}` : `cz_t_${kind}`;
-    if (!this.textures.exists(key)) return;
+    const key = this.textures.exists(`cx_p_${kind}`) ? `cx_p_${kind}` : this.textures.exists(`cz_t_${kind}`) ? `cz_t_${kind}` : WALKERS[kind]?.down[0] ?? '';
+    if (!key || !this.textures.exists(key)) return;
     const home = tileCenter(DOOR_X, 1);
     const img = artImage(this, key, home.x, home.y + 6, 0.5, 1).setDepth(DOOR_X + 1 + 0.2).setAlpha(0);
-    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, ...this.walkKit(kind) };
+    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, kind, float: kind === 'drone', ...this.walkKit(kind) };
     p.shadow = this.add.ellipse(img.x, img.y - 1, 24, 9, 0x6b4f4f, 0.16).setDepth(DOOR_X + 1 + 0.15);
     this.patrons.push(p);
     this.tweens.add({ targets: [img, p.shadow], alpha: { from: 0, to: 1 }, duration: 300 });
     p.shadow.setAlpha(0.16);
+    // guests with a seated pose take a free chair beside a table when there is one
+    const seat = SEATED[kind] ? this.pickSeat(p) : null;
+    if (seat) {
+      this.walkPatron(p, seat.path, () => this.sitDown(p, seat, kind));
+      return;
+    }
     // choose somewhere to stand: beside a table, a counter or a pastry case
     const spots = this.patronSpots();
     if (!spots.length) {
@@ -443,6 +503,72 @@ export class CafeScene extends Phaser.Scene {
     });
   }
 
+  /** A free chair that touches a table, and the way to the floor tile beside it. */
+  private pickSeat(p: Patron): { chair: PlacedObject; from: { x: number; y: number }; path: { x: number; y: number }[] } | null {
+    const s = getState();
+    const tableTiles = new Set<string>();
+    for (const o of s.cafe.placed) if (itemOf(o.itemId)?.role === 'table') for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) tableTiles.add(`${t.x},${t.y}`);
+    const taken = new Set<string>([`${this.avatars.A.tile.x},${this.avatars.A.tile.y}`, `${this.avatars.B.tile.x},${this.avatars.B.tile.y}`]);
+    for (const q of this.patrons) if (q !== p) taken.add(`${q.tile.x},${q.tile.y}`);
+    const chairs = s.cafe.placed.filter((o) => isChair(o.itemId) && !this.seated.has(o.id) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tableTiles.has(`${o.tileX + dx},${o.tileY + dy}`)));
+    for (let i = chairs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [chairs[i], chairs[j]] = [chairs[j], chairs[i]]; }
+    for (const chair of chairs) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const from = { x: chair.tileX + dx, y: chair.tileY + dy };
+        if (!inBounds(from.x, from.y, this.size()) || from.x < 1 || from.y < 1 || this.blocked.has(`${from.x},${from.y}`) || taken.has(`${from.x},${from.y}`)) continue;
+        const path = findPath(p.tile, from, this.pathBlocked(), this.size());
+        if (path.length || (p.tile.x === from.x && p.tile.y === from.y)) return { chair, from, path };
+      }
+    }
+    return null;
+  }
+
+  /** The last step: onto the chair, cover the chair art with the seated pose, then place the order. */
+  private sitDown(p: Patron, seat: { chair: PlacedObject; from: { x: number; y: number } }, kind: string) {
+    if (!p.img.scene) return;
+    const { chair } = seat;
+    if (this.seated.has(chair.id)) return this.leaveDoor(p); // someone else got there first
+    this.seated.set(chair.id, p);
+    p.seat = { chair: chair.id, from: seat.from };
+    this.showChair(chair.id, false);
+    const poses = SEATED[kind];
+    const row = Math.random() < 0.5 ? '1' : '2';
+    let key = poses[(chair.rotation / 90 | 0) % poses.length];
+    if (row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
+    if (!this.textures.exists(key)) key = poses[0];
+    const b = tileCenter(chair.tileX, chair.tileY);
+    this.setArt(p.img, key);
+    p.img.setFlipX(chair.rotation >= 180);
+    p.img.setPosition(b.x, b.y + 6).setDepth(chair.tileX + chair.tileY + 0.3);
+    p.shadow?.setPosition(b.x, b.y + 5).setDepth(chair.tileX + chair.tileY + 0.25);
+    p.tile = { x: chair.tileX, y: chair.tileY };
+    p.float = false;
+    p.img.setOrigin(0.5, 1);
+    this.bubble(p, 'cx_b_menu');
+    addCafeOrder(kind);
+    this.time.delayedCall(2600, () => {
+      this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
+      this.time.delayedCall(2200, () => this.standUp(p));
+    });
+  }
+
+  private standUp(p: Patron) {
+    if (!p.img.scene) return;
+    const seat = p.seat;
+    if (!seat) return this.leaveDoor(p);
+    p.bubble?.destroy();
+    p.bubble = undefined;
+    this.setArt(p.img, p.stand ?? p.img.texture.key);
+    p.img.setFlipX(false);
+    this.showChair(seat.chair, true);
+    this.seated.delete(seat.chair);
+    p.seat = undefined;
+    p.float = p.kind === 'drone';
+    const b = tileCenter(seat.from.x, seat.from.y);
+    p.img.setDepth(seat.from.x + seat.from.y + 0.2);
+    this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 300, onUpdate: () => p.shadow?.setPosition(p.img.x, p.img.y - 1), onComplete: () => { p.tile = seat.from; this.leaveDoor(p); } });
+  }
+
   /** Free floor tiles next to a table, a pastry case or a station. */
   private patronSpots(): { x: number; y: number }[] {
     const s = getState();
@@ -465,6 +591,8 @@ export class CafeScene extends Phaser.Scene {
   /** Walking art for a guest: customers have real step frames, townsfolk have front and back views. */
   private walkKit(kind: string): Pick<Patron, 'down' | 'up'> {
     const has = (k: string) => this.textures.exists(k);
+    const w = WALKERS[kind];
+    if (w && w.down.every(has)) return { down: w.down, up: w.up && w.up.every(has) ? w.up : w.down };
     const cw = [1, 2, 3, 4].map((n) => `cw_${kind}_${n}`).filter(has);
     if (cw.length >= 2) {
       const steps = cw.length >= 4 ? cw.slice(0, 3) : cw;

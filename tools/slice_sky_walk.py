@@ -73,9 +73,9 @@ def main():
     keyed(SKY, 'sk_snowtile_1', (833, 336, 881, 384), 'bright')
     keyed(SKY, 'sk_snowtile_2', (890, 336, 938, 384), 'bright')
     # event decor
-    cut(SKY, 'sk_lights_globe', (23, 526, 228, 580))
-    cut(SKY, 'sk_lights_star', (23, 594, 228, 632))
-    cut(SKY, 'sk_lights_bunting', (23, 642, 228, 686))
+    cut(SKY, 'sk_lights_globe', (23, 526, 228, 580), keep_all=True)
+    cut(SKY, 'sk_lights_star', (23, 601, 228, 627), keep_all=True)
+    cut(SKY, 'sk_lights_bunting', (23, 642, 228, 686), keep_all=True)
     cut(SKY, 'sk_banner_study', (762, 528, 1062, 610))
     cut(SKY, 'sk_sun', (930, 636, 978, 680))
     # ---- walk cycles

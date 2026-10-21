@@ -25,6 +25,7 @@ import { starterStage, STARTER_PROPS } from '../../state/town';
 import { IslandEffects } from '../effects';
 import { LANTERN, POST, TREE } from '../../state/placement';
 import { getTheme, onThemeChange } from '../../state/season';
+import { SkyLife } from '../skylife';
 import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
 const MIN_ZOOM = 0.5;
@@ -73,6 +74,7 @@ export class MainScene extends Phaser.Scene {
     ensureFloorTextures(this);
     this.ambient = new Ambient(this);
     this.ambient.apply(getTheme());
+    new SkyLife(this); // cleans itself up when the scene shuts down
     this.drawnSize = GRID_SIZE;
     this.highlight = this.add.graphics().setDepth(1000);
 

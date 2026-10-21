@@ -325,16 +325,16 @@ export const SKY_SPRITES = [
   {
     "key": "sk_lights_globe",
     "file": "sk_lights_globe.png",
-    "w": 30,
-    "h": 24,
-    "dw": 15
+    "w": 203,
+    "h": 42,
+    "dw": 102
   },
   {
     "key": "sk_lights_star",
     "file": "sk_lights_star.png",
-    "w": 24,
-    "h": 13,
-    "dw": 12
+    "w": 185,
+    "h": 26,
+    "dw": 92
   },
   {
     "key": "sk_lights_bunting",

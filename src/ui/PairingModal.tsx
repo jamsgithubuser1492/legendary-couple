@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { generateRoomCode, getRoom, getSyncError, inviteLink, joinRoom, syncAvailable, useSyncStatus } from '../lib/sync';
 import { otherPlayer, setNames, setMe, useGameState, useMe } from '../state/store';
 import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
+import { setWeatherChoice, useWeatherChoice } from '../game/skylife';
 
 const STATUS: Record<string, string> = {
   local: 'Offline mode (saved on this device)',
@@ -17,6 +18,7 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
   const status = useSyncStatus();
   const choice = useSeasonChoice();
   const theme = useTheme();
+  const weather = useWeatherChoice();
   const [code, setCode] = useState(getRoom() ?? '');
   const [copied, setCopied] = useState(false);
   const link = inviteLink(otherPlayer(me));
@@ -79,6 +81,13 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
             <button key={c} onClick={() => setSeasonChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${choice === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
               {c === 'auto' ? 'Auto' : `${THEMES.find((t) => t.id === c)!.icon} ${THEMES.find((t) => t.id === c)!.label}`}
             </button>
+          ))}
+        </div>
+        <p className="mt-3 text-sm font-bold text-cocoa">Weather</p>
+        <p className="text-xs text-cocoa/60">Rain and snow are only for looks. Auto follows the calendar. Preview another on this device.</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {([['auto', 'Auto'], ['clear', '☀️ Clear'], ['rain', '🌧️ Rain'], ['snow', '❄️ Snow']] as const).map(([c, label]) => (
+            <button key={c} onClick={() => setWeatherChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${weather === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{label}</button>
           ))}
         </div>
         <p className="mt-3 text-xs text-cocoa/60">Status: {STATUS[status]}</p>
