@@ -329,3 +329,10 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - The pier is now a painted cross section: planks and posts above, water, sunbeams and seabed below. It follows the time of day (day, golden hour, night).
 - Bobbers are painted (shell for partner A, glowing stardust for partner B) and swap to a bite frame while a ring or tug is on. Casting makes an entry splash and a ring that spreads.
 - Cuts come from tools/slice_fishing.py (fish, backdrops, bobbers, splashes). Not wired yet: the rod upgrades and fish animation sheets.
+
+### Build 41: sky life, weather, café guests, the Orchard and the fishing finish
+- Island and town maps: gulls and finches by day, butterflies in spring and summer, fireflies at night, and weather that is the same on both phones (snow in winter and holidays, light rain on some spring and autumn days). Weather is cosmetic, can be set in the Us panel, and never costs anything.
+- Café: new guests with full walk cycles (an elderly woman, a postal worker, a photographer, a coffee guest) plus a capybara, a drone and a crane. Guests with seated art sit on free chairs while they order. Event days hang string lights, and Study Slam hangs its banner.
+- Orchard Harvest is fully painted: seasonal backdrop, trees, fruit, the filling basket, James, Rachel and Mochi in shaking, catching, swap and win poses, and the golden shower and catch effects.
+- Stellar Fishing finish: the night pier backdrop with both of you casting from the dock.
+- Cuts come from tools/slice_sky_walk.py, tools/slice_orchard.py and tools/slice_fish_finish.py.

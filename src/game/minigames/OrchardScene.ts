@@ -55,7 +55,7 @@ export class OrchardScene extends MinigameScene {
   private whistled = false;
   private keys?: Record<string, Phaser.Input.Keyboard.Key>;
   private texts!: { score: Phaser.GameObjects.Text; time: Phaser.GameObjects.Text; role: Phaser.GameObjects.Text; banner: Phaser.GameObjects.Text; names: Phaser.GameObjects.Text[] };
-  private taps: { x: number; y: number; t: number }[] = [];
+  private taps: { x: number; y: number; t: number; done?: boolean }[] = [];
   // painted art (all optional: the old code drawing is the fallback when a texture is missing)
   private art = false;
   private ft = 0; // real time in seconds, for effects that must not jump with host snapshots
@@ -80,8 +80,6 @@ export class OrchardScene extends MinigameScene {
   private wobbleT = -9;
   private lastTree = 0;
   private streak = 0;
-  private lastCaught = 0;
-  private prevShower = false;
 
   private shaker(): PlayerId | null {
     return this.clock < SWAP_AT ? 'A' : this.clock >= SWAP_END ? 'B' : null;
@@ -137,7 +135,7 @@ export class OrchardScene extends MinigameScene {
   private buildArt() {
     this.fx = []; this.trees = []; this.showerImgs = []; this.people = [];
     this.fruit.clear(); this.shadowImgs.clear(); this.seen.clear();
-    this.leafAcc = 0; this.shookAt = -1; this.tapT = -9; this.catchT = -9; this.wobbleT = -9; this.lastTree = 0; this.streak = 0; this.lastCaught = 0; this.prevShower = false;
+    this.leafAcc = 0; this.shookAt = -1; this.tapT = -9; this.catchT = -9; this.wobbleT = -9; this.lastTree = 0; this.streak = 0;
     this.far = this.dusk = this.tint = this.basketImg = this.glowImg = undefined;
     this.art = this.has('or_tree') && this.has('or_bg_far') && this.has('or_basket_0') && this.has('or_apple_2');
     if (!this.art) return;
@@ -160,6 +158,8 @@ export class OrchardScene extends MinigameScene {
       const key = i === 1 && this.has('or_tree_fruit') ? 'or_tree_fruit' : 'or_tree';
       const im = this.add.image(x, GROUND + 6, key).setOrigin(0.5, 1).setDepth(2).setFlipX(i === 2);
       im.setScale(TREE_H / im.height);
+      if (sk === 'autumn') im.setTint(0xffd2a0);
+      else if (sk === 'winter') im.setTint(0xe2ecf4);
       this.trees.push(im);
     });
     this.basketImg = this.add.image(480, 512, 'or_basket_0').setOrigin(0.5, 1).setDepth(5).setVisible(false);
@@ -261,7 +261,7 @@ export class OrchardScene extends MinigameScene {
     }
   }
 
-  private drawArt(dt: number, basketX: number, me: PlayerId, ct: PlayerId | null) {
+  private drawArt(dt: number, basketX: number, ct: PlayerId | null) {
     const m = this.m, c = this.clock, g = this.g, g2 = this.g2;
     this.ft += dt;
     // grass between the hills and the ground strip
@@ -279,13 +279,12 @@ export class OrchardScene extends MinigameScene {
     // golden shower: dusk light over the sky, a warm pulse, and a golden rain of frames
     const sa = showerOn ? Math.min(1, (m.showerUntil - c) / 1.2, (c - (m.showerUntil - 5)) / 0.8 + 1) : 0;
     this.dusk?.setAlpha(0.6 * Math.max(0, sa));
-    if (this.tint) this.tint.setVisible(sa > 0).setAlpha(Math.max(0, sa) * (0.16 + 0.08 * Math.sin(this.ft * 4)));
+    if (this.tint) this.tint.setVisible(sa > 0).setAlpha(Math.max(0, sa) * (0.1 + 0.05 * Math.sin(this.ft * 4)));
     const fr = 1 + (Math.floor(this.ft * 8) % 8);
-    this.showerImgs.forEach((im, i) => im.setVisible(sa > 0).setTexture(`or_shower_${((fr + i * 3) % 8) + 1}`).setAlpha(Math.max(0, sa) * 0.55));
-    this.prevShower = showerOn;
+    this.showerImgs.forEach((im, i) => im.setVisible(sa > 0).setTexture(`or_shower_${((fr + i * 3) % 8) + 1}`).setAlpha(Math.max(0, sa) * 0.3));
     // drifting leaves, a few at a time
     this.leafAcc += dt;
-    if (this.leafAcc > 1.1) { this.leafAcc = 0; this.leaf(Math.random() * W, -20, false); }
+    if (this.leafAcc > 1.1) { this.leafAcc = 0; this.leaf(Math.random() * W, 8, false); }
     // a tree the shaker tapped
     if (m.lit?.used && this.shookAt !== m.lit.at) { this.shookAt = m.lit.at; this.shakeTree(m.lit.tree); }
     // the lit target
@@ -301,12 +300,11 @@ export class OrchardScene extends MinigameScene {
       if (!m.lit.used && Math.random() < 0.25) this.spawn(`or_spark_${1 + Math.floor(Math.random() * 3)}`, x + (Math.random() - 0.5) * 90, TARGET_Y + (Math.random() - 0.5) * 70, { dur: 0.7, s0: 0.5, s1: 0.9, add: true });
     });
     // tap ripples from my own taps (instant feedback before the host answers)
-    this.taps = this.taps.filter((t) => {
-      if (this.ft - (t as { ft?: number }).ft! > 0 && (t as { ft?: number }).ft !== undefined) return true;
-      (t as { ft?: number }).ft = this.ft;
+    for (const t of this.taps) if (!t.done) {
+      t.done = true;
       this.spawn('or_tap_4', t.x, TARGET_Y, { dur: 0.4, s0: 0.7, s1: 1.8, a0: 0.8 });
-      return false;
-    });
+    }
+    this.taps = this.taps.filter((t) => c - t.t < 0.4);
     this.watchFruit(basketX, ct);
     // falling fruit, with a shadow that tightens as it nears the ground
     const live = new Set<number>();
@@ -339,12 +337,12 @@ export class OrchardScene extends MinigameScene {
       const wob = this.ft - this.wobbleT < 0.3;
       const key = wob && state === 0 && this.has('or_basket_wob_1') ? (Math.floor((this.ft - this.wobbleT) * 14) % 2 ? 'or_basket_wob_2' : 'or_basket_wob_1') : `or_basket_${state}`;
       if (b.texture.key !== key) b.setTexture(key);
-      const sc = 134 / 170 * (key.startsWith('or_basket_wob') ? 170 / 124 : 1);
+      const sc = 124 / 170 * (key.startsWith('or_basket_wob') ? 170 / 124 : 1);
       const pop = wob ? 1 + 0.07 * Math.sin((this.ft - this.wobbleT) * 40) : 1;
-      b.setPosition(basketX, 512).setScale(sc * pop, sc / pop);
+      b.setPosition(basketX, 508).setScale(sc * pop, sc / pop);
       if (this.glowImg) {
         const glow = showerOn ? 0.5 + 0.3 * Math.sin(this.ft * 6) : 0;
-        this.glowImg.setVisible(glow > 0).setAlpha(glow).setPosition(basketX, 512).setScale(134 / 170);
+        this.glowImg.setVisible(glow > 0).setAlpha(glow).setPosition(basketX, 508).setScale(124 / 170);
       }
       g2.fillStyle(0x000000, 0.14);
       g2.fillEllipse(basketX, GROUND + 6, 140, 16);
@@ -490,7 +488,7 @@ export class OrchardScene extends MinigameScene {
     }
     const basketX = ct === me ? this.bx : m.basketX;
 
-    if (this.art) this.drawArt(dt, basketX, me, ct);
+    if (this.art) this.drawArt(dt, basketX, ct);
     else {
       const g = this.g;
       g.clear();
