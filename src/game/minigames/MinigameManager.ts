@@ -131,7 +131,7 @@ export class MinigameManager {
       const before = getState().coins, raw = r.coins;
       applyMinigameReward(r);
       const paid = Math.max(0, getState().coins - before);
-      if (paid < raw) r = { ...r, coins: paid, notes: [...r.notes, `Today's game coin limit kept the coins at ${paid}. Everything else still counts.`] };
+      if (paid < raw) r = { ...r, coins: paid, notes: [...r.notes, `The game coin limit kept the coins at ${paid}. Everything else still counts.`] };
       void getSupabase()
         ?.from('minigame_sessions')
         .insert({ room_code: getRoom() ?? 'SOLO', game_type: r.type, player_a: getState().names.A, player_b: getState().names.B, current_score: r.score, stars: r.stars, sync_state: r, status: 'COMPLETED' })

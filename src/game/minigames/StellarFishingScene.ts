@@ -360,8 +360,8 @@ export class StellarFishingScene extends MinigameScene {
         // the night scene is a whole painted picture: its planks sit at 358 and its water line at 451 when drawn 960 wide, so lift it to put them at the game's pier and surface
         if (key === 'sf_bg_night') {
           // screens that are not 16 by 9 show the margins: sky colour above and beside the pier, water colour below
-          this.add.rectangle(480, 150, 9000, 740, 0x2a2766).setDepth(-86);
-          this.add.rectangle(480, 1020, 9000, 1200, 0x1b6f7e).setDepth(-86);
+          this.add.rectangle(480, -1000, 9000, 2596, 0x2a2766).setDepth(-86);
+          this.add.rectangle(480, 1798, 9000, 3000, 0x1b6f7e).setDepth(-86);
         }
         this.bgImg = key === 'sf_bg_night' ? this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
       }
