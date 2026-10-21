@@ -336,3 +336,4 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Orchard Harvest is fully painted: seasonal backdrop, trees, fruit, the filling basket, James, Rachel and Mochi in shaking, catching, swap and win poses, and the golden shower and catch effects.
 - Stellar Fishing finish: the night pier backdrop with both of you casting from the dock.
 - Cuts come from tools/slice_sky_walk.py, tools/slice_orchard.py and tools/slice_fish_finish.py.
+- Stellar Fishing at night now uses the full painted pier scene, and James and Rachel sit on the dock in the game itself, casting with the release frame as each line goes out.

@@ -26,6 +26,7 @@ interface Model {
 
 const WATER_TOP = 200;
 const SURFACE_Y = 295; // where the painted water surface sits, so casts and fish stay in the water
+const NIGHT_Y = -153; // top of the full night scene
 const PIER_TOP = 96; // where the painted pier backdrop starts
 const FISH = ['guppy', 'tang', 'bunny', 'bass', 'salmon', 'carp', 'angel', 'nudi', 'crab', 'perch', 'grouper', 'eel'];
 /** The painted key for a species: the first four are older art, the rest come from the fish species sheet. */
@@ -47,6 +48,7 @@ export class StellarFishingScene extends MinigameScene {
   private skyImg?: Phaser.GameObjects.Image;
   private bgImg?: Phaser.GameObjects.Image;
   private bobbers = new Map<string, Phaser.GameObjects.Image>();
+  private casters = new Map<PlayerId, Phaser.GameObjects.Image>();
   private nextFish = 0.3;
   private nextId = 1;
   private nextBottle = 25;
@@ -70,6 +72,7 @@ export class StellarFishingScene extends MinigameScene {
     this.skyImg = undefined;
     this.bgImg = undefined;
     this.bobbers.clear();
+    this.casters.clear();
     this.nextFish = 0.3;
     this.nextId = 1;
     this.nextBottle = 25;
@@ -341,7 +344,10 @@ export class StellarFishingScene extends MinigameScene {
     if (!this.bgImg) {
       const h = new Date().getHours();
       const key = h >= 20 || h < 6 ? 'sf_bg_night' : h >= 17 ? 'sf_bg_golden' : 'sf_bg_day';
-      if (this.textures.exists(key)) this.bgImg = coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
+      if (this.textures.exists(key)) {
+        // the night scene is a whole painted picture: its planks sit at 358 and its water line at 451 when drawn 960 wide, so lift it to put them at the game's pier and surface
+        this.bgImg = key === 'sf_bg_night' ? this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
+      }
     }
     if (!this.skyImg) {
       const bands = [0xf9c5d6, 0xfbd0d0, 0xfcdcc8, 0xfde8c4, 0xfff0d0];
@@ -421,6 +427,22 @@ export class StellarFishingScene extends MinigameScene {
       im.destroy();
       this.fishImgs.delete(id);
     }
+    // James and Rachel sit on the dock: the start pose while waiting, the release frame as the line goes out
+    for (const r of ['A', 'B'] as PlayerId[]) {
+      const who = r === 'A' ? 'james' : 'rachel';
+      const rest = `sf_fin_${who}_init_${r === 'A' ? 3 : 2}`, rel = `sf_fin_${who}_rel_2`;
+      if (!this.textures.exists(rest) || !this.textures.exists(rel)) continue;
+      const cs = m.casts[r];
+      const key = cs && c - cs.t < 0.7 ? rel : rest;
+      let im = this.casters.get(r);
+      if (!im) {
+        im = this.add.image(PIER_X[r], 240, rest).setOrigin(0.5, 1).setDepth(2);
+        im.setData('k', 84 / im.height); // one scale for both frames so the figure does not jump in size
+        this.casters.set(r, im);
+      }
+      if (im.texture.key !== key) im.setTexture(key);
+      im.setScale(im.getData('k') as number).setPosition(PIER_X[r], 240 + Math.sin(c * 1.6 + (r === 'A' ? 0 : 2)) * 1.5);
+    }
     // lines and bobbers
     for (const r of ['A', 'B'] as PlayerId[]) {
       const cs = m.casts[r];
@@ -429,7 +451,7 @@ export class StellarFishingScene extends MinigameScene {
       const age = c - cs.t;
       g.lineStyle(2, 0xffffff, 0.8);
       g.beginPath();
-      g.moveTo(px, 200);
+      g.moveTo(px + 38, 178);
       g.lineTo(cs.x, cs.y);
       g.strokePath();
       const bob = this.bobberImg(`b${r}`, r === 'A' ? 'shell' : 'glow', !!m.ring || !!m.tension);

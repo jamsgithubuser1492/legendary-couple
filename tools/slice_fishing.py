@@ -55,7 +55,8 @@ def main():
     # pier backdrops: the horizontal cross sections, trimmed inside their rounded frames
     plain('sf_bg_day', 'tackle', (26, 146, 568, 349), 480)
     plain('sf_bg_golden', 'tackle', (27, 384, 352, 540), 480)
-    plain('sf_bg_night', 'tackle', (27, 584, 352, 755), 480)
+    # night uses the full painted pier scene (lighthouse, string lights, lanterns, sea life)
+    jobs.append(('sf_bg_night', Image.open(os.path.join(ROOT, 'art', 'source', 'fishing_night_backdrop.jpg')).convert('RGBA'), 480))
     for k, (y0, y1) in BOBBERS.items():
         for suffix, (x0, x1) in FRAMES.items():
             jobs.append((f'sf_bobber_{k}{suffix}', badge('tackle', (x0, y0, x1, y1)), 46))

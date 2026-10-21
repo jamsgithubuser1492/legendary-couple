@@ -74,7 +74,7 @@ export const FISH_SPRITES = [
     "key": "sf_bg_night",
     "file": "sf_bg_night.jpg",
     "w": 960,
-    "h": 505,
+    "h": 878,
     "dw": 480
   },
   {
