@@ -15,7 +15,8 @@ import { FISH_SPRITES } from './spriteListFish';
 import { SKY_SPRITES } from './spriteListSky';
 import { FINISH_SPRITES } from './spriteListFinish';
 import { BACKDROP_SPRITES } from './spriteListBackdrops';
+import { MATCHA_UI_SPRITES } from './spriteListMatcha';
 import { ORCHARD_SPRITES } from './spriteListOrchard';
 
 export { WALK_SHEET };
-export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...CAFE4_SPRITES, ...TOWN_SPRITES, ...START_SPRITES, ...FISH_SPRITES, ...SKY_SPRITES, ...FINISH_SPRITES, ...BACKDROP_SPRITES, ...ORCHARD_SPRITES] as const;
+export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...CAFE4_SPRITES, ...TOWN_SPRITES, ...START_SPRITES, ...FISH_SPRITES, ...SKY_SPRITES, ...FINISH_SPRITES, ...BACKDROP_SPRITES, ...MATCHA_UI_SPRITES, ...ORCHARD_SPRITES] as const;
