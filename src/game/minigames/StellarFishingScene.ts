@@ -342,8 +342,10 @@ export class StellarFishingScene extends MinigameScene {
     }
     // the painted pier cross section for the time of day (pier on top, water and seabed below)
     if (!this.bgImg) {
+      // the painted night pier is the backdrop at every hour; the older day and golden hour pier art is the fallback
+      const night = this.textures.exists('sf_bg_night');
       const h = new Date().getHours();
-      const key = h >= 20 || h < 6 ? 'sf_bg_night' : h >= 17 ? 'sf_bg_golden' : 'sf_bg_day';
+      const key = night ? 'sf_bg_night' : h >= 17 ? 'sf_bg_golden' : 'sf_bg_day';
       if (this.textures.exists(key)) {
         // the night scene is a whole painted picture: its planks sit at 358 and its water line at 451 when drawn 960 wide, so lift it to put them at the game's pier and surface
         this.bgImg = key === 'sf_bg_night' ? this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);

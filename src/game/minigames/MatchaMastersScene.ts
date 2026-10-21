@@ -125,7 +125,12 @@ export class MatchaMastersScene extends MinigameScene {
       this.btn[`ing:${name}`] = this.button(x, y, 104, 46, `\u2003\u2003${name}`, { size: 13, onDown: () => this.act(this.sous, 'add', name) });
       if (this.textures.exists(`mg_ing_${icon}`)) fitBox(this.add.image(x - 38, y, `mg_ing_${icon}`).setDepth(25), 32, 38);
     });
-    if (this.textures.exists('mg_bg_cafe_day')) {
+    if (this.textures.exists('mg_bg_matcha')) {
+      // the painted counter scene, shown as it was drawn: the panels above are see through so it stays visible
+      coverBox(this.add.image(480, 270, 'mg_bg_matcha').setDepth(-90), 960, 540);
+      this.add.rectangle(480, 270, 960, 540, 0xfff3e8, 0.08).setDepth(-80);
+      this.hasBg = true;
+    } else if (this.textures.exists('mg_bg_cafe_day')) {
       coverBox(this.add.image(480, 270, 'mg_bg_cafe_day').setDepth(-90), 960, 540);
       this.add.rectangle(480, 270, 960, 540, 0xfff3e8, 0.4).setDepth(-80);
       this.hasBg = true;
@@ -312,7 +317,7 @@ export class MatchaMastersScene extends MinigameScene {
       g.fillStyle(0xfff3e8, 1);
       g.fillRect(-2000, -2000, 5000, 5000);
     }
-    g.fillStyle(0xf6dcc8, this.hasBg ? 0.6 : 1);
+    g.fillStyle(0xf6dcc8, this.hasBg ? 0.12 : 1);
     g.fillRect(-2000, 0, 5000, 130);
     // ticket rail
     g.fillStyle(0xb98a5a, 1);
@@ -345,8 +350,8 @@ export class MatchaMastersScene extends MinigameScene {
       this.cards[i].hearts.setText('♥'.repeat(hearts) + '♡'.repeat(5 - hearts)).setColor(hearts <= 1 ? '#e8503a' : '#ff7fa1');
     }
     // panels
-    this.panel(24, 140, 444, 388, 0xffffff, me === this.sous ? 0.95 : 0.55);
-    this.panel(492, 140, 444, 388, 0xffffff, me === this.bar ? 0.95 : 0.55);
+    this.panel(24, 140, 444, 388, 0xffffff, me === this.sous ? 0.9 : 0.58);
+    this.panel(492, 140, 444, 388, 0xffffff, me === this.bar ? 0.9 : 0.58);
     // A: counter slots
     for (let i = 0; i < 4; i++) {
       g.fillStyle(0xf3e6d8, 1);
