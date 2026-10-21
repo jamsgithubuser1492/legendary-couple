@@ -338,3 +338,5 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Cuts come from tools/slice_sky_walk.py, tools/slice_orchard.py and tools/slice_fish_finish.py.
 - Stellar Fishing at night now uses the full painted pier scene, and James and Rachel sit on the dock in the game itself, casting with the release frame as each line goes out.
 - Stellar Fishing now always uses the full painted night pier. Matcha Masters has a new painted counter backdrop (tools/slice_matcha_bg.py), with the game panels kept on top and made see through so the scene shows.
+- Matcha Masters interface is painted: stretchy panel frames, order tickets on a rail, wooden prep slots and tray tiles, pressed and off button states, a painted steam meter with a whisk marker, heart patience, a tip jar that fills, ribbons for results (tools/slice_matcha_ui.py).
+
