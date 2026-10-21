@@ -195,9 +195,10 @@ Live: café interior, ingredient jars, 6 customers, cups. Missing or saved:
 * **Reward stars** in 3 states, the tip jar and a coin burst (saved).
 
 ### Stellar Fishing
-Live: skies, 4 fish species, crate, bottle. Missing:
-* **At least 8 fish species**, each swimming left and right, with a glow variant for each (4 exist).
-* **Pier and distant island layers** so the background has depth, and the **water in three times of day**.
+Live: skies, 12 fish species (8 added in Build 40), crate, bottle, painted pier backdrops for day, golden hour and night, bobbers and splashes. Missing:
+* **Glow variants** for the 8 newer species (the game draws a halo for now), and a left and right swimming frame for each.
+* **Bobbers on a clear background.** The sheet gives them on a water tile, so they appear as round bubbles. Loose cut outs would look cleaner.
+* **The rod upgrade path and fish animation frames** (sheets 92 and 93) are saved but not wired yet.
 * **Sea fauna** for the aquarium (octopus, starfish and jellyfish are saved) plus room for 10 more, and the **aquarium tank screen**, which the game does not have yet.
 * **Bobber, line, hook and splash rings**, and a painted **sync ring** (code drawn today).
 * **Message in a bottle** art and the **Beach Memory Journal** page (saved, not used).

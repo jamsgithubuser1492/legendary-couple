@@ -25,9 +25,13 @@ interface Model {
 }
 
 const WATER_TOP = 200;
-const FISH = ['guppy', 'tang', 'bunny', 'bass'];
+const SURFACE_Y = 295; // where the painted water surface sits, so casts and fish stay in the water
+const PIER_TOP = 96; // where the painted pier backdrop starts
+const FISH = ['guppy', 'tang', 'bunny', 'bass', 'salmon', 'carp', 'angel', 'nudi', 'crab', 'perch', 'grouper', 'eel'];
+/** The painted key for a species: the first four are older art, the rest come from the fish species sheet. */
+const fishKey = (sp: string) => (['guppy', 'tang', 'bunny', 'bass'].includes(sp) ? `mg_fish_${sp}` : `sf_${sp}`);
 /** Which way each painted fish faces as drawn, so the other direction can be a mirror. */
-const NATIVE: Record<string, 'e' | 'w'> = { guppy: 'e', tang: 'w', bunny: 'w', bass: 'e' };
+const NATIVE: Record<string, 'e' | 'w'> = { guppy: 'e', tang: 'w', bunny: 'w', bass: 'e', salmon: 'e', carp: 'e', angel: 'e', nudi: 'e', crab: 'e', perch: 'e', grouper: 'e', eel: 'w' };
 const RING_R = 130;
 const GREEN_FROM = 0.74, GREEN_TO = 0.97, RING_TIME = 2.0; // a wider green band and a slower ring, so it is a shared moment, not a reflex test
 const PIER_X: Record<PlayerId, number> = { A: 300, B: 660 };
@@ -41,6 +45,8 @@ export class StellarFishingScene extends MinigameScene {
   private m!: Model;
   private fishImgs = new Map<number, Phaser.GameObjects.Image>();
   private skyImg?: Phaser.GameObjects.Image;
+  private bgImg?: Phaser.GameObjects.Image;
+  private bobbers = new Map<string, Phaser.GameObjects.Image>();
   private nextFish = 0.3;
   private nextId = 1;
   private nextBottle = 25;
@@ -62,6 +68,8 @@ export class StellarFishingScene extends MinigameScene {
     this.m = this.fresh();
     this.fishImgs.clear();
     this.skyImg = undefined;
+    this.bgImg = undefined;
+    this.bobbers.clear();
     this.nextFish = 0.3;
     this.nextId = 1;
     this.nextBottle = 25;
@@ -103,7 +111,7 @@ export class StellarFishingScene extends MinigameScene {
         if (m.ring.taps[me] === undefined) this.act(me, 'tap', this.clock - m.ring.t0); // timed on my own screen
         return;
       }
-      if (p.worldY > WATER_TOP + 10 && p.worldY < 470 && p.worldX > 20 && p.worldX < W - 20) this.act(me, 'cast', { x: p.worldX, y: p.worldY });
+      if (p.worldY > SURFACE_Y && p.worldY < 470 && p.worldX > 20 && p.worldX < W - 20) this.act(me, 'cast', { x: p.worldX, y: p.worldY });
     });
   }
 
@@ -174,11 +182,11 @@ export class StellarFishingScene extends MinigameScene {
       const r = Math.random();
       const kind: Kind = r < 0.1 ? 'crate' : r < 0.45 ? 'coop' : 'normal';
       const left = Math.random() < 0.5;
-      m.fish.push({ id: this.nextId++, x: left ? -30 : W + 30, y: WATER_TOP + 60 + Math.random() * 180, vx: (left ? 1 : -1) * (30 + Math.random() * 26), kind, ph: Math.random() * 6 });
+      m.fish.push({ id: this.nextId++, x: left ? -30 : W + 30, y: SURFACE_Y + 40 + Math.random() * 130, vx: (left ? 1 : -1) * (30 + Math.random() * 26), kind, ph: Math.random() * 6 });
       this.nextFish = c + 1.3 + Math.random() * 1.1;
     }
     if (c >= this.nextBottle && !m.fish.some((f) => f.kind === 'bottle')) {
-      m.fish.push({ id: this.nextId++, x: 120 + Math.random() * 700, y: WATER_TOP + 70 + Math.random() * 160, vx: 8, kind: 'bottle', ph: 0 });
+      m.fish.push({ id: this.nextId++, x: 120 + Math.random() * 700, y: SURFACE_Y + 40 + Math.random() * 130, vx: 8, kind: 'bottle', ph: 0 });
       this.nextBottle = c + 40;
     }
     for (const f of m.fish) f.x += f.vx * dt;
@@ -306,6 +314,19 @@ export class StellarFishingScene extends MinigameScene {
     this.m = (s as { m: Model }).m;
   }
 
+  /** A bobber or splash image kept per player, with the bite frame swapped in while something is on the line. */
+  private bobberImg(id: string, kind: string, bite: boolean) {
+    const key = kind === 'splash' ? 'sf_splash' : `sf_bobber_${kind}${bite ? '_bite' : ''}`;
+    if (!this.textures.exists(key)) return null;
+    let im = this.bobbers.get(id);
+    if (!im) {
+      im = this.add.image(0, 0, key).setDepth(kind === 'splash' ? 5 : 4);
+      if (kind !== 'splash') im.setScale(0.5);
+      this.bobbers.set(id, im);
+    } else if (im.texture.key !== key) im.setTexture(key);
+    return im;
+  }
+
   // ---------- drawing ----------
   protected draw() {
     const m = this.m, c = this.clock, g = this.g, me = this.role;
@@ -316,6 +337,12 @@ export class StellarFishingScene extends MinigameScene {
       const key = h >= 20 || h < 6 ? 'mg_sky_night' : h >= 17 ? 'mg_sky_golden' : 'mg_sky_day';
       if (this.textures.exists(key)) this.skyImg = coverBox(this.add.image(480, -4, key).setOrigin(0.5, 0).setDepth(-90), 1080, 330);
     }
+    // the painted pier cross section for the time of day (pier on top, water and seabed below)
+    if (!this.bgImg) {
+      const h = new Date().getHours();
+      const key = h >= 20 || h < 6 ? 'sf_bg_night' : h >= 17 ? 'sf_bg_golden' : 'sf_bg_day';
+      if (this.textures.exists(key)) this.bgImg = coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
+    }
     if (!this.skyImg) {
       const bands = [0xf9c5d6, 0xfbd0d0, 0xfcdcc8, 0xfde8c4, 0xfff0d0];
       bands.forEach((col, i) => {
@@ -323,33 +350,35 @@ export class StellarFishingScene extends MinigameScene {
         g.fillRect(-2000, i * 36 - 10, 5000, 40);
       });
     }
-    // water
-    g.fillStyle(0x6cc4dc, 1);
-    g.fillRect(-2000, WATER_TOP - 20, 5000, 3000);
-    g.fillStyle(0x7fd0e0, 1);
-    g.fillRect(-2000, WATER_TOP - 20, 5000, 120);
-    for (let row = 0; row < 9; row++) {
-      const y = WATER_TOP + 14 + row * 34;
-      g.lineStyle(2.5, 0xffffff, 0.22 + row * 0.02);
-      g.beginPath();
-      for (let x = 0; x <= W; x += 24) {
-        const yy = y + Math.sin(x * 0.02 + c * 0.9 + row) * 4;
-        if (x === 0) g.moveTo(x, yy);
-        else g.lineTo(x, yy);
+    if (!this.bgImg) {
+      // water
+      g.fillStyle(0x6cc4dc, 1);
+      g.fillRect(-2000, WATER_TOP - 20, 5000, 3000);
+      g.fillStyle(0x7fd0e0, 1);
+      g.fillRect(-2000, WATER_TOP - 20, 5000, 120);
+      for (let row = 0; row < 9; row++) {
+        const y = WATER_TOP + 14 + row * 34;
+        g.lineStyle(2.5, 0xffffff, 0.22 + row * 0.02);
+        g.beginPath();
+        for (let x = 0; x <= W; x += 24) {
+          const yy = y + Math.sin(x * 0.02 + c * 0.9 + row) * 4;
+          if (x === 0) g.moveTo(x, yy);
+          else g.lineTo(x, yy);
+        }
+        g.strokePath();
       }
-      g.strokePath();
-    }
-    // pier
-    g.fillStyle(0x8a6a4c, 1);
-    g.fillRect(-2000, 160, 5000, 44);
-    g.fillStyle(0xd9b88a, 1);
-    g.fillRect(-2000, 150, 5000, 40);
-    g.lineStyle(2, 0xb08c60, 0.7);
-    for (let x = 0; x < W; x += 36) {
-      g.beginPath();
-      g.moveTo(x, 150);
-      g.lineTo(x, 190);
-      g.strokePath();
+      // pier
+      g.fillStyle(0x8a6a4c, 1);
+      g.fillRect(-2000, 160, 5000, 44);
+      g.fillStyle(0xd9b88a, 1);
+      g.fillRect(-2000, 150, 5000, 40);
+      g.lineStyle(2, 0xb08c60, 0.7);
+      for (let x = 0; x < W; x += 36) {
+        g.beginPath();
+        g.moveTo(x, 150);
+        g.lineTo(x, 190);
+        g.strokePath();
+      }
     }
     // fish, crates and bottles: painted sprites, with a glow variant for the co op fish
     const seen = new Set<number>();
@@ -361,7 +390,7 @@ export class StellarFishingScene extends MinigameScene {
         let key = f.kind === 'bottle' ? 'mg_bottle' : f.kind === 'crate' ? 'mg_crate' : '';
         if (!key) {
           const sp = FISH[f.id % FISH.length];
-          key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : `mg_fish_${sp}`;
+          key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : fishKey(sp);
         }
         if (!this.textures.exists(key)) continue;
         im = this.add.image(f.x, y, key).setDepth(3);
@@ -380,7 +409,7 @@ export class StellarFishingScene extends MinigameScene {
         this.dualTarget(f.x, y - 40);
       } else {
         const faces = NATIVE[sp];
-        im.setScale(f.kind === 'coop' ? 0.95 : 0.8).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
+        im.setScale((f.kind === 'coop' ? 0.95 : 0.8) * (fishKey(sp).startsWith('sf_') ? 0.5 : 1)).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
         if (f.kind === 'coop') {
           g.fillStyle(0x9ff3ff, 0.22 + 0.18 * Math.sin(c * 5 + f.ph));
           g.fillCircle(f.x, y, 46);
@@ -400,14 +429,25 @@ export class StellarFishingScene extends MinigameScene {
       const age = c - cs.t;
       g.lineStyle(2, 0xffffff, 0.8);
       g.beginPath();
-      g.moveTo(px, 176);
+      g.moveTo(px, 200);
       g.lineTo(cs.x, cs.y);
       g.strokePath();
-      g.fillStyle(r === 'A' ? 0xff7fa1 : 0x6ec6ff, 1);
-      g.fillCircle(cs.x, cs.y + Math.sin(c * 3) * 2, 8);
+      const bob = this.bobberImg(`b${r}`, r === 'A' ? 'shell' : 'glow', !!m.ring || !!m.tension);
+      if (bob) bob.setPosition(cs.x, cs.y - 8 + Math.sin(c * 3) * 2).setVisible(true);
+      else {
+        g.fillStyle(r === 'A' ? 0xff7fa1 : 0x6ec6ff, 1);
+        g.fillCircle(cs.x, cs.y + Math.sin(c * 3) * 2, 8);
+      }
+      // entry splash, then a ring spreading out on the water
+      const sp = this.bobberImg(`s${r}`, 'splash', false);
+      if (sp) {
+        const k = Math.min(1, age / 0.7);
+        sp.setPosition(cs.x, cs.y + 4).setVisible(age < 0.7).setScale((0.55 + k * 0.5) * 0.5).setAlpha(1 - k);
+      }
       g.lineStyle(2, 0xffffff, Math.max(0, 0.7 - (age % 1) * 0.7));
       g.strokeCircle(cs.x, cs.y, 8 + (age % 1) * 26);
     }
+    for (const [k, im] of this.bobbers) if (!m.casts[k.slice(1) as PlayerId]) im.setVisible(false);
     // sync ring: tap together when the growing ring meets the green band
     if (m.ring) {
       const t = c - m.ring.t0, { x, y } = m.ring;

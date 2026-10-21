@@ -323,3 +323,9 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Guests who sit down place an order: a drink, a drink plus a pastry (only if a pastry good stands on a pastry case, and goods are never used up), or sometimes a pastry on its own. Orders wait on the Orders rail (🧾 button in the café, or tap a guest) with no timers.
 - Take the orders you want, then Start the rush. It launches Matcha Masters with those orders as the tickets (up to four). In a rush nobody leaves unhappy. Pastry orders add a "Plate it" step for the Sous Chef before the Barista serves. Roles swap every rush.
 - Finished orders leave the rail and the round's tips pay as usual (still under the daily Matcha cap, with your café bonuses). A clean rush shows the high five.
+
+### Build 40: Stellar Fishing art
+- Eight new fish species join the pool (salmon, koi carp, angelfish, sea slug, crab, perch, grouper, eel), twelve in all. They swim both ways and the glowing halo marks the two player fish as before.
+- The pier is now a painted cross section: planks and posts above, water, sunbeams and seabed below. It follows the time of day (day, golden hour, night).
+- Bobbers are painted (shell for partner A, glowing stardust for partner B) and swap to a bite frame while a ring or tug is on. Casting makes an entry splash and a ring that spreads.
+- Cuts come from tools/slice_fishing.py (fish, backdrops, bobbers, splashes). Not wired yet: the rod upgrades and fish animation sheets.
