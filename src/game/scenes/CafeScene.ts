@@ -595,7 +595,8 @@ export class CafeScene extends Phaser.Scene {
 
   /** Puts the seated pose for a chair's facing on a guest, at the chair. */
   private poseOn(p: Patron, chair: PlacedObject, kind: string, row: string) {
-    const poses = SEATED[kind].filter((k) => this.textures.exists(k));
+    const poses = (SEATED[kind] ?? []).filter((k) => this.textures.exists(k));
+    if (!poses.length) return;
     let key = poses[(chair.rotation / 90 | 0) % poses.length];
     if (row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
     const b = tileCenter(chair.tileX, chair.tileY);
@@ -612,7 +613,7 @@ export class CafeScene extends Phaser.Scene {
     const chair = getState().cafe.placed.find((o) => o.id === seat.chair.id);
     const avatarOn = [this.avatars.A.tile, this.avatars.B.tile].some((t) => chair && t.x === chair.tileX && t.y === chair.tileY);
     // the chair may have been taken, moved, removed or left without a table while the guest walked over
-    if (!chair || chair.tileX !== seat.chair.tileX || chair.tileY !== seat.chair.tileY || this.seated.has(chair.id) || avatarOn || !this.chairHasTable(chair)) return this.standOrder(p, kind);
+    if (!chair || chair.tileX !== seat.chair.tileX || chair.tileY !== seat.chair.tileY || this.seated.has(chair.id) || avatarOn || !this.canSit(kind) || !this.chairHasTable(chair)) return this.standOrder(p, kind);
     this.seated.set(chair.id, p);
     p.claim = undefined;
     p.claimFrom = undefined;
