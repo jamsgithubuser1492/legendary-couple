@@ -208,18 +208,35 @@ export class CafeScene extends Phaser.Scene {
   /** String lights across the back wall on an event day, and the Study Slam banner on top of them. */
   private hangEventDecor(size: number, event: string | null) {
     if (!event) return;
-    const along = (key: string, x0: number, y0: number, x1: number, y1: number, lift: number, depth: number) => {
+    // each piece hangs on the wall face and is cut into one slice per tile, so guests and furniture sort in front of it correctly
+    const along = (key: string, x0: number, y0: number, x1: number, y1: number, lift: number) => {
       if (!this.textures.exists(key)) return;
       const a = cartesianToIso(x0, y0), b = cartesianToIso(x1, y1);
+      const tiles = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+      const flip = x1 < x0 || y1 < y0;
       const len = Math.hypot(b.x - a.x, b.y - a.y);
-      const im = this.add.image((a.x + b.x) / 2, (a.y + b.y) / 2 - lift, key).setDepth(depth).setRotation(Math.atan2(b.y - a.y, b.x - a.x));
-      im.setScale(len / im.width);
-      this.decorObjs.push(im);
+      const tex = this.textures.get(key).getSourceImage() as HTMLImageElement;
+      const k = len / tex.width, per = tex.width / tiles, rot = Math.atan2(b.y - a.y, b.x - a.x);
+      for (let i = 0; i < Math.ceil(tiles); i++) {
+        const sx = Math.round(i * per), sw = Math.min(Math.round((i + 1) * per) + 1, tex.width) - sx; // one pixel of overlap hides the seams
+        if (sw < 1) continue;
+        const sk = `${key}_slice${i}_${tiles}_${tex.width}`;
+        if (!this.textures.exists(sk)) {
+          const cv = this.textures.createCanvas(sk, sw, tex.height);
+          cv?.context.drawImage(tex, sx, 0, sw, tex.height, 0, 0, sw, tex.height);
+          cv?.refresh();
+        }
+        const f = (sx + sw / 2) / tex.width;
+        const im = this.add.image(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f - lift, sk).setScale(k).setRotation(rot);
+        const t = (i + 0.5) * (flip ? -1 : 1);
+        im.setDepth(Math.floor(x0 === x1 ? y0 + t : x0 + t) + 0.6);
+        this.decorObjs.push(im);
+      }
     };
     const lights = event === 'study' ? 'sk_lights_star' : 'sk_lights_globe';
-    along(lights, 1, 0.5, size, 0.5, 74, -8);
-    along(lights, 0.5, size, 0.5, 1, 74, -8);
-    if (event === 'study') along('sk_banner_study', 2.2, 0.5, size - 1.2, 0.5, 112, -7);
+    along(lights, 1, 1, size, 1, 44);
+    along(lights, 1, size, 1, 1, 44);
+    if (event === 'study') along('sk_banner_study', Math.max(4, size - 6), 1, size - 0.5, 1, 30);
   }
 
   private showChair(id: string, visible: boolean) {
@@ -530,7 +547,7 @@ export class CafeScene extends Phaser.Scene {
     if (this.seated.has(chair.id)) return this.leaveDoor(p); // someone else got there first
     this.seated.set(chair.id, p);
     p.seat = { chair: chair.id, from: seat.from };
-    this.showChair(chair.id, false);
+    if (kind !== 'crane') this.showChair(chair.id, false); // the crane stands in front of its chair
     const poses = SEATED[kind];
     const row = Math.random() < 0.5 ? '1' : '2';
     let key = poses[(chair.rotation / 90 | 0) % poses.length];
