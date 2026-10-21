@@ -78,6 +78,7 @@ export class StellarFishingScene extends MinigameScene {
     this.nextBottle = 25;
     this.botCast = null;
     this.bottleSeen = 0;
+    this.gotSnap = false;
     this.lastBtn = '';
     this.started = false;
     this.tutorial = null;
@@ -249,7 +250,9 @@ export class StellarFishingScene extends MinigameScene {
       if (from === 'A') m.tension.holdA = !!v;
       else m.tension.holdB = !!v;
     } else if (k === 'cast' && !m.ring && !m.tension) {
-      const { x, y } = v as { x: number; y: number };
+      const pt = v as { x?: unknown; y?: unknown } | undefined;
+      if (!pt || typeof pt.x !== 'number' || typeof pt.y !== 'number' || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return; // a malformed cast from a partner's phone is ignored
+      const x = Phaser.Math.Clamp(pt.x, 20, W - 20), y = Phaser.Math.Clamp(pt.y, SURFACE_Y, 470); // always lands in the water
       m.casts[from] = { x, y, t: c };
       const near = (f: Fish, r: number) => Math.hypot(f.x - x, f.y - y) < r;
       const bottle = m.fish.find((f) => f.kind === 'bottle' && near(f, 60));
@@ -276,8 +279,8 @@ export class StellarFishingScene extends MinigameScene {
           if (hint && this.isBot(from === 'A' ? 'B' : 'A')) this.botCast = { at: c + 0.5, x: hint.x + (Math.random() - 0.5) * 30, y: hint.y + (Math.random() - 0.5) * 24 };
         }
       }
-    } else if (k === 'tap' && m.ring && m.ring.taps[from] === undefined) {
-      m.ring.taps[from] = v as number;
+    } else if (k === 'tap' && m.ring && m.ring.taps[from] === undefined && typeof v === 'number' && Number.isFinite(v)) {
+      m.ring.taps[from] = v;
       const { A, B } = m.ring.taps;
       if (A === undefined || B === undefined) return;
       const perfect = inGreen(A) && inGreen(B) && Math.abs(A - B) <= 0.18;
@@ -313,8 +316,15 @@ export class StellarFishingScene extends MinigameScene {
   protected snapshot() {
     return { clock: this.clock, m: this.m };
   }
+  private gotSnap = false;
   protected applySnapshot(s: unknown) {
-    this.m = (s as { m: Model }).m;
+    const sm = (s as { m?: Partial<Model> } | null)?.m;
+    if (!sm || typeof sm !== 'object') return; // a damaged snapshot keeps the last good picture
+    this.m = { ...this.fresh(), ...sm, fish: Array.isArray(sm.fish) ? sm.fish : [], casts: sm.casts ?? {}, fauna: sm.fauna ?? {} };
+    if (!this.gotSnap) {
+      this.gotSnap = true;
+      this.bottleSeen = this.m.bottleFor?.at ?? 0; // joining late must not reopen a note that was written before you arrived
+    }
   }
 
   /** A bobber or splash image kept per player, with the bite frame swapped in while something is on the line. */
@@ -348,6 +358,11 @@ export class StellarFishingScene extends MinigameScene {
       const key = night ? 'sf_bg_night' : h >= 17 ? 'sf_bg_golden' : 'sf_bg_day';
       if (this.textures.exists(key)) {
         // the night scene is a whole painted picture: its planks sit at 358 and its water line at 451 when drawn 960 wide, so lift it to put them at the game's pier and surface
+        if (key === 'sf_bg_night') {
+          // screens that are not 16 by 9 show the margins: sky colour above and beside the pier, water colour below
+          this.add.rectangle(480, 150, 9000, 740, 0x2a2766).setDepth(-86);
+          this.add.rectangle(480, 1020, 9000, 1200, 0x1b6f7e).setDepth(-86);
+        }
         this.bgImg = key === 'sf_bg_night' ? this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
       }
     }
@@ -400,6 +415,7 @@ export class StellarFishingScene extends MinigameScene {
           const sp = FISH[f.id % FISH.length];
           key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : fishKey(sp);
         }
+        if (!this.textures.exists(key)) key = f.kind === 'normal' || f.kind === 'coop' ? 'mg_fish_guppy' : key; // missing art falls back to the first fish
         if (!this.textures.exists(key)) continue;
         im = this.add.image(f.x, y, key).setDepth(3);
         this.fishImgs.set(f.id, im);
@@ -416,8 +432,8 @@ export class StellarFishingScene extends MinigameScene {
         g.fillCircle(f.x, y, 44);
         this.dualTarget(f.x, y - 40);
       } else {
-        const faces = NATIVE[sp];
-        im.setScale((f.kind === 'coop' ? 0.95 : 0.8) * (fishKey(sp).startsWith('sf_') ? 0.5 : 1)).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
+        const faces = NATIVE[sp] ?? 'e';
+        im.setScale((f.kind === 'coop' ? 0.95 : 0.8) * (im.texture.key.startsWith('sf_') ? 0.5 : 1)).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
         if (f.kind === 'coop') {
           g.fillStyle(0x9ff3ff, 0.22 + 0.18 * Math.sin(c * 5 + f.ph));
           g.fillCircle(f.x, y, 46);
@@ -435,7 +451,7 @@ export class StellarFishingScene extends MinigameScene {
       const rest = `sf_fin_${who}_init_${r === 'A' ? 3 : 2}`, rel = `sf_fin_${who}_rel_2`;
       if (!this.textures.exists(rest) || !this.textures.exists(rel)) continue;
       const cs = m.casts[r];
-      const key = cs && c - cs.t < 0.7 ? rel : rest;
+      const key = cs && c - cs.t >= 0 && c - cs.t < 0.7 ? rel : rest;
       let im = this.casters.get(r);
       if (!im) {
         im = this.add.image(PIER_X[r], 240, rest).setOrigin(0.5, 1).setDepth(2);
@@ -450,7 +466,7 @@ export class StellarFishingScene extends MinigameScene {
       const cs = m.casts[r];
       const px = PIER_X[r];
       if (!cs) continue;
-      const age = c - cs.t;
+      const age = Math.max(0, c - cs.t);
       g.lineStyle(2, 0xffffff, 0.8);
       g.beginPath();
       g.moveTo(px + 38, 178);
@@ -474,7 +490,7 @@ export class StellarFishingScene extends MinigameScene {
     for (const [k, im] of this.bobbers) if (!m.casts[k.slice(1) as PlayerId]) im.setVisible(false);
     // sync ring: tap together when the growing ring meets the green band
     if (m.ring) {
-      const t = c - m.ring.t0, { x, y } = m.ring;
+      const t = Math.max(0, c - m.ring.t0), { x, y } = m.ring;
       g.lineStyle(10, 0x7ee09a, 0.9);
       g.strokeCircle(x, y, RING_R * ((GREEN_FROM + GREEN_TO) / 2));
       g.lineStyle(3, 0xffffff, 0.7);

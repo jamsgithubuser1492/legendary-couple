@@ -97,9 +97,14 @@ export class MinigameManager {
         this.lobby?.send('invite', { type: req.type, sessionId, rush: !!req.rush, swap: req.swap ?? getState().cafe.rushes % 2 === 1 });
       }
     }
-    if (req.type === 'CRANE_CRAZE' && host) spendToken();
-
     const under = this.game.scene.getScenes(true).find((s) => PAUSABLE.includes(s.scene.key)) ?? null;
+    const launcher = under ?? this.game.scene.getScenes(true)[0];
+    if (!launcher) {
+      // the world is still loading (or sleeping in the café): nothing to launch from, and nothing must be left half started
+      void net?.leave();
+      return toast('Almost ready. Try again in a moment.');
+    }
+    if (req.type === 'CRANE_CRAZE' && host) spendToken();
     const key = MG_SCENE[req.type];
     const names = getState().names;
     this.active = { key, net, under, type: req.type, sessionId, role, solo };
@@ -110,7 +115,6 @@ export class MinigameManager {
       onQuit: () => this.close(),
     };
     // the minigame is an overlay scene on top of the town or island, which sleeps underneath
-    const launcher = under ?? this.game.scene.getScenes(true)[0];
     launcher.scene.launch(key, data);
     if (under) under.scene.pause();
     try {
@@ -123,7 +127,11 @@ export class MinigameManager {
   private done(r: MGResult) {
     const a = this.active;
     if (a && r.award) {
+      // the sheet must show what was really paid: the per game and daily coin limits can trim the raw total
+      const before = getState().coins, raw = r.coins;
       applyMinigameReward(r);
+      const paid = Math.max(0, getState().coins - before);
+      if (paid < raw) r = { ...r, coins: paid, notes: [...r.notes, `Today's game coin limit kept the coins at ${paid}. Everything else still counts.`] };
       void getSupabase()
         ?.from('minigame_sessions')
         .insert({ room_code: getRoom() ?? 'SOLO', game_type: r.type, player_a: getState().names.A, player_b: getState().names.B, current_score: r.score, stars: r.stars, sync_state: r, status: 'COMPLETED' })

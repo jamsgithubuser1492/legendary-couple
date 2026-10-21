@@ -16,11 +16,11 @@ export default function FishingFinish() {
   const rachel = SEQ[(t + 3) % SEQ.length] ? 'rachel_rel_2' : 'rachel_init_2';
   const who = (src: string, left: string, flick: boolean) => (
     <div className="absolute flex flex-col items-center" style={{ left, bottom: '47%', transform: 'translateX(-50%)' }}>
-      <img src={`${BASE}sf_fin_${src}.png`} alt="" draggable={false} className={`h-[64px] w-auto max-w-none ${flick ? '' : 'animate-bob'}`} />
+      <img key={src} src={`${BASE}sf_fin_${src}.png`} alt="" draggable={false} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} className={`h-[64px] w-auto max-w-none ${flick ? '' : 'animate-bob'}`} />
     </div>
   );
   return (
-    <div className="relative mx-auto aspect-[1085/425] w-full overflow-hidden rounded-2xl shadow" style={{ backgroundImage: `url(${BASE}sf_fin_bg.jpg)`, backgroundSize: 'cover' }}>
+    <div role="img" aria-label="The two of you fishing from the pier at night" className="relative mx-auto aspect-[1085/425] w-full overflow-hidden rounded-2xl shadow" style={{ backgroundImage: `url(${BASE}sf_fin_bg.jpg)`, backgroundSize: 'cover', backgroundColor: '#2a2766' }}>
       {who(james, '30%', SEQ[t % SEQ.length] === 1)}
       {who(rachel, '64%', SEQ[(t + 3) % SEQ.length] === 1)}
       {SEQ[t % SEQ.length] === 1 && <span className="animate-twinkle absolute text-sm" style={{ left: '46%', top: '30%' }}>✨</span>}

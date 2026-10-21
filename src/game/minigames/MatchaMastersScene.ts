@@ -48,7 +48,7 @@ const PATIENCE_SECONDS = 36; // still kinder than a real rush, but now there is 
 const LAYER_ORDER = ['Ice', 'Strawberry', 'Oat Milk', 'Milk', 'Espresso', 'Matcha', 'Boba'];
 const layered = (recipe: string[]) => [...recipe].sort((a, b) => LAYER_ORDER.indexOf(a) - LAYER_ORDER.indexOf(b));
 const ICON = Object.fromEntries(ING) as Record<string, string>;
-const trayPos = (i: number, n: number) => ({ x: 714 + (i - (n - 1) / 2) * 78, y: 372 });
+const trayPos = (i: number, n: number) => ({ x: 714 + (i - (n - 1) / 2) * Math.min(78, 380 / Math.max(1, n)), y: 372 });
 
 export class MatchaMastersScene extends MinigameScene {
   constructor() {
@@ -109,7 +109,9 @@ export class MatchaMastersScene extends MinigameScene {
     this.jar = undefined;
     this.lastTips = 0;
     this.stepLabels = {};
-    this.art = this.has('mm_panel_on', 'mm_ticket_on', 'mm_ticket_empty', 'mm_ticket_combo', 'mm_ing_normal', 'mm_ing_pressed', 'mm_ing_off', 'mm_btn_pass_normal', 'mm_btn_clear_normal', 'mm_btn_plate_normal', 'mm_btn_steam_normal', 'mm_slot_empty', 'mm_slot_full', 'mm_tile', 'mm_track', 'mm_band', 'mm_heart_full');
+    this.slotLabels = [];
+    this.art = this.has('mm_panel_on', 'mm_ticket_on', 'mm_ticket_empty', 'mm_ticket_combo', 'mm_ing_normal', 'mm_ing_pressed', 'mm_ing_off', 'mm_slot_empty', 'mm_slot_full', 'mm_tile', 'mm_chip', 'mm_track', 'mm_band', 'mm_heart_full', 'mm_heart_half', 'mm_heart_empty')
+      && ['pass', 'clear', 'plate', 'steam'].every((k) => this.has(`mm_btn_${k}_normal`, `mm_btn_${k}_pressed`, `mm_btn_${k}_off`));
     this.ui = { tickets: [], panels: [], slots: [] };
     this.heartImgs = [];
     this.slotIcons = [];
@@ -196,7 +198,10 @@ export class MatchaMastersScene extends MinigameScene {
       const jk = this.has('mm_jar_half') ? 'mm_jar_half' : 'mg_tipjar';
       this.jar = this.add.image(846, 180, jk).setDepth(12);
       this.setJar(jk);
-    } else if (this.textures.exists('mg_tipjar')) this.jar = fitBox(this.add.image(846, 160, 'mg_tipjar').setDepth(12), 32, 40);
+    } else if (this.textures.exists('mg_tipjar')) {
+      this.jar = fitBox(this.add.image(846, 160, 'mg_tipjar').setDepth(12), 32, 40);
+      this.jarBase = this.jar.scale;
+    }
     this.drinkImg = fitBox(this.add.image(714, 330, 'mg_cup_1').setDepth(12).setVisible(false), 96, 90);
     if (art) {
       this.ui.slots = [0, 1, 2, 3].map((i) => this.ns('mm_slot_empty', 96 + i * 100, 330, 90, 52, [90, 90, 64, 64], 3, 52 / 204));
@@ -241,7 +246,13 @@ export class MatchaMastersScene extends MinigameScene {
         if (Math.abs(p.worldX - t.x) < 38 && Math.abs(p.worldY - t.y) < 44) {
           this.act(this.bar, 'step', name);
           const bg = this.tileBg[`tray${i}`];
-          if (bg) this.tweens.add({ targets: bg, scale: bg.scale * 1.12, duration: 70, yoyo: true }); // a small pop where you tapped
+          if (bg) {
+            // a small pop where you tapped; rapid taps restart from the resting size instead of stacking
+            const base = (bg.getData('base') as number | undefined) ?? bg.scale;
+            this.tweens.killTweensOf(bg);
+            bg.setScale(base);
+            this.tweens.add({ targets: bg, scale: base * 1.12, duration: 70, yoyo: true });
+          }
         }
       });
     });
@@ -257,7 +268,7 @@ export class MatchaMastersScene extends MinigameScene {
   }
 
   private setJar(key: string) {
-    if (!this.jar) return;
+    if (!this.jar || !this.textures.exists(key)) return;
     this.jar.setTexture(key);
     fitBox(this.jar, 30, 40);
     this.jarBase = this.jar.scale;
@@ -286,6 +297,7 @@ export class MatchaMastersScene extends MinigameScene {
     hit.on('pointerdown', () => { down = true; paint(); o.onDown?.(); });
     hit.on('pointerup', () => { down = false; paint(); o.onUp?.(); });
     hit.on('pointerout', () => { if (down) { down = false; paint(); } });
+    hit.on('pointerupoutside', () => { if (down) { down = false; paint(); } });
     c.add(ic ? [bg, ic, t, hit] : [bg, t, hit]);
     return {
       c,
@@ -299,6 +311,7 @@ export class MatchaMastersScene extends MinigameScene {
       },
       setVisible: (v: boolean) => {
         c.setVisible(v);
+        if (!v && down) { down = false; paint(); } // a button that vanishes while held must not come back looking pressed
         if (v && enabled) hit.setInteractive(); else hit.disableInteractive();
       },
     };
@@ -382,7 +395,7 @@ export class MatchaMastersScene extends MinigameScene {
 
   protected onInput(from: PlayerId, k: string, v?: unknown) {
     const m = this.m, c = this.clock;
-    if (k === 'add' && from === this.sous && m.counter.length < 4) m.counter.push(v as string);
+    if (k === 'add' && from === this.sous && m.counter.length < 4 && ING.some((x) => x[0] === v)) m.counter.push(v as string);
     else if (k === 'clear' && from === this.sous) m.counter = [];
     else if (k === 'plate' && from === this.sous) {
       if (m.stage === 'plate') m.stage = 'serve';
@@ -406,7 +419,7 @@ export class MatchaMastersScene extends MinigameScene {
       m.counter = [];
       this.botPlan = [];
     } else if (k === 'meter' && from === this.bar && m.stage === 'meter') {
-      const d = Math.abs((v as number) - m.band.c); // judged on the barista's own screen, so lag does not cost them
+      const d = typeof v === 'number' && Number.isFinite(v) ? Math.abs(v - m.band.c) : 1; // judged on the barista's own screen, so lag does not cost them
       m.quality = d <= m.band.w / 2 ? 1 : d <= m.band.w ? 0.65 : 0.35;
       const ord = m.orders.find((x) => x.id === m.pass?.orderId);
       m.layers = layered(ord?.recipe ?? []);
@@ -459,13 +472,20 @@ export class MatchaMastersScene extends MinigameScene {
     return { clock: this.clock, m: this.m };
   }
   protected applySnapshot(s: unknown) {
-    this.m = (s as { m: Model }).m;
+    const sm = (s as { m?: Partial<Model> } | null)?.m;
+    if (!sm || typeof sm !== 'object') return; // a damaged snapshot keeps the last good picture
+    const f = this.fresh();
+    this.m = {
+      ...f, ...sm,
+      orders: Array.isArray(sm.orders) ? sm.orders : [], counter: Array.isArray(sm.counter) ? sm.counter : [], layers: Array.isArray(sm.layers) ? sm.layers : [],
+      tray: Array.isArray(sm.tray) ? sm.tray : [], filled: Array.isArray(sm.filled) ? sm.filled : [], band: sm.band ?? f.band,
+    };
   }
 
   // ---------- drawing ----------
   /** Swaps a picture's texture only when it changed, and says whether it did. */
   private setTex(im: Phaser.GameObjects.Image | NS, key: string) {
-    if (im.texture.key === key) return false;
+    if (im.texture.key === key || !this.textures.exists(key)) return false; // a missing picture keeps the current one
     im.setTexture(key);
     return true;
   }
@@ -514,11 +534,13 @@ export class MatchaMastersScene extends MinigameScene {
           h.setScale(18 / h.width).setVisible(true);
           if (low && k < Math.ceil(p5)) h.setTint(0xff8f86); else h.clearTint();
         });
-        this.cards[i].name.setText(o.combo ? '💞 Couples Combo' : o.name);
+        const ntxt = o.combo ? '💞 Couples Combo' : o.name;
+        this.cards[i].name.setFontSize(ntxt.length > 26 ? 10 : ntxt.length > 18 ? 12 : 13).setText(ntxt);
         const ci2 = this.cardImgs[i];
         const ck2 = `mg_cust_${(FACES.indexOf(o.face) % 6) + 1}`;
         if (ci2 && this.textures.exists(ck2)) fitBox(ci2.setTexture(ck2).setVisible(true), 30, 44);
-        this.cards[i].recipe.setText([layered(o.recipe).join(' → '), o.pastry && !o.pastryOnly ? `+ ${o.pastry}` : ''].filter(Boolean).join('  '));
+        const rtxt = [layered(o.recipe).join(' → '), o.pastry && !o.pastryOnly ? `+ ${o.pastry}` : ''].filter(Boolean).join('  ');
+        this.cards[i].recipe.setFontSize(rtxt.length > 40 ? 9 : rtxt.length > 30 ? 10 : 11).setText(rtxt);
         continue;
       }
       if (!o) {
@@ -608,7 +630,7 @@ export class MatchaMastersScene extends MinigameScene {
       bLine = `Layer it in order: ${Math.min(m.stepIdx + 1, m.layers.length)} of ${m.layers.length}. Tap ${m.layers[m.stepIdx] ?? ''}`;
       // the recipe, bottom to top, so you can follow it
       m.layers.forEach((name, i) => {
-        const x = 714 + (i - (m.layers.length - 1) / 2) * 78, y = 300;
+        const x = 714 + (i - (m.layers.length - 1) / 2) * Math.min(78, 380 / Math.max(1, m.layers.length)), y = 300;
         const done = i < m.stepIdx, next = i === m.stepIdx;
         const k = `layer${i}`;
         if (art) {
@@ -660,8 +682,9 @@ export class MatchaMastersScene extends MinigameScene {
     }
     if (this.drinkImg) {
       const show = (m.stage === 'serve' || m.stage === 'steps') && !!m.pass;
-      this.drinkImg.setVisible(show && this.textures.exists('mg_cup_1'));
-      if (show) fitBox(this.drinkImg.setTexture(`mg_cup_${((m.pass!.orderId - 1) % 8) + 1}`), m.stage === 'serve' ? 96 : 76, m.stage === 'serve' ? 90 : 70).setPosition(m.stage === 'serve' ? 714 : 556, m.stage === 'serve' ? 330 : 236);
+      const cupKey = show ? `mg_cup_${((m.pass!.orderId - 1) % 8) + 1}` : 'mg_cup_1';
+      this.drinkImg.setVisible(show && this.textures.exists(cupKey));
+      if (show && this.textures.exists(cupKey)) fitBox(this.drinkImg.setTexture(cupKey), m.stage === 'serve' ? 96 : 76, m.stage === 'serve' ? 90 : 70).setPosition(m.stage === 'serve' ? 714 : 556, m.stage === 'serve' ? 330 : 236);
     }
     if (art) {
       // a plate under the drink at the pass, a waiting cup when nothing is on the way
@@ -681,9 +704,12 @@ export class MatchaMastersScene extends MinigameScene {
         this.jar.setAlpha(m.tips > 0 ? 1 : 0.45);
       }
       if (m.tips > this.lastTips) {
-        this.tweens.add({ targets: this.jar, scale: art ? this.jarBase * 1.3 : this.jar.scale * 1.3, duration: 120, yoyo: true }); // a tip drops in
+        this.tweens.killTweensOf(this.jar);
+        this.jar.setScale(this.jarBase);
+        this.tweens.add({ targets: this.jar, scale: this.jarBase * 1.3, duration: 120, yoyo: true }); // a tip drops in
         const coin = this.ui.coin;
         if (art && coin) {
+          this.tweens.killTweensOf(coin);
           coin.setPosition(846, 166).setAlpha(1).setVisible(true);
           this.tweens.add({ targets: coin, y: 190, alpha: 0, duration: 520, onComplete: () => coin.setVisible(false) });
         }
@@ -692,6 +718,7 @@ export class MatchaMastersScene extends MinigameScene {
     this.lastTips = m.tips;
     if (art && m.perfect > this.lastPerfect && this.ui.flash) {
       const fl = this.ui.flash;
+      this.tweens.killTweensOf(fl);
       fl.setPosition(this.markerX, 307).setScale(0.2).setAlpha(1).setVisible(true);
       this.tweens.add({ targets: fl, scale: 0.7, alpha: 0, duration: 420, onComplete: () => fl.setVisible(false) });
     }

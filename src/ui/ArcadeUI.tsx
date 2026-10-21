@@ -6,6 +6,7 @@ import { CurrencyIcon } from './Currency';
 import { BUS, gameBus } from '../game/events';
 import { ESPRESSO_RECIPE } from '../state/cafe';
 import FishingFinish from './FishingFinish';
+import { MG_COINS_PER_GAME } from '../state/economy';
 import { FAUNA, FIGURES, FIGURE_CARD, GAMES, RECIPES, gameOf, type Figure, type MGResult, type MGType } from '../state/minigames';
 import { addBottleNote, buyToken, getMe, getState, setFigureFree, useGameState, useMe } from '../state/store';
 import type { PlayerId } from '../types';
@@ -197,7 +198,7 @@ export function MinigameOverlays() {
             <div className="text-center font-display text-lg font-bold">Score {result.score}</div>
             {!result.award && <p className="text-center text-sm opacity-70">Your partner's device collects the rewards for you both.</p>}
             <div className="flex flex-wrap justify-center gap-2 text-sm font-bold">
-              {result.coins > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.coins} <CurrencyIcon kind="coin" size={16} /></span>}
+              {result.coins > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.award ? result.coins : Math.min(result.coins, MG_COINS_PER_GAME)} <CurrencyIcon kind="coin" size={16} /></span>}
               {result.shells > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.shells} 🐚</span>}
               {result.driftwood > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.driftwood} 🪵</span>}
               {result.eventTokens > 0 && <span className="rounded-full bg-white px-3 py-1">+{result.eventTokens} 🎟️</span>}

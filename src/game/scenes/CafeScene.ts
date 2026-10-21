@@ -44,7 +44,13 @@ interface Patron {
   busy: boolean;
   kind?: string;
   float?: boolean; // hovers, with a gentle bob
-  seat?: { chair: string; from: { x: number; y: number } };
+  seat?: { chair: string; from: { x: number; y: number }; tile: { x: number; y: number }; rot: number; row: string };
+  claim?: string; // the chair this guest is walking to, so nobody else picks it
+  claimFrom?: { x: number; y: number }; // and the floor tile beside it they are heading for
+  gen?: number; // bumped to cancel whatever the guest was doing (walks and timers check it)
+  walking?: boolean;
+  resume?: () => void; // runs when a cancelled walk reaches its next tile
+  leaving?: boolean;
 }
 
 /**
@@ -82,6 +88,7 @@ export class CafeScene extends Phaser.Scene {
   private fx!: Phaser.GameObjects.Graphics;
   private gifts: Phaser.GameObjects.Image[] = [];
   private giftKey = '';
+  private dayCheck = 0;
 
   private size = () => getState().cafe.size;
 
@@ -105,7 +112,9 @@ export class CafeScene extends Phaser.Scene {
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? -0.1 : 0.1));
 
     const onEdit = (e: EditPayload) => {
+      const starting = e.active && !this.edit.active;
       this.edit = e;
+      if (starting) for (const p of [...this.patrons]) this.sendHome(p); // guests leave while you rearrange, so no chair is hidden under one
       this.refreshHover();
     };
     const onCenter = () => this.scene.isActive() && this.fitCamera();
@@ -133,17 +142,21 @@ export class CafeScene extends Phaser.Scene {
       gameBus.off(BUS.zoom, onZoom);
       gameBus.off(BUS.view, onView);
       this.events.off(Phaser.Scenes.Events.UPDATE, this.tick, this);
+      this.patrons = [];
+      this.seated.clear();
+      this.placedObjs.clear();
     });
     this.enter();
   }
 
   /** Walking in through the door. */
   private enter() {
-    this.render(true);
-    this.fitCamera();
     for (const p of this.patrons) this.dropPatron(p);
     this.patrons = [];
+    this.seated.clear();
     this.nextPatron = 0;
+    this.render(true);
+    this.fitCamera();
     const stocked = stockPantry();
     if (stocked) gameBus.emit(BUS.townToast, { text: `🍵 Your café stocked the pantry with ${stocked} ingredient${stocked > 1 ? 's' : ''}.` });
     const st0 = styleOf(getState());
@@ -164,7 +177,7 @@ export class CafeScene extends Phaser.Scene {
   private render(force: boolean) {
     const s = getState();
     const c = s.cafe;
-    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay}|${c.event?.day === dateKey() ? c.event.id : ''}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
+    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay === this.today()}|${c.event?.day === dateKey() ? c.event.id : ''}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
     if (!force && sig === this.sig) return;
     this.sig = sig;
     if (c.size !== this.lastSize) {
@@ -201,6 +214,7 @@ export class CafeScene extends Phaser.Scene {
     for (const id of this.seated.keys()) this.showChair(id, false); // a rebuilt room keeps its sitters' chairs covered
     this.hangEventDecor(c.size, c.event?.day === dateKey() ? c.event.id : null);
     this.blocked = cafeBlocked(s);
+    this.reconcileSeats();
     this.paintBackdrop();
     this.refreshHover();
   }
@@ -236,7 +250,7 @@ export class CafeScene extends Phaser.Scene {
     const lights = event === 'study' ? 'sk_lights_star' : 'sk_lights_globe';
     along(lights, 1, 1, size, 1, 44);
     along(lights, 1, size, 1, 1, 44);
-    if (event === 'study') along('sk_banner_study', Math.max(4, size - 6), 1, size - 0.5, 1, 30);
+    if (event === 'study' && size - 0.5 - Math.max(4, size - 6) >= 2) along('sk_banner_study', Math.max(4, size - 6), 1, size - 0.5, 1, 30); // a very small room has no wall long enough for it
   }
 
   private showChair(id: string, visible: boolean) {
@@ -293,6 +307,8 @@ export class CafeScene extends Phaser.Scene {
     this.syncStaff();
     this.syncGifts();
     for (const q of this.patrons) if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
+    this.dayCheck -= delta;
+    if (this.dayCheck <= 0) { this.dayCheck = 2000; this.render(false); } // midnight, or an event ending, changes the decor with no state change
     if (this.edit.active) return;
     this.nextPatron -= delta / 1000;
     const st = styleOf(getState());
@@ -468,11 +484,32 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private dropPatron(p: Patron) {
-    if (p.seat) { this.showChair(p.seat.chair, true); this.seated.delete(p.seat.chair); }
+    p.gen = (p.gen ?? 0) + 1;
+    p.claim = undefined;
+    if (p.seat) { this.showChair(p.seat.chair, true); this.seated.delete(p.seat.chair); p.seat = undefined; }
     this.tweens.killTweensOf(p.img);
     p.bubble?.destroy();
     p.shadow?.destroy();
     p.img.destroy();
+  }
+
+  /** Cancels what a guest was doing: a walk stops at its next tile, then `then` runs. Timers set with later() lapse. */
+  private abort(p: Patron, then: () => void) {
+    p.gen = (p.gen ?? 0) + 1;
+    if (p.walking) p.resume = then;
+    else then();
+  }
+
+  /** A timer that lapses if the guest has been sent elsewhere or removed in the meantime. */
+  private later(p: Patron, ms: number, fn: () => void) {
+    const g = p.gen ?? 0;
+    this.time.delayedCall(ms, () => { if (p.img.scene && (p.gen ?? 0) === g) fn(); });
+  }
+
+  /** Asks a guest to wrap up and leave now (stand up first if sitting). */
+  private sendHome(p: Patron) {
+    if (!p.img.scene || p.leaving) return;
+    this.abort(p, () => (p.seat ? this.standUp(p) : this.leaveDoor(p)));
   }
 
   private addPatron() {
@@ -491,43 +528,59 @@ export class CafeScene extends Phaser.Scene {
     this.tweens.add({ targets: [img, p.shadow], alpha: { from: 0, to: 1 }, duration: 300 });
     p.shadow.setAlpha(0.16);
     // guests with a seated pose take a free chair beside a table when there is one
-    const seat = SEATED[kind] ? this.pickSeat(p) : null;
+    const seat = this.canSit(kind) ? this.pickSeat(p) : null;
     if (seat) {
+      p.claim = seat.chair.id;
+      p.claimFrom = seat.from;
       this.walkPatron(p, seat.path, () => this.sitDown(p, seat, kind));
       return;
     }
-    // choose somewhere to stand: beside a table, a counter or a pastry case
+    this.standOrder(p, kind);
+  }
+
+  /** No chair: stand beside a table, a counter or a pastry case, place the order, then go. */
+  private standOrder(p: Patron, kind: string) {
+    p.claim = undefined;
+    p.claimFrom = undefined;
     const spots = this.patronSpots();
     if (!spots.length) {
       this.bubble(p, 'cx_f_sad');
-      this.time.delayedCall(1500, () => this.leaveDoor(p));
+      this.later(p, 1500, () => this.leaveDoor(p));
       return;
     }
     const spot = spots[Math.floor(Math.random() * spots.length)];
     const path = findPath(p.tile, spot, this.pathBlocked(), this.size());
     if (!path.length) {
       this.bubble(p, 'cx_f_confused');
-      this.time.delayedCall(1500, () => this.leaveDoor(p));
+      this.later(p, 1500, () => this.leaveDoor(p));
       return;
     }
     this.walkPatron(p, path, () => {
       this.bubble(p, 'cx_b_menu');
       addCafeOrder(kind);
-      this.time.delayedCall(2600, () => {
+      this.later(p, 2600, () => {
         this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
-        this.time.delayedCall(2200, () => this.leaveDoor(p));
+        this.later(p, 2200, () => this.leaveDoor(p));
       });
     });
+  }
+
+  private canSit = (kind: string) => !!SEATED[kind]?.some((k) => this.textures.exists(k));
+
+  private chairHasTable(chair: PlacedObject): boolean {
+    const tableTiles = new Set<string>();
+    for (const o of getState().cafe.placed) if (itemOf(o.itemId)?.role === 'table') for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) tableTiles.add(`${t.x},${t.y}`);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tableTiles.has(`${chair.tileX + dx},${chair.tileY + dy}`));
   }
 
   /** A free chair that touches a table, and the way to the floor tile beside it. */
   private pickSeat(p: Patron): { chair: PlacedObject; from: { x: number; y: number }; path: { x: number; y: number }[] } | null {
     const s = getState();
-    const tableTiles = new Set<string>();
-    for (const o of s.cafe.placed) if (itemOf(o.itemId)?.role === 'table') for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) tableTiles.add(`${t.x},${t.y}`);
-    const taken = new Set<string>([`${this.avatars.A.tile.x},${this.avatars.A.tile.y}`, `${this.avatars.B.tile.x},${this.avatars.B.tile.y}`]);
-    for (const q of this.patrons) if (q !== p) taken.add(`${q.tile.x},${q.tile.y}`);
-    const chairs = s.cafe.placed.filter((o) => isChair(o.itemId) && !this.seated.has(o.id) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tableTiles.has(`${o.tileX + dx},${o.tileY + dy}`)));
+    const avatarTiles = [this.avatars.A.tile, this.avatars.B.tile];
+    const taken = new Set<string>(avatarTiles.map((t) => `${t.x},${t.y}`));
+    const claimed = new Set<string>();
+    for (const q of this.patrons) if (q !== p) { taken.add(`${q.tile.x},${q.tile.y}`); if (q.claim) claimed.add(q.claim); if (q.claimFrom) taken.add(`${q.claimFrom.x},${q.claimFrom.y}`); }
+    const chairs = s.cafe.placed.filter((o) => isChair(o.itemId) && !this.seated.has(o.id) && !claimed.has(o.id) && !avatarTiles.some((t) => t.x === o.tileX && t.y === o.tileY) && this.chairHasTable(o));
     for (let i = chairs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [chairs[i], chairs[j]] = [chairs[j], chairs[i]]; }
     for (const chair of chairs) {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -540,39 +593,60 @@ export class CafeScene extends Phaser.Scene {
     return null;
   }
 
-  /** The last step: onto the chair, cover the chair art with the seated pose, then place the order. */
-  private sitDown(p: Patron, seat: { chair: PlacedObject; from: { x: number; y: number } }, kind: string) {
-    if (!p.img.scene) return;
-    const { chair } = seat;
-    if (this.seated.has(chair.id)) return this.leaveDoor(p); // someone else got there first
-    this.seated.set(chair.id, p);
-    p.seat = { chair: chair.id, from: seat.from };
-    if (kind !== 'crane') this.showChair(chair.id, false); // the crane stands in front of its chair
-    const poses = SEATED[kind];
-    const row = Math.random() < 0.5 ? '1' : '2';
+  /** Puts the seated pose for a chair's facing on a guest, at the chair. */
+  private poseOn(p: Patron, chair: PlacedObject, kind: string, row: string) {
+    const poses = SEATED[kind].filter((k) => this.textures.exists(k));
     let key = poses[(chair.rotation / 90 | 0) % poses.length];
     if (row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
-    if (!this.textures.exists(key)) key = poses[0];
     const b = tileCenter(chair.tileX, chair.tileY);
     this.setArt(p.img, key);
     p.img.setFlipX(chair.rotation >= 180);
     p.img.setPosition(b.x, b.y + 6).setDepth(chair.tileX + chair.tileY + 0.3);
     p.shadow?.setPosition(b.x, b.y + 5).setDepth(chair.tileX + chair.tileY + 0.25);
+    if (p.bubble) this.bubble(p, p.bubble.texture.key);
+  }
+
+  /** The last step: onto the chair, cover the chair art with the seated pose, then place the order. */
+  private sitDown(p: Patron, seat: { chair: PlacedObject; from: { x: number; y: number } }, kind: string) {
+    if (!p.img.scene) return;
+    const chair = getState().cafe.placed.find((o) => o.id === seat.chair.id);
+    const avatarOn = [this.avatars.A.tile, this.avatars.B.tile].some((t) => chair && t.x === chair.tileX && t.y === chair.tileY);
+    // the chair may have been taken, moved, removed or left without a table while the guest walked over
+    if (!chair || chair.tileX !== seat.chair.tileX || chair.tileY !== seat.chair.tileY || this.seated.has(chair.id) || avatarOn || !this.chairHasTable(chair)) return this.standOrder(p, kind);
+    this.seated.set(chair.id, p);
+    p.claim = undefined;
+    p.claimFrom = undefined;
+    const row = Math.random() < 0.5 ? '1' : '2';
+    p.seat = { chair: chair.id, from: seat.from, tile: { x: chair.tileX, y: chair.tileY }, rot: chair.rotation, row };
+    if (kind !== 'crane') this.showChair(chair.id, false); // the crane stands in front of its chair
+    this.poseOn(p, chair, kind, row);
     p.tile = { x: chair.tileX, y: chair.tileY };
     p.float = false;
     p.img.setOrigin(0.5, 1);
     this.bubble(p, 'cx_b_menu');
     addCafeOrder(kind);
-    this.time.delayedCall(2600, () => {
+    this.later(p, 2600, () => {
       this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
-      this.time.delayedCall(2200, () => this.standUp(p));
+      this.later(p, 2200, () => this.standUp(p));
     });
   }
 
+  /** The room was rebuilt: anyone sitting on a chair that moved, vanished or lost its table stands up; a turned chair turns the guest. */
+  private reconcileSeats() {
+    const placed = getState().cafe.placed;
+    for (const [id, p] of [...this.seated]) {
+      if (!p.img.scene || !p.seat) { this.seated.delete(id); continue; }
+      const chair = placed.find((o) => o.id === id);
+      if (!chair || chair.tileX !== p.seat.tile.x || chair.tileY !== p.seat.tile.y || !this.chairHasTable(chair)) { this.sendHome(p); continue; }
+      if (chair.rotation !== p.seat.rot && p.kind && this.canSit(p.kind)) { p.seat.rot = chair.rotation; this.poseOn(p, chair, p.kind, p.seat.row); }
+    }
+  }
+
   private standUp(p: Patron) {
-    if (!p.img.scene) return;
+    if (!p.img.scene || p.leaving) return;
     const seat = p.seat;
     if (!seat) return this.leaveDoor(p);
+    p.leaving = true;
     p.bubble?.destroy();
     p.bubble = undefined;
     this.setArt(p.img, p.stand ?? p.img.texture.key);
@@ -581,9 +655,14 @@ export class CafeScene extends Phaser.Scene {
     this.seated.delete(seat.chair);
     p.seat = undefined;
     p.float = p.kind === 'drone';
-    const b = tileCenter(seat.from.x, seat.from.y);
-    p.img.setDepth(seat.from.x + seat.from.y + 0.2);
-    this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 300, onUpdate: () => p.shadow?.setPosition(p.img.x, p.img.y - 1), onComplete: () => { p.tile = seat.from; this.leaveDoor(p); } });
+    // the tile they sat down from, or any free tile around the chair if that one has since been filled
+    const free = (t: { x: number; y: number }) => inBounds(t.x, t.y, this.size()) && t.x >= 1 && t.y >= 1 && !this.blocked.has(`${t.x},${t.y}`);
+    const dest = [seat.from, ...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: seat.tile.x + dx, y: seat.tile.y + dy }))].find(free);
+    if (!dest) { p.tile = seat.tile; p.leaving = false; return this.leaveDoor(p); }
+    const b = tileCenter(dest.x, dest.y);
+    p.img.setDepth(dest.x + dest.y + 0.2);
+    p.shadow?.setDepth(dest.x + dest.y + 0.15);
+    this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 300, onUpdate: () => p.shadow?.setPosition(p.img.x, p.img.y - 1), onComplete: () => { p.tile = dest; p.leaving = false; this.leaveDoor(p); } });
   }
 
   /** Free floor tiles next to a table, a pastry case or a station. */
@@ -629,9 +708,19 @@ export class CafeScene extends Phaser.Scene {
 
   private walkPatron(p: Patron, path: { x: number; y: number }[], done: () => void) {
     let i = 0;
+    const gen = p.gen ?? 0;
+    p.walking = true;
     const step = () => {
-      if (!p.img.scene) return;
+      if (!p.img.scene) { p.walking = false; return; }
+      if ((p.gen ?? 0) !== gen) { // sent elsewhere: stop at this tile and hand over
+        p.walking = false;
+        const r = p.resume;
+        p.resume = undefined;
+        r?.();
+        return;
+      }
       if (i >= path.length) {
+        p.walking = false;
         if (p.stand) this.setArt(p.img, p.stand);
         p.img.setFlipX(false);
         return done();
@@ -648,25 +737,29 @@ export class CafeScene extends Phaser.Scene {
         p.frame = f;
         this.setArt(p.img, seq[f]);
         p.img.setFlipX(right); // the walking art faces screen left
-        if (seq.length > 1) for (const d of [95, 190, 285]) this.time.delayedCall(d, () => { if (p.img.scene && p.busy) { p.frame = ((p.frame ?? 0) + 1) % seq.length; this.setArt(p.img, seq[p.frame]); } });
+        if (seq.length > 1) for (const d of [95, 190, 285]) this.time.delayedCall(d, () => { if (p.img.scene && p.busy && p.walking) { p.frame = ((p.frame ?? 0) + 1) % seq.length; this.setArt(p.img, seq[p.frame]); } });
       } else {
         p.img.setFlipX(!right);
       }
       const base = p.img.scaleY;
       this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 380, ease: 'Linear', onUpdate: () => p.shadow?.setPosition(p.img.x, p.img.y - 1), onComplete: () => { p.tile = t; step(); } });
-      this.tweens.add({ targets: p.img, scaleY: base * 0.97, duration: 95, yoyo: true, repeat: 1, onComplete: () => p.img.setScale(Math.abs(p.img.scaleX), displayWidth(p.img.texture.key, p.img.width) / p.img.width) });
+      this.tweens.add({ targets: p.img, scaleY: base * 0.97, duration: 95, yoyo: true, repeat: 1, onComplete: () => { if (p.img.scene) p.img.setScale(Math.abs(p.img.scaleX), displayWidth(p.img.texture.key, p.img.width) / p.img.width); } });
     };
     step();
   }
 
   private bubble(p: Patron, key: string) {
+    if (!p.img.scene) return;
     p.bubble?.destroy();
     if (!this.textures.exists(key)) return;
     p.bubble = artImage(this, key, p.img.x, p.img.y - p.img.displayHeight - 4, 0.5, 1).setDepth(900);
   }
 
   private leaveDoor(p: Patron) {
-    if (!p.img.scene) return;
+    if (!p.img.scene || p.leaving) return;
+    p.leaving = true;
+    p.claim = undefined;
+    p.claimFrom = undefined;
     p.bubble?.destroy();
     p.bubble = undefined;
     const path = findPath(p.tile, ENTRY, this.pathBlocked(), this.size());

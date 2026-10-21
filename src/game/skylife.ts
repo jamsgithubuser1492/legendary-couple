@@ -52,9 +52,28 @@ export function weatherFor(d: Date, theme: Theme): Weather {
 }
 
 const isNight = (h: number) => h >= 20 || h < 6;
+/** People who ask their device for less motion get a still scene: no flapping, no falling rain or snow. */
+const calmWanted = () => {
+  try {
+    return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+};
+/** Fewer flakes, drops and fireflies on small or slow phones. */
+const lowEnd = () => {
+  try {
+    const n = navigator as Navigator & { deviceMemory?: number };
+    return (n.hardwareConcurrency ?? 8) <= 4 || (n.deviceMemory ?? 8) <= 2;
+  } catch {
+    return false;
+  }
+};
+const live = new WeakMap<Phaser.Scene, SkyLife>();
 const R = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const DEPTH = 4000;
+const PAD = 120; // overlay tints reach past the screen edge so a fast pan never shows a seam
 
 interface Critter {
   kind: 'gull' | 'finch' | 'perch' | 'bfly' | 'ffly';
@@ -89,8 +108,17 @@ export class SkyLife {
   private nextFinch = 7;
   private nextBfly = 1;
   private dead = false;
+  private calm = calmWanted();
+  private q = lowEnd() ? 0.5 : 1; // how many particles we can afford
+  private counts: Record<Critter['kind'], number> = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
+  private rect = new Phaser.Geom.Rectangle();
+  private out = new Phaser.Geom.Rectangle();
+  private unsub?: () => void;
 
   constructor(private scene: Phaser.Scene) {
+    live.get(scene)?.destroy(); // never two of us in one scene
+    live.set(scene, this);
+    this.unsub = subscribe(() => { this.hourT = 99; }); // a new weather choice shows at once
     this.root = scene.add.container(0, 0).setDepth(DEPTH + 10);
     this.g = scene.add.graphics();
     this.root.add(this.g);
@@ -102,9 +130,12 @@ export class SkyLife {
   destroy() {
     if (this.dead) return;
     this.dead = true;
+    this.unsub?.();
+    if (live.get(this.scene) === this) live.delete(this.scene);
     this.scene.events.off(Phaser.Scenes.Events.UPDATE, this.update, this);
     for (const c of this.critters) c.im.destroy();
     this.critters = [];
+    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
     this.clearOverlay();
     this.root.destroy();
   }
@@ -114,27 +145,33 @@ export class SkyLife {
   // ---------------------------------------------------------------- per frame
   private update(_time: number, delta: number) {
     if (this.dead || !this.scene.sys.isActive()) return;
-    const dt = Math.min(0.05, delta / 1000);
+    const dt = Math.min(0.05, Math.max(0, delta) / 1000); // a long gap (a hidden tab) never spawns a burst
     this.t += dt;
     const cam = this.scene.cameras.main;
-    const view = cam.worldView;
+    const zoom = cam.zoom > 0.01 ? cam.zoom : 1;
+    // the view from the camera's scroll, not worldView, which is a frame behind while panning
+    const w = cam.width / zoom, h = cam.height / zoom;
+    const sx = cam.useBounds ? cam.clampX(cam.scrollX) : cam.scrollX;
+    const sy = cam.useBounds ? cam.clampY(cam.scrollY) : cam.scrollY;
+    const view = this.rect.setTo(sx + cam.width / 2 - w / 2, sy + cam.height / 2 - h / 2, w, h);
     // refresh the hour, the season and the weather once in a while
     this.hourT += dt;
     if (this.hourT > 2) {
       this.hourT = 0;
+      this.calm = calmWanted();
       const now = new Date();
       this.night = isNight(now.getHours());
       this.theme = getTheme();
-      const w = weatherFor(now, this.theme);
-      const key = `${w}|${this.theme}`;
+      const wx = weatherFor(now, this.theme);
+      const key = `${wx}|${this.theme}|${this.calm}|${cam.width}x${cam.height}`;
       if (key !== this.weatherKey) {
         this.weatherKey = key;
-        this.weather = w;
+        this.weather = wx;
         this.buildOverlay();
       }
     }
-    this.zk = Phaser.Math.Clamp(0.9 / cam.zoom, 1, 2);
-    this.root.setPosition(view.centerX, view.centerY).setScale(1 / cam.zoom);
+    this.zk = Phaser.Math.Clamp(0.9 / zoom, 1, 2);
+    this.root.setPosition(view.centerX, view.centerY).setScale(1 / zoom);
     this.spawn(dt, view);
     this.moveCritters(dt, view);
     this.drawWeather(dt, cam);
@@ -142,8 +179,8 @@ export class SkyLife {
 
   // ---------------------------------------------------------------- creatures
   private spawn(dt: number, view: Phaser.Geom.Rectangle) {
-    const count = (k: Critter['kind']) => this.critters.filter((c) => c.kind === k).length;
-    const day = !this.night && this.weather !== 'rain';
+    const count = (k: Critter['kind']) => this.counts[k];
+    const day = !this.night && this.weather !== 'rain' && !this.calm;
     this.nextGull -= dt;
     this.nextFinch -= dt;
     this.nextBfly -= dt;
@@ -171,7 +208,7 @@ export class SkyLife {
       if (this.has(k)) this.add('bfly', k, view.x + view.width * R(0.1, 0.9), view.y + view.height * R(0.25, 0.85), R(-12, 12), R(-8, 8), undefined, R(14, 26));
     }
     if (this.night) {
-      const want = 12;
+      const want = this.calm ? 0 : Math.round(12 * this.q);
       while (count('ffly') < want) {
         const k = `sk_ffly_${1 + Math.floor(Math.random() * 5)}`;
         if (!this.has(k)) break;
@@ -187,12 +224,14 @@ export class SkyLife {
     if (kind === 'ffly') im.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
     if (kind === 'perch') im.setAlpha(0);
     this.critters.push({ kind, im, x, y, vx, vy, ph: R(0, 6), life, frames });
+    this.counts[kind]++;
   }
 
   private moveCritters(dt: number, view: Phaser.Geom.Rectangle) {
-    const out = Phaser.Geom.Rectangle.Clone(view);
+    const out = this.out.setTo(view.x, view.y, view.width, view.height);
     Phaser.Geom.Rectangle.Inflate(out, view.width * 0.4, view.height * 0.4);
     const keep: Critter[] = [];
+    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
     for (const c of this.critters) {
       c.ph += dt;
       c.life -= dt;
@@ -235,7 +274,10 @@ export class SkyLife {
       if (gone || !Phaser.Geom.Rectangle.Contains(out, c.x, c.y)) {
         // fireflies and butterflies that drift off the view are replaced from inside it by the spawner
         c.im.destroy();
-      } else keep.push(c);
+      } else {
+        keep.push(c);
+        this.counts[c.kind]++;
+      }
     }
     this.critters = keep;
   }
@@ -255,22 +297,23 @@ export class SkyLife {
     this.clearOverlay();
     const cam = this.scene.cameras.main;
     const W = cam.width, H = cam.height;
+    if (this.calm) return; // reduced motion: the weather stays out of the way
     if (this.weather === 'snow') {
       const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `sk_flake_${n}`).filter(this.has);
-      for (let i = 0; i < 38 && keys.length; i++) {
+      for (let i = 0; i < Math.round(38 * this.q) && keys.length; i++) {
         const im = this.scene.add.image(0, 0, pick(keys)).setAlpha(R(0.55, 0.95)).setScale(R(0.35, 0.7));
         this.root.add(im);
         this.overlay.push(im);
         this.flakes.push({ im, x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), vy: R(24, 55), sw: R(8, 24), ph: R(0, 6) });
       }
       if (this.has('sk_snowtile_1')) {
-        this.snowTile = this.scene.add.tileSprite(0, 0, W, H, 'sk_snowtile_1').setAlpha(0.5).setTileScale(1.4);
+        this.snowTile = this.scene.add.tileSprite(0, 0, W + PAD * 2, H + PAD * 2, 'sk_snowtile_1').setAlpha(0.5).setTileScale(1.4);
         this.root.add(this.snowTile);
         this.root.sendToBack(this.snowTile);
         this.overlay.push(this.snowTile);
       }
     } else if (this.weather === 'rain') {
-      for (let i = 0; i < 70; i++) this.drops.push({ x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), len: R(10, 20), sp: R(380, 520) });
+      for (let i = 0; i < Math.round(70 * this.q); i++) this.drops.push({ x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), len: R(10, 20), sp: R(380, 520) });
       for (let i = 0; i < 6; i++) {
         const k = `sk_ripple_${1 + (i % 3)}`;
         if (!this.has(k)) break;
@@ -290,9 +333,9 @@ export class SkyLife {
     this.dusk += ((this.night ? 1 : 0) - this.dusk) * Math.min(1, dt * 0.8);
     if (this.dusk > 0.01) {
       g.fillStyle(0x1b2a5e, 0.24 * this.dusk);
-      g.fillRect(-W / 2, -H / 2, W, H);
+      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
     }
-    if (this.weather === 'snow') {
+    if (this.weather === 'snow' && !this.calm) {
       for (const f of this.flakes) {
         f.y += f.vy * dt;
         f.ph += dt;
@@ -303,15 +346,15 @@ export class SkyLife {
         f.im.setPosition(f.x + Math.sin(f.ph) * f.sw, f.y).setAngle(f.ph * 20);
       }
       if (this.snowTile) {
-        this.snowTile.setSize(W, H);
+        this.snowTile.setSize(W + PAD * 2, H + PAD * 2);
         this.snowTile.tilePositionY -= 30 * dt;
         this.snowTile.tilePositionX += 8 * dt;
       }
       g.fillStyle(0xe6f0ff, 0.06);
-      g.fillRect(-W / 2, -H / 2, W, H);
-    } else if (this.weather === 'rain') {
+      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
+    } else if (this.weather === 'rain' && !this.calm) {
       g.fillStyle(0x7d9bc4, 0.1);
-      g.fillRect(-W / 2, -H / 2, W, H);
+      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
       g.lineStyle(1.5, 0xcfe4ff, 0.55);
       for (const d of this.drops) {
         d.y += d.sp * dt;
