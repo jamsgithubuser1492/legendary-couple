@@ -5,6 +5,7 @@ import { SpriteImg } from './ItemIcon';
 import { CurrencyIcon } from './Currency';
 import { BUS, gameBus } from '../game/events';
 import { ESPRESSO_RECIPE } from '../state/cafe';
+import FishingFinish from './FishingFinish';
 import { FAUNA, FIGURES, FIGURE_CARD, GAMES, RECIPES, gameOf, type Figure, type MGResult, type MGType } from '../state/minigames';
 import { addBottleNote, buyToken, getMe, getState, setFigureFree, useGameState, useMe } from '../state/store';
 import type { PlayerId } from '../types';
@@ -185,6 +186,7 @@ export function MinigameOverlays() {
       {result && (
         <Sheet title={`${gameOf(result.type).icon} ${gameOf(result.type).name}`} onClose={() => setResult(null)}>
           <div className="flex flex-col gap-2 text-cocoa">
+            {result.type === 'STELLAR_FISHING' && <FishingFinish />}
             {result.stars > 0 && (
               <div className="relative mx-auto">
                 <SpriteImg sprite="cz_result" size={130} />
