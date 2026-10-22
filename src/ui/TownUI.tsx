@@ -7,7 +7,7 @@ import { dateKey } from '../state/questions';
 import ItemIcon from './ItemIcon';
 import { Amount } from './Currency';
 import { REGIONS, LOTS, actualGrowth, growthOf, nextMilestone, setGrowthPreview, useGrowthPreview } from '../state/town';
-import Sheet, { primaryBtn, softBtn } from './Sheet';
+import Sheet, { CloseButton, primaryBtn, softBtn, useBackdropClose, useDialog } from './Sheet';
 
 /** Small message card for things happening in the town: new buildings, regions opening, tapped places. */
 export function TownToast() {
@@ -91,12 +91,14 @@ export function DreamMap({ onClose }: { onClose: () => void }) {
     { id: 'campus', label: 'Future Campus', need: 180, box: 'left-[76%] top-[48%] h-[22%] w-[24%]' },
     { id: 'downtown', label: 'Downtown Extension', need: 120, box: 'left-[72%] top-[68%] h-[32%] w-[28%]' },
   ];
+  const { panel, titleId } = useDialog(onClose);
+  const backdrop = useBackdropClose(onClose);
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-cocoa/50 p-3 backdrop-blur-sm" onClick={onClose}>
-      <div className="max-h-full w-full max-w-3xl overflow-auto rounded-3xl bg-cream p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="olw-backdrop absolute inset-0 z-30 flex items-center justify-center bg-cocoa/50 p-3 backdrop-blur-sm" {...backdrop}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="olw-dialog max-h-full w-full max-w-3xl overflow-auto rounded-3xl bg-cream p-3 shadow-2xl outline-none lg:max-w-5xl lg:p-5">
         <div className="mb-2 flex items-center justify-between px-1">
-          <h2 className="font-display text-xl font-bold text-cocoa">Our Little World, the dream 🌅</h2>
-          <button onClick={onClose} className="rounded-full bg-blush px-3 py-1 font-bold text-cocoa" aria-label="Close">✕</button>
+          <h2 id={titleId} className="font-display text-xl font-bold text-cocoa">Our Little World, the dream 🌅</h2>
+          <CloseButton onClose={onClose} />
         </div>
         <div className="relative overflow-hidden rounded-2xl">
           <img src={`${import.meta.env.BASE_URL}assets/world_map.jpg`} alt="The whole world map" className="block w-full" draggable={false} />

@@ -3,7 +3,7 @@ import { Amount } from './Currency';
 import { ArtImg } from './ItemIcon';
 import { BANK, dateKey, journeyFor, legacyQuestionFor, streakOf, THEME_INFO, THEME_ORDER, tomorrowKey, type QTheme } from '../state/questions';
 import { answerCheckin, dropPrompt, otherPlayer, useGameState, useMe } from '../state/store';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 
 export default function CheckinModal({ onClose }: { onClose: () => void }) {
   const s = useGameState();
@@ -56,7 +56,7 @@ export default function CheckinModal({ onClose }: { onClose: () => void }) {
 
           {!mine && (
             <div className="mt-3">
-              <textarea className={fieldCls} rows={3} placeholder="Your answer. It stays hidden until you both answer." value={text} onChange={(e) => setText(e.target.value)} />
+              <textarea className={fieldCls} rows={3} placeholder="Your answer. It stays hidden until you both answer." aria-label="Your answer" data-autofocus value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onEnter(() => answerCheckin(me, text), !!text.trim())} />
               <button className={`${primaryBtn} mt-2 w-full`} disabled={!text.trim()} onClick={() => answerCheckin(me, text)}>Lock in my answer</button>
             </div>
           )}
@@ -86,7 +86,7 @@ export default function CheckinModal({ onClose }: { onClose: () => void }) {
             ) : (
               <>
                 <p className="mt-1 text-xs text-cocoa/60">Write tomorrow's question for the two of you, like "What treat should I bring home?". It stays hidden until tomorrow.</p>
-                <input className={`${fieldCls} mt-2`} maxLength={160} value={drop} onChange={(e) => setDrop(e.target.value)} placeholder="Tomorrow's question" />
+                <input className={`${fieldCls} mt-2`} maxLength={160} value={drop} aria-label="Tomorrow's question" onChange={(e) => setDrop(e.target.value)} onKeyDown={onEnter(() => { if (dropPrompt(me, drop)) setDrop(''); }, !!drop.trim())} placeholder="Tomorrow's question" />
                 <button className={`${softBtn} mt-2 w-full`} disabled={!drop.trim()} onClick={() => { if (dropPrompt(me, drop)) setDrop(''); }}>Drop it in the box</button>
               </>
             )}

@@ -175,16 +175,17 @@ export class MatchaMastersScene extends MinigameScene {
       const hasIcon = this.textures.exists(`mg_ing_${icon}`);
       if (art) {
         const x = 96 + (i % 4) * 100, y = 226 + Math.floor(i / 4) * 54;
-        this.btn[`ing:${name}`] = this.artButton(x, y, 96, 44, name, 'ing', { size: name.length > 7 ? 11 : 13, onDown: () => this.act(this.sous, 'add', name), icon: hasIcon ? `mg_ing_${icon}` : undefined });
+        this.btn[`ing:${name}`] = this.artButton(x, y, 96, 44, this.desktop ? `${i + 1} ${name}` : name, 'ing', { size: name.length > 7 ? 11 : 13, onDown: () => this.act(this.sous, 'add', name), icon: hasIcon ? `mg_ing_${icon}` : undefined });
         return;
       }
       const x = 80 + (i % 4) * 112, y = 212 + Math.floor(i / 4) * 54;
-      this.btn[`ing:${name}`] = this.button(x, y, 104, 46, `  ${name}`, { size: 13, onDown: () => this.act(this.sous, 'add', name) });
+      this.btn[`ing:${name}`] = this.button(x, y, 104, 46, this.desktop ? `  ${i + 1} ${name}` : `  ${name}`, { size: 13, onDown: () => this.act(this.sous, 'add', name) });
       if (hasIcon) fitBox(this.add.image(x - 38, y, `mg_ing_${icon}`).setDepth(25), 32, 38);
     });
     if (this.textures.exists('mg_bg_matcha')) {
       // the painted counter scene, shown as it was drawn: the panels above are see through so it stays visible
-      coverBox(this.add.image(480, 270, 'mg_bg_matcha').setDepth(-90), 960, 540);
+      const bg = coverBox(this.add.image(480, 270, 'mg_bg_matcha').setDepth(-90), 960, 540);
+      this.extendBackdrop('mg_bg_matcha', bg.x - bg.displayWidth / 2, bg.y - bg.displayHeight / 2, bg.displayWidth, bg.displayHeight, -91);
       this.add.rectangle(480, 270, 960, 540, 0xfff3e8, 0.08).setDepth(-80);
       this.hasBg = true;
     } else if (this.textures.exists('mg_bg_cafe_day')) {
@@ -241,20 +242,52 @@ export class MatchaMastersScene extends MinigameScene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const m = this.m;
       if (m.stage !== 'steps' || !this.can(this.bar)) return;
-      m.tray.forEach((name, i) => {
+      m.tray.forEach((_name, i) => {
         const t = trayPos(i, m.tray.length);
-        if (Math.abs(p.worldX - t.x) < 38 && Math.abs(p.worldY - t.y) < 44) {
-          this.act(this.bar, 'step', name);
-          const bg = this.tileBg[`tray${i}`];
-          if (bg) {
-            // a small pop where you tapped; rapid taps restart from the resting size instead of stacking
-            const base = (bg.getData('base') as number | undefined) ?? bg.scale;
-            this.tweens.killTweensOf(bg);
-            bg.setScale(base);
-            this.tweens.add({ targets: bg, scale: base * 1.12, duration: 70, yoyo: true });
-          }
-        }
+        if (Math.abs(p.worldX - t.x) < 38 && Math.abs(p.worldY - t.y) < 44) this.tapTray(i);
       });
+    });
+    this.setupKeys();
+  }
+
+  /** Taps tray tile i for the barista (the same input whether it came from a finger, a click or a key). */
+  private tapTray(i: number) {
+    const m = this.m, name = m.tray[i];
+    if (name === undefined || m.stage !== 'steps' || !this.can(this.bar)) return;
+    this.act(this.bar, 'step', name);
+    const bg = this.tileBg[`tray${i}`];
+    if (bg) {
+      // a small pop where you tapped; rapid taps restart from the resting size instead of stacking
+      const base = (bg.getData('base') as number | undefined) ?? bg.scale;
+      this.tweens.killTweensOf(bg);
+      bg.setScale(base);
+      this.tweens.add({ targets: bg, scale: base * 1.12, duration: 70, yoyo: true });
+    }
+  }
+
+  /** Keyboard: 1 to 7 are your ingredients (or the tray tiles for the barista), Enter passes or serves, Space steams, Backspace clears. */
+  private setupKeys() {
+    this.onKey(['1', '2', '3', '4', '5', '6', '7'], (e) => {
+      const i = Number(e.key) - 1;
+      if (this.can(this.sous) && ING[i]) this.act(this.sous, 'add', ING[i][0]);
+      else if (this.can(this.bar)) this.tapTray(i);
+    });
+    this.onKey('Backspace', () => { if (this.can(this.sous)) this.act(this.sous, 'clear'); });
+    this.onKey('Enter', () => {
+      const m = this.m;
+      if (m.combo && !m.combo.taps[this.role]) return this.act(this.role, 'cheer');
+      if (this.can(this.bar)) {
+        if (m.stage === 'serve') this.act(this.bar, 'serve');
+      } else if (this.can(this.sous)) {
+        const plateNow = (m.stage === 'plate' && !!m.orders.find((x) => x.id === m.pass?.orderId)) || (m.stage === 'idle' && !m.pass && m.orders.some((x) => !x.claimed && x.pastryOnly));
+        this.act(this.sous, plateNow ? 'plate' : 'pass');
+      }
+    });
+    this.onKey(' ', () => {
+      const m = this.m;
+      if (m.combo && !m.combo.taps[this.role]) return this.act(this.role, 'cheer');
+      if (this.can(this.bar) && m.stage === 'meter') this.act(this.bar, 'meter', this.meterPos());
+      else if (this.can(this.bar) && m.stage === 'serve') this.act(this.bar, 'serve');
     });
   }
 
@@ -286,17 +319,18 @@ export class MatchaMastersScene extends MinigameScene {
     const ic = o.icon ? this.add.image(-w / 2 + 24, 0, o.icon) : null;
     if (ic) fitBox(ic, 22, 26);
     const hit = this.add.rectangle(0, 0, w, Math.max(h, 44), 0xffffff, 0.001).setInteractive({ useHandCursor: true });
-    let enabled = true, down = false, k = kind;
+    let enabled = true, down = false, hover = false, k = kind;
     const paint = () => {
       const st = !enabled ? 'off' : down ? 'pressed' : 'normal';
       bg.setTexture(`${pre(k)}${st}`);
       t.setAlpha(enabled ? 1 : 0.55).setY(down ? 2 : 0);
       ic?.setAlpha(enabled ? 1 : 0.5);
-      c.setScale(down ? 0.97 : 1);
+      c.setScale(down ? 0.97 : hover && enabled ? 1.035 : 1); // a soft lift under the mouse
     };
+    hit.on('pointerover', () => { hover = true; paint(); });
     hit.on('pointerdown', () => { down = true; paint(); o.onDown?.(); });
     hit.on('pointerup', () => { down = false; paint(); o.onUp?.(); });
-    hit.on('pointerout', () => { if (down) { down = false; paint(); } });
+    hit.on('pointerout', () => { hover = false; down = false; paint(); });
     hit.on('pointerupoutside', () => { if (down) { down = false; paint(); } });
     c.add(ic ? [bg, ic, t, hit] : [bg, t, hit]);
     return {
@@ -693,6 +727,11 @@ export class MatchaMastersScene extends MinigameScene {
     }
     if (m.stage === 'steps') this.t.bState.setOrigin(0, 0.5).setPosition(art ? 604 : 616, art ? 238 : 228).setWordWrapWidth(art ? 300 : 300);
     else this.t.bState.setOrigin(0.5, 0.5).setPosition(714, art ? 238 : 232).setWordWrapWidth(400);
+    if (this.desktop && this.can(this.bar)) {
+      if (m.stage === 'meter') bLine += '  (Space)';
+      else if (m.stage === 'steps') bLine += `  (keys 1 to ${m.tray.length})`;
+      else if (m.stage === 'serve') bLine += '  (Enter)';
+    }
     this.t.bState.setText(bLine);
     // text
     this.t.score.setText(art ? `⭐ ${m.score}   ×${m.mult.toFixed(2)}` : `⭐ ${m.score}`);
@@ -725,7 +764,7 @@ export class MatchaMastersScene extends MinigameScene {
     this.lastPerfect = m.perfect;
     this.t.mult.setText(art ? '' : `Café Rush ×${m.mult.toFixed(2)}`);
     this.t.time.setText(`${Math.max(0, Math.ceil(this.duration - c))}s`);
-    this.t.aTitle.setText(`🧑 ${this.name(this.sous)}: Sous Chef`);
+    this.t.aTitle.setText(`🧑 ${this.name(this.sous)}: Sous Chef${this.desktop && this.can(this.sous) ? ' (keys 1 to 7, Enter, Backspace)' : ''}`);
     this.t.bTitle.setText(`👩 ${this.name(this.bar)}: Barista`);
     const ft = m.flash?.text ?? '';
     this.t.banner.setText(ft);

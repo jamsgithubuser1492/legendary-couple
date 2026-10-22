@@ -10,7 +10,7 @@ import { itemOf } from '../state/catalog';
 import { SpriteImg } from './ItemIcon';
 import type { MessageKind, PlayerId } from '../types';
 import ItemIcon, { ArtImg } from './ItemIcon';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 
 export type TogetherTab = 'whisper' | 'reach' | 'adventure' | 'lovemap' | 'gratitude' | 'log';
 const TABS: { id: TogetherTab; icon: string; label: string }[] = [
@@ -53,7 +53,7 @@ function Whisper() {
       <p className={card}>{w.q}</p>
       {!w[me] && (
         <div className="mt-3">
-          <textarea className={fieldCls} rows={3} placeholder="Your honest answer" value={text} onChange={(e) => setText(e.target.value)} />
+          <textarea className={fieldCls} rows={3} placeholder="Your honest answer" aria-label="Your honest answer" data-autofocus value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onEnter(() => answerWhisper(me, text), !!text.trim())} />
           <button className={`${primaryBtn} mt-2 w-full`} disabled={!text.trim()} onClick={() => answerWhisper(me, text)}>Whisper it</button>
         </div>
       )}
@@ -209,7 +209,7 @@ function Gratitude() {
         <p className="mt-3 rounded-xl bg-green-100 p-3 text-center text-sm text-cocoa">🍃 You dropped today's note. Come back tomorrow.</p>
       ) : (
         <div className="mt-3">
-          <input className={fieldCls} maxLength={140} placeholder="Thanks for making coffee this morning" value={text} onChange={(e) => setText(e.target.value)} />
+          <input className={fieldCls} maxLength={140} placeholder="Thanks for making coffee this morning" aria-label="Thank you note" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onEnter(() => { if (dropNote(me, text)) setText(''); }, !!text.trim())} />
           <button className={`${primaryBtn} mt-2 w-full`} disabled={!text.trim()} onClick={() => { if (dropNote(me, text)) setText(''); }}>Drop a thank you</button>
         </div>
       )}
@@ -306,19 +306,25 @@ function Log() {
 export default function TogetherModal({ tab, onTab, onClose }: { tab: TogetherTab; onTab: (t: TogetherTab) => void; onClose: () => void }) {
   const s = useGameState();
   return (
-    <Sheet title="Together 💞" onClose={onClose}>
-      <div className="mb-2 text-right text-sm font-bold text-cocoa">🐚 {s.shells} Heart Shells</div>
-      <div className="mb-3 flex gap-1 overflow-x-auto">
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => onTab(t.id)} className={`shrink-0 rounded-full px-3 py-1.5 font-display text-sm font-bold ${tab === t.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{t.icon} {t.label}</button>
-        ))}
+    <Sheet title="Together 💞" onClose={onClose} size="lg">
+      <div className="sm:flex sm:gap-5">
+        <nav aria-label="Together sections" className="mb-3 sm:sticky sm:top-0 sm:mb-0 sm:w-48 sm:shrink-0 sm:self-start">
+          <div className="mb-2 text-right text-sm font-bold text-cocoa sm:text-left" title="Heart Shells">🐚 {s.shells} Heart Shells</div>
+          <div className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible sm:pb-0">
+            {TABS.map((t) => (
+              <button key={t.id} onClick={() => onTab(t.id)} aria-current={tab === t.id ? 'page' : undefined} className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-left font-display text-sm font-bold transition hover:brightness-95 sm:rounded-2xl sm:py-2 ${tab === t.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{t.icon} {t.label}</button>
+            ))}
+          </div>
+        </nav>
+        <div className="min-w-0 flex-1">
+          {tab === 'whisper' && <Whisper />}
+          {tab === 'reach' && <Reach />}
+          {tab === 'adventure' && <Adventure />}
+          {tab === 'lovemap' && <LoveMap />}
+          {tab === 'gratitude' && <Gratitude />}
+          {tab === 'log' && <Log />}
+        </div>
       </div>
-      {tab === 'whisper' && <Whisper />}
-      {tab === 'reach' && <Reach />}
-      {tab === 'adventure' && <Adventure />}
-      {tab === 'lovemap' && <LoveMap />}
-      {tab === 'gratitude' && <Gratitude />}
-      {tab === 'log' && <Log />}
     </Sheet>
   );
 }

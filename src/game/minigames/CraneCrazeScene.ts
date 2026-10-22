@@ -64,6 +64,13 @@ export class CraneCrazeScene extends MinigameScene {
     this.btn.drop = this.button(710, 504, 240, 54, 'DROP!', { fill: 0xbfe6f2, size: 22, onUp: () => this.act('B', 'drop') });
     this.btn.cheer = this.button(250, 504, 240, 54, '💖 Cheer!', { fill: 0xfff3a0, size: 22, onUp: () => this.act('A', 'cheer') });
     this.btn.cheer.setVisible(false);
+    // keyboard: Space or Enter does whatever your button does right now (the same inputs)
+    this.onKey([' ', 'Enter'], () => {
+      const m = this.m, me = this.role;
+      if (me === 'A' && m.phase === 'x') this.act('A', 'lock');
+      else if (me === 'B' && m.phase === 'depth') this.act('B', 'drop');
+      else if (me === 'A' && m.phase === 'lift' && !m.aura) this.act('A', 'cheer');
+    });
   }
 
   protected hostTick(dt: number) {
@@ -230,6 +237,7 @@ export class CraneCrazeScene extends MinigameScene {
     if (m.phase === 'x') hint = me === 'A' ? 'Lock the claw when it is over a box' : `${this.name('A')} lines up the claw…`;
     else if (m.phase === 'depth') hint = me === 'B' ? 'DROP when the claw is low!' : `${this.name('B')} times the drop…`;
     else if (m.phase === 'lift') hint = me === 'A' ? 'Tap Cheer to add a magnetic aura!' : 'Lifting…';
+    if (this.desktop && ((me === 'A' && (m.phase === 'x' || (m.phase === 'lift' && !m.aura))) || (me === 'B' && m.phase === 'depth'))) hint += '  (Space)';
     this.t.hint.setText(hint);
     this.btn.lock.setVisible(m.phase !== 'lift' && me === 'A');
     this.btn.lock.setEnabled(m.phase === 'x');

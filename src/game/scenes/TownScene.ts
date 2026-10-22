@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { DPR } from '../render';
+import { DesktopInput } from '../desktopInput';
 import { cartesianToIso, isoToCartesian, tileCenter } from '../iso';
 import { Ambient } from '../ambient';
 import { gameBus, BUS } from '../events';
@@ -26,9 +28,9 @@ import { NPC_DEFS, TownNpc, createNpcAnims } from '../town/npcs';
 const DW = new Map<string, number>(SPRITES.map((s) => [s.key, s.dw]));
 const HOUSES = ['house_terracotta', 'house_bluedoor', 'house_pink', 'house_balcony', 'house_coastal', 'house_modern'];
 const TOWERS = ['tower_coastal', 'tower_pastel', 'tower_garden', 'tower_city'];
-const MIN_ZOOM = 0.2;
-const MAX_ZOOM = 1.6;
-const DRAG_THRESHOLD = 8;
+const MIN_ZOOM = 0.2 * DPR;
+const MAX_ZOOM = 1.6 * DPR;
+const DRAG_THRESHOLD = 8 * DPR;
 
 /** The zoomed out town. It starts bare and fills with buildings and people as you grow together. */
 export class TownScene extends Phaser.Scene {
@@ -41,6 +43,7 @@ export class TownScene extends Phaser.Scene {
   private avatars!: Record<PlayerId, Avatar>;
   private following = false;
   private blockedTown = new Set<string>();
+  private desk!: DesktopInput;
   private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private solid = new Map<string, boolean>();
   private fog: Phaser.GameObjects.GameObject[] = [];
@@ -85,7 +88,7 @@ export class TownScene extends Phaser.Scene {
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
-    this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? -0.06 : 0.06));
+    this.desk = new DesktopInput(this, { minZoom: MIN_ZOOM, maxZoom: MAX_ZOOM, reset: () => this.fitAll(), label: (p) => this.labelAt(p) });
 
     const onCenter = () => this.scene.isActive() && this.fitAll();
     const onZoom = (d: number) => this.scene.isActive() && this.zoomBy(d * 0.6);
@@ -507,7 +510,7 @@ export class TownScene extends Phaser.Scene {
     if (this.following) return;
     this.following = true;
     cam.startFollow(this.avatars[getMe()].container, true, 0.1, 0.1);
-    this.tweens.add({ targets: cam, zoom: Math.max(cam.zoom, 0.95), duration: 700, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: cam, zoom: Math.max(cam.zoom, 0.95 * DPR), duration: 700, ease: 'Sine.easeInOut' });
   }
 
   private pathBlocked(forPlayer: PlayerId): Set<string> {
@@ -569,8 +572,8 @@ export class TownScene extends Phaser.Scene {
     if (focusActive(me)) return;
     const av = this.avatars[me];
     if (av.moving) return;
-    const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
-    const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
+    const up = k.W.isDown, down = k.S.isDown; // the arrow keys pan the camera instead
+    const left = k.A.isDown, right = k.D.isDown;
     const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
     const ty = Math.sign((left ? 1 : 0) - (right ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
     if (!tx && !ty) return;
@@ -608,12 +611,14 @@ export class TownScene extends Phaser.Scene {
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p)) return;
     const cam = this.cameras.main;
     this.dragStart = { x: p.x, y: p.y, camX: cam.scrollX, camY: cam.scrollY };
     this.dragging = false;
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p) || (!p.wasTouch && (p.middleButtonDown() || p.rightButtonDown()))) return;
     const cam = this.cameras.main;
     const p1 = this.input.pointer1, p2 = this.input.pointer2;
     if (p1.isDown && p2.isDown) {
@@ -638,6 +643,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p)) return;
     this.pinchDist = 0;
     const was = this.dragging;
     this.dragging = false;
@@ -665,9 +671,23 @@ export class TownScene extends Phaser.Scene {
     this.walkTo(t); // an open tile: walk there
   }
 
+  /** What a click here would do, for the hover label. */
+  private labelAt(p: Phaser.Input.Pointer): string | null {
+    const t = this.tileAt(p);
+    if (!t) return null;
+    if (Math.abs(t.x - HOME_PIN.x) <= 1 && Math.abs(t.y - HOME_PIN.y) <= 1) return 'Back to our island';
+    const growth = growthOf(getState());
+    const region = regionById(regionAt(t.x, t.y));
+    if (growth < region.unlockAt) return `${region.name} (opens at ${region.unlockAt} growth)`;
+    const lot = LOTS.find((l) => lotOpen(l, growth, getState().xp) && t.x >= l.x && t.x < l.x + l.w && t.y >= l.y && t.y < l.y + l.d && this.lotObjs.has(l.id));
+    if (lot && lot.name !== 'Tree' && lot.name !== 'Pine') return activityOf(lot.name) ? `${lot.name} (visit)` : lot.name;
+    return null;
+  }
+
   private zoomBy(d: number): void {
     const cam = this.cameras.main;
-    cam.setZoom(Phaser.Math.Clamp(cam.zoom + d, MIN_ZOOM, MAX_ZOOM));
+    cam.setZoom(Phaser.Math.Clamp(cam.zoom + d * DPR, MIN_ZOOM, MAX_ZOOM));
+    this.desk?.sync();
   }
 
   /** Shows the whole painted world: sunset sky, sea, coast and every region. */
@@ -676,8 +696,9 @@ export class TownScene extends Phaser.Scene {
     cam.stopFollow();
     this.following = false;
     // the painted world spans about 2300 x 1400 world pixels, from the lighthouse down to the south pier
-    const zoom = Phaser.Math.Clamp(Math.min(cam.width / 2300, cam.height / 1400), MIN_ZOOM, 1);
+    const zoom = Phaser.Math.Clamp(Math.min(cam.width / 2300, cam.height / 1400), MIN_ZOOM, 1 * DPR);
     cam.setZoom(zoom);
     cam.centerOn(0, 470);
+    this.desk?.sync();
   }
 }

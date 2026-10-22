@@ -19,14 +19,14 @@ interface Props {
   onDone: () => void;
 }
 
-const chip = 'pointer-events-auto rounded-full px-3 py-2 font-display font-bold shadow active:scale-95';
+const chip = 'pointer-events-auto cursor-pointer rounded-full px-3 py-2 font-display font-bold shadow transition hover:brightness-95 active:scale-95';
 
 export default function EditBar({ edit, onChange, onShop, onExpand, onDone }: Props) {
   const s = useGameState();
   const bag = s.inventory.filter((i) => i.count > 0 && itemOf(i.id));
   const preset = edit.presetId ? presetOf(edit.presetId) : undefined;
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 rounded-t-3xl bg-cream/95 p-3 shadow-2xl">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 rounded-t-3xl bg-cream/95 p-3 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-[min(920px,calc(100%-2rem))] sm:-translate-x-1/2 sm:rounded-3xl" role="toolbar" aria-label="Decorate tools">
       {preset && (
         <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3">
           <div>
@@ -46,7 +46,7 @@ export default function EditBar({ edit, onChange, onShop, onExpand, onDone }: Pr
               <button
                 key={i.id}
                 onClick={() => onChange({ ...edit, mode: 'place', itemId: i.id, presetId: null })}
-                className={`relative flex h-14 min-w-14 shrink-0 items-center justify-center rounded-2xl px-2 ${sel ? 'bg-pink-200 ring-4 ring-pink-400' : 'bg-white'}`}
+                aria-pressed={sel} className={`relative flex h-14 min-w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl px-2 transition hover:bg-pink-50 ${sel ? 'bg-pink-200 ring-4 ring-pink-400' : 'bg-white'}`}
                 title={it.name}
               >
                 <ItemIcon id={i.id} size={38} />
@@ -58,12 +58,12 @@ export default function EditBar({ edit, onChange, onShop, onExpand, onDone }: Pr
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-2">
-          <button className={`${chip} bg-white text-cocoa`} onClick={() => onChange({ ...edit, rotation: ((edit.rotation + 90) % 360) as EditState['rotation'] })}>↻ Rotate</button>
+          <button className={`${chip} bg-white text-cocoa`} title="Rotate the item" onClick={() => onChange({ ...edit, rotation: ((edit.rotation + 90) % 360) as EditState['rotation'] })}>↻ Rotate</button>
           <button className={`${chip} ${edit.mode === 'remove' ? 'bg-red-400 text-white' : 'bg-white text-cocoa'}`} onClick={() => onChange({ ...edit, mode: edit.mode === 'remove' ? 'place' : 'remove' })}>
             🧺 Pick up
           </button>
-          <button className={`${chip} bg-peach text-cocoa`} onClick={onShop}>🛍 Shop</button>
-          <button className={`${chip} bg-white text-cocoa`} onClick={onExpand}>🌴 Expand</button>
+          <button className={`${chip} bg-peach text-cocoa`} title="Open the shop" onClick={onShop}>🛍 Shop</button>
+          <button className={`${chip} bg-white text-cocoa`} title="Make the build area bigger" onClick={onExpand}>🌴 Expand</button>
         </div>
         <button className={`${chip} bg-pink-400 text-white`} onClick={onDone}>Done ✓</button>
       </div>

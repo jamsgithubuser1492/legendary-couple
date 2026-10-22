@@ -28,7 +28,39 @@ import MomentOverlay from './ui/MomentOverlay';
 import CafePanel from './ui/CafePanel';
 import { EventsModal, GachaModal, LatteModal, OrdersModal } from './ui/CafeGames';
 import { startSync } from './lib/sync';
+import DesktopDock, { DOCK_ICON_W, DOCK_WIDE_W, ShortcutsCard } from './ui/DesktopDock';
+import TodayPanel, { TodayContent, type TodayAct } from './ui/TodayPanel';
+import { startBrowserIntegration, useDesktop, useWide, useXWide } from './lib/browser';
+import { useShortcuts, type ShortcutId } from './lib/shortcuts';
 import type { Quest, StartingPath } from './types';
+
+const TODAY_KEY = 'olw:today';
+
+/** The cozy loading card, shown until the world has finished loading so nothing flashes. It matches the splash in index.html. */
+function BootSplash() {
+  const [gone, setGone] = useState(false);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    const started = Date.now();
+    // the island scene attaches its listeners when it is ready to play
+    const id = setInterval(() => {
+      if (gameBus.listenerCount(BUS.center) > 0 || Date.now() - started > 25000) {
+        clearInterval(id);
+        setFading(true);
+        setTimeout(() => setGone(true), 450);
+      }
+    }, 120);
+    return () => clearInterval(id);
+  }, []);
+  if (gone) return null;
+  return (
+    <div className={`olw-splash absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 text-center transition-opacity duration-500 ${fading ? 'pointer-events-none opacity-0' : ''}`}>
+      <div className="text-6xl">🏝️</div>
+      <div className="font-display text-xl font-bold text-cocoa">Waking up your little world</div>
+      <div className="h-1.5 w-40 overflow-hidden rounded-full bg-blush"><div className="olw-splash-bar h-full w-1/3 rounded-full bg-pink-400" /></div>
+    </div>
+  );
+}
 
 function SynergyBannerWrap() {
   return (
@@ -67,6 +99,18 @@ export default function App() {
   const [cafePanel, setCafePanel] = useState(false);
   const [cafeGame, setCafeGame] = useState<'latte' | 'gacha' | 'events' | 'orders' | null>(null);
   const mgActive = useMinigameActive();
+  const desktop = useDesktop();
+  const wide = useWide();
+  const xwide = useXWide();
+  const [todayOpen, setTodayOpen] = useState(() => {
+    try {
+      return localStorage.getItem(TODAY_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const [todayPop, setTodayPop] = useState(false);
+  const [help, setHelp] = useState(false);
   useGrowthPreview(); // re-render when the growth preview changes
   const [shopOpen, setShopOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -75,6 +119,7 @@ export default function App() {
 
   useEffect(() => {
     startSync();
+    const stopBrowser = startBrowserIntegration();
     const attachTimer = setInterval(() => gameBus.emit(BUS.mgAttach), 4000);
     gameBus.emit(BUS.mgAttach);
     gameBus.on(BUS.hover, setHover);
@@ -94,6 +139,7 @@ export default function App() {
     const donePreset = () => setEdit((e) => ({ ...e, presetId: null }));
     gameBus.on(BUS.presetPlaced, donePreset);
     return () => {
+      stopBrowser();
       clearInterval(attachTimer);
       gameBus.off(BUS.hover, setHover);
       gameBus.off(BUS.memoryOpen, setViewing);
@@ -168,6 +214,59 @@ export default function App() {
     gameBus.emit(BUS.view, v);
   };
 
+  // ---- desktop shell: dock, Today, shortcuts ----
+  const dockOn = desktop && !mgActive && !editing;
+  const leftPad = dockOn ? (wide ? DOCK_WIDE_W : DOCK_ICON_W) : 0;
+  const todayDocked = dockOn && xwide;
+  const setToday = (v: boolean) => {
+    setTodayOpen(v);
+    try {
+      localStorage.setItem(TODAY_KEY, v ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
+  const onToday = () => (xwide ? setToday(!todayOpen) : setTodayPop((v) => !v));
+  const todayAct = (a: TodayAct) => {
+    setTodayPop(false);
+    if (a === 'quests') setQuestsOpen(true);
+    else phoneAct(a);
+  };
+
+  const dialogOpen = () =>
+    modalOpen || reveal || phone || !!interact || !!document.querySelector('[role="dialog"][aria-modal="true"]');
+  useShortcuts((id: ShortcutId, e: KeyboardEvent) => {
+    if (id === 'escape') {
+      // our own popovers first; a dialog takes Escape itself; otherwise step back out of editing or the café
+      if (help || todayPop) {
+        e.preventDefault();
+        setHelp(false);
+        setTodayPop(false);
+        return;
+      }
+      if (mgActive || dialogOpen()) return;
+      if (editing) setEditing(false);
+      else if (view === 'cafe') changeView('island');
+      return;
+    }
+    if (mgActive || modalOpen) return;
+    if (id === 'help') {
+      if (help) setHelp(false);
+      else if (!dialogOpen()) setHelp(true);
+      return;
+    }
+    if (dialogOpen() || help) return;
+    e.preventDefault();
+    if (id === 'quests') setQuestsOpen(true);
+    else if (id === 'arcade') setArcade(true);
+    else if (id === 'journal') setJournal({ open: true });
+    else if (id === 'decorate') {
+      if (editing) setEditing(false);
+      else if (view !== 'town') startDecorating();
+    } else if (id === 'town') changeView(view === 'island' ? 'town' : 'island');
+    else if (id === 'cafe') changeView(view === 'cafe' ? 'island' : 'cafe');
+  }, true);
+
   // When a partner's saved game arrives with a starting path already chosen, do not ask again.
   useEffect(() => {
     if (path) setModalOpen(false);
@@ -181,6 +280,7 @@ export default function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-sky">
       <GameContainer />
+      <BootSplash />
       {!mgActive && <Hud
         hover={hover}
         onCenter={() => gameBus.emit(BUS.center)}
@@ -195,14 +295,28 @@ export default function App() {
         onView={changeView}
         onTownPanel={() => setTownPanel(true)}
         onSeeIsland={() => setSeeIsland(true)}
+        desktop={desktop}
+        dockOffset={leftPad}
       />}
+      {dockOn && <DesktopDock view={view} wide={wide} todayOpen={xwide ? todayOpen : todayPop} onToday={onToday} onAct={phoneAct} onQuests={() => setQuestsOpen(true)} onView={changeView} onUs={() => setUsOpen(true)} onHelp={() => setHelp(true)} />}
+      {todayDocked && <TodayPanel open={todayOpen} onToggle={() => setToday(!todayOpen)} onAct={todayAct} />}
+      {dockOn && !xwide && todayPop && (
+        <>
+          <div className="absolute inset-0 z-10" onClick={() => setTodayPop(false)} />
+          <div role="dialog" aria-label="Today" className="olw-body animate-drawer absolute top-[68px] z-20 max-h-[calc(100%-84px)] w-72 overflow-y-auto rounded-3xl bg-cream p-3 shadow-2xl" style={{ left: leftPad + 4 }}>
+            <h2 className="mb-2 font-display text-lg font-bold text-cocoa">☀️ Today</h2>
+            <TodayContent onAct={todayAct} />
+          </div>
+        </>
+      )}
+      {help && <ShortcutsCard onClose={() => setHelp(false)} />}
       {editing && <EditBar edit={edit} onChange={setEdit} onShop={() => setShopOpen(true)} onExpand={() => setExpandOpen(true)} onDone={() => setEditing(false)} />}
       {expandOpen && <ExpandModal space={view === 'cafe' ? 'cafe' : 'island'} onClose={() => setExpandOpen(false)} />}
       {cafeGame === 'latte' && <LatteModal onClose={() => setCafeGame(null)} />}
       {cafeGame === 'gacha' && <GachaModal onClose={() => setCafeGame(null)} />}
       {cafeGame === 'orders' && <OrdersModal onClose={() => setCafeGame(null)} />}
       {view === 'cafe' && !mgActive && !editing && (
-        <button className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full bg-cream/95 px-4 py-2 font-display text-sm font-bold text-cocoa shadow active:scale-95" onClick={() => setCafeGame('orders')}>
+        <button className="absolute bottom-20 z-10 -translate-x-1/2 cursor-pointer rounded-full bg-cream/95 px-4 py-2 font-display text-sm font-bold text-cocoa shadow transition hover:bg-cream active:scale-95" style={{ left: '50%' }} onClick={() => setCafeGame('orders')}>
           🧾 Orders ({state.cafe.orders.length}){state.cafe.orders.some((o) => !o.by) && <span className="ml-1 inline-block h-2.5 w-2.5 rounded-full bg-red-500" />}
         </button>
       )}
@@ -231,7 +345,7 @@ export default function App() {
       {!mgActive && <SynergyBannerWrap />}
       {rituals && <RitualsModal onClose={() => setRituals(false)} />}
       {week && <WeeklyModal tab={weekTab} onClose={() => setWeek(false)} />}
-      {phone && <PocketPhone view={view} onClose={() => setPhone(false)} onAct={phoneAct} />}
+      {phone && !dockOn && <PocketPhone view={view} onClose={() => setPhone(false)} onAct={phoneAct} />}
       {surprise && <SurpriseModal onClose={() => setSurprise(false)} />}
       <MomentOverlay />
       <BottleReader />

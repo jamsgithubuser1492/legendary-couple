@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { DPR } from './render';
 import { useSyncExternalStore } from 'react';
 import { getTheme, type Theme } from '../state/season';
 
@@ -170,7 +171,7 @@ export class SkyLife {
         this.buildOverlay();
       }
     }
-    this.zk = Phaser.Math.Clamp(0.9 / zoom, 1, 2);
+    this.zk = Phaser.Math.Clamp((0.9 * DPR) / zoom, 1, 2);
     this.root.setPosition(view.centerX, view.centerY).setScale(1 / zoom);
     this.spawn(dt, view);
     this.moveCritters(dt, view);
@@ -301,23 +302,23 @@ export class SkyLife {
     if (this.weather === 'snow') {
       const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `sk_flake_${n}`).filter(this.has);
       for (let i = 0; i < Math.round(38 * this.q) && keys.length; i++) {
-        const im = this.scene.add.image(0, 0, pick(keys)).setAlpha(R(0.55, 0.95)).setScale(R(0.35, 0.7));
+        const im = this.scene.add.image(0, 0, pick(keys)).setAlpha(R(0.55, 0.95)).setScale(R(0.35, 0.7) * DPR);
         this.root.add(im);
         this.overlay.push(im);
-        this.flakes.push({ im, x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), vy: R(24, 55), sw: R(8, 24), ph: R(0, 6) });
+        this.flakes.push({ im, x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), vy: R(24, 55) * DPR, sw: R(8, 24) * DPR, ph: R(0, 6) });
       }
       if (this.has('sk_snowtile_1')) {
-        this.snowTile = this.scene.add.tileSprite(0, 0, W + PAD * 2, H + PAD * 2, 'sk_snowtile_1').setAlpha(0.5).setTileScale(1.4);
+        this.snowTile = this.scene.add.tileSprite(0, 0, W + PAD * 2, H + PAD * 2, 'sk_snowtile_1').setAlpha(0.5).setTileScale(1.4 * DPR);
         this.root.add(this.snowTile);
         this.root.sendToBack(this.snowTile);
         this.overlay.push(this.snowTile);
       }
     } else if (this.weather === 'rain') {
-      for (let i = 0; i < Math.round(70 * this.q); i++) this.drops.push({ x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), len: R(10, 20), sp: R(380, 520) });
+      for (let i = 0; i < Math.round(70 * this.q); i++) this.drops.push({ x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), len: R(10, 20) * DPR, sp: R(380, 520) * DPR });
       for (let i = 0; i < 6; i++) {
         const k = `sk_ripple_${1 + (i % 3)}`;
         if (!this.has(k)) break;
-        const im = this.scene.add.image(R(-W / 2, W / 2), R(0, H / 2), k).setAlpha(0).setScale(0.8);
+        const im = this.scene.add.image(R(-W / 2, W / 2), R(0, H / 2), k).setAlpha(0).setScale(0.8 * DPR);
         this.root.add(im);
         this.overlay.push(im);
         this.ripples.push({ im, t: R(0, 1.2), life: 1.2 });
@@ -347,15 +348,15 @@ export class SkyLife {
       }
       if (this.snowTile) {
         this.snowTile.setSize(W + PAD * 2, H + PAD * 2);
-        this.snowTile.tilePositionY -= 30 * dt;
-        this.snowTile.tilePositionX += 8 * dt;
+        this.snowTile.tilePositionY -= 30 * DPR * dt;
+        this.snowTile.tilePositionX += 8 * DPR * dt;
       }
       g.fillStyle(0xe6f0ff, 0.06);
       g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
     } else if (this.weather === 'rain' && !this.calm) {
       g.fillStyle(0x7d9bc4, 0.1);
       g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
-      g.lineStyle(1.5, 0xcfe4ff, 0.55);
+      g.lineStyle(1.5 * DPR, 0xcfe4ff, 0.55);
       for (const d of this.drops) {
         d.y += d.sp * dt;
         d.x -= d.sp * 0.18 * dt;
@@ -372,7 +373,7 @@ export class SkyLife {
           r.im.setPosition(R(-W / 2, W / 2), R(-H * 0.05, H / 2));
         }
         const k = r.t / r.life;
-        r.im.setAlpha(Math.sin(Math.PI * k) * 0.8).setScale(0.6 + k * 0.7);
+        r.im.setAlpha(Math.sin(Math.PI * k) * 0.8).setScale((0.6 + k * 0.7) * DPR);
       }
     }
   }

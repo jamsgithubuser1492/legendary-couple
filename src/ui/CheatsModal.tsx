@@ -18,7 +18,7 @@ export default function CheatsModal({ onClose }: { onClose: () => void }) {
           {linked && <b> You are linked to a room, so this resets your partner's game too.</b>} Your names and room code are kept.
         </p>
         <p className="mt-2 text-xs text-cocoa/70">To unlock the button, type: <code className="font-bold">{PHRASE}</code></p>
-        <input className={`${fieldCls} mt-2`} value={text} onChange={(e) => setText(e.target.value)} placeholder={PHRASE} autoCapitalize="off" autoCorrect="off" />
+        <input className={`${fieldCls} mt-2`} value={text} aria-label="Type the phrase to unlock" onChange={(e) => setText(e.target.value)} placeholder={PHRASE} autoCapitalize="off" autoCorrect="off" />
         <button
           disabled={!ready}
           className="mt-3 w-full rounded-full bg-red-500 py-2 font-display font-bold text-white shadow active:scale-95 disabled:opacity-30"

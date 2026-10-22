@@ -4,6 +4,7 @@ import { otherPlayer, setNames, setMe, useGameState, useMe } from '../state/stor
 import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
 import { setWeatherChoice, useWeatherChoice } from '../game/skylife';
 import RemindersRow from './RemindersRow';
+import { CloseButton, useBackdropClose, useDialog } from './Sheet';
 
 const STATUS: Record<string, string> = {
   local: 'Offline mode (saved on this device)',
@@ -24,10 +25,17 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
   const [copied, setCopied] = useState(false);
   const link = inviteLink(otherPlayer(me));
   const field = 'w-full rounded-xl border-2 border-blush bg-white px-3 py-2 text-cocoa outline-none focus:border-pink-400';
+  const { panel, titleId } = useDialog(onClose);
+  const backdrop = useBackdropClose(onClose);
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-cocoa/30 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-3xl bg-cream p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-bold text-cocoa">Us 💕</h2>
+    <div className="olw-backdrop absolute inset-0 z-30 flex items-center justify-center bg-cocoa/30 p-4 backdrop-blur-sm" {...backdrop}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="olw-dialog max-h-[92vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-cream p-5 shadow-2xl outline-none lg:max-w-[920px] lg:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id={titleId} className="font-display text-xl font-bold text-cocoa lg:text-2xl">Us 💕</h2>
+          <CloseButton onClose={onClose} />
+        </div>
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8">
+        <div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {(['A', 'B'] as const).map((p) => (
             <input key={p} className={field} value={s.names[p]} onChange={(e) => setNames({ ...s.names, [p]: e.target.value })} aria-label={`Partner ${p} name`} />
@@ -44,7 +52,7 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
           <>
             <p className="text-xs text-cocoa/60">Create a code on one phone, then enter the same code on the other.</p>
             <div className="mt-1 flex gap-2">
-              <input className={field} value={code} maxLength={8} placeholder="e.g. K7M2QX" onChange={(e) => setCode(e.target.value.toUpperCase())} />
+              <input className={field} value={code} maxLength={8} placeholder="e.g. K7M2QX" aria-label="Room code" onChange={(e) => setCode(e.target.value.toUpperCase())} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); joinRoom(code); } }} />
               <button className="rounded-full bg-blush px-3 font-bold text-cocoa" onClick={() => setCode(generateRoomCode())}>New</button>
             </div>
             <button className="mt-2 w-full rounded-full bg-pink-400 py-2 font-display font-bold text-white" onClick={() => joinRoom(code)}>Connect</button>
@@ -75,11 +83,13 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
             Real time sync is not configured yet. Add your Supabase URL and key (see <code>.env.example</code>) to link both phones. Until then everything saves on this device.
           </p>
         )}
-        <p className="mt-4 text-sm font-bold text-cocoa">Season</p>
+        </div>
+        <div>
+        <p className="mt-4 text-sm font-bold text-cocoa lg:mt-3">Season</p>
         <p className="text-xs text-cocoa/60">Your island follows the calendar ({THEMES.find((t) => t.id === theme)?.label} now). Preview another on this device.</p>
         <div className="mt-1 flex flex-wrap gap-2">
           {(['auto', ...THEMES.map((t) => t.id)] as const).map((c) => (
-            <button key={c} onClick={() => setSeasonChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${choice === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
+            <button key={c} onClick={() => setSeasonChoice(c)} aria-pressed={choice === c} className={`cursor-pointer rounded-full px-3 py-1 text-sm font-bold transition hover:brightness-95 ${choice === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
               {c === 'auto' ? 'Auto' : `${THEMES.find((t) => t.id === c)!.icon} ${THEMES.find((t) => t.id === c)!.label}`}
             </button>
           ))}
@@ -88,7 +98,7 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
         <p className="text-xs text-cocoa/60">Rain and snow are only for looks. Auto follows the calendar. Preview another on this device.</p>
         <div className="mt-1 flex flex-wrap gap-2">
           {([['auto', 'Auto'], ['clear', '☀️ Clear'], ['rain', '🌧️ Rain'], ['snow', '❄️ Snow']] as const).map(([c, label]) => (
-            <button key={c} onClick={() => setWeatherChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${weather === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{label}</button>
+            <button key={c} onClick={() => setWeatherChoice(c)} aria-pressed={weather === c} className={`cursor-pointer rounded-full px-3 py-1 text-sm font-bold transition hover:brightness-95 ${weather === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{label}</button>
           ))}
         </div>
         <RemindersRow />
@@ -96,7 +106,9 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
         {status === 'error' && <p className="mt-1 break-words rounded-xl bg-white p-2 text-xs text-cocoa/70">Reason: {getSyncError() || 'could not reach the server'}</p>}
         {onChangePath && <button className="mt-3 w-full rounded-full bg-peach py-2 font-display font-bold text-cocoa" onClick={() => { onClose(); onChangePath(); }}>🗺️ Change starting path</button>}
         {onCheats && <button className="mt-3 w-full rounded-full bg-white py-2 font-display font-bold text-cocoa/70" onClick={() => { onClose(); onCheats(); }}>🧪 Cheats</button>}
-        <button className="mt-3 w-full rounded-full bg-blush py-2 font-display font-bold text-cocoa" onClick={onClose}>Done</button>
+        <button className="mt-3 w-full cursor-pointer rounded-full bg-blush py-2 font-display font-bold text-cocoa transition hover:brightness-95" onClick={onClose}>Done</button>
+        </div>
+        </div>
       </div>
     </div>
   );

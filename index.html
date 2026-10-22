@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#fff3e8" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="Our Little World is a cozy game for two. Real world kindness, goals and conversations grow an island, a town and a café you build together." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Our Little World" />
+    <meta property="og:title" content="Our Little World" />
+    <meta property="og:description" content="A cozy game for two. Real world kindness grows an island, a town and a café you build together." />
+    <meta property="og:image" content="icon-512.png" />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -16,13 +24,19 @@
   </head>
   <body>
     <div id="root">
-      <div id="boot" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#bfe6f2;color:#6b4f4f;font-family:system-ui,sans-serif;text-align:center;padding:24px">
+      <style>
+        @keyframes olw-load { 0% { transform: translateX(-120%); } 100% { transform: translateX(330%); } }
+        .olw-splash { background: linear-gradient(180deg, #fff3e8, #ffe3ea); font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif; }
+        .olw-splash-bar { animation: olw-load 1.3s ease-in-out infinite; }
+      </style>
+      <div id="boot" class="olw-splash" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#6b4f4f;text-align:center;padding:24px">
         <div style="font-size:56px">🏝️</div>
-        <div style="font-size:20px;font-weight:700">Loading Our Little World…</div>
+        <div style="font-size:20px;font-weight:700">Waking up your little world</div>
+        <div style="width:160px;height:6px;border-radius:999px;background:#ffd9e2;overflow:hidden"><div class="olw-splash-bar" style="width:34%;height:100%;border-radius:999px;background:#f472b6"></div></div>
         <div id="boot-error" style="max-width:420px;font-size:13px;color:#a03030"></div>
       </div>
     </div>
-    <noscript>Our Little World needs JavaScript turned on.</noscript>
+    <noscript><p style="font-family:system-ui,sans-serif;text-align:center;padding:32px;color:#6b4f4f">Our Little World needs JavaScript turned on to play.</p></noscript>
     <script>
       // If something goes wrong, say so on screen instead of leaving a blank page.
       window.addEventListener('error', function (e) {

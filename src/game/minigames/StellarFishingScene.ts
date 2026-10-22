@@ -60,6 +60,12 @@ export class StellarFishingScene extends MinigameScene {
   private lastBtn = '';
   private tutorial: Phaser.GameObjects.Container | null = null;
   private tutStep = 0;
+  private tutClose: (() => void) | null = null;
+  private tutNext: (() => void) | null = null; // Space or Enter moves the how to play card on
+  private aim = { x: 480, y: 380 }; // where the keyboard will cast
+  private aimShown = false;
+  private heldKeys = { A: false, B: false };
+  private arrows?: Record<'LEFT' | 'RIGHT' | 'UP' | 'DOWN', Phaser.Input.Keyboard.Key>;
   private started = false;
 
   private fresh(): Model {
@@ -82,6 +88,10 @@ export class StellarFishingScene extends MinigameScene {
     this.lastBtn = '';
     this.started = false;
     this.tutorial = null;
+    this.tutNext = null;
+    this.tutClose = null;
+    this.aimShown = false;
+    this.heldKeys = { A: false, B: false };
     const mk = (x: number, y: number, size: number, color = '#ffffff', ox = 0.5, oy = 0.5) =>
       this.add.text(x, y, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: `${size}px`, color, align: 'center', stroke: '#2b5878', strokeThickness: 4, wordWrap: { width: 700 } }).setOrigin(ox, oy).setDepth(10);
     this.t = {
@@ -108,6 +118,11 @@ export class StellarFishingScene extends MinigameScene {
       this.nextFish = 1.2;
       this.nextBottle = 30;
     } else this.showTutorial();
+    this.setupKeys();
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      this.aim = { x: Phaser.Math.Clamp(p.worldX, 20, W - 20), y: Phaser.Math.Clamp(p.worldY, SURFACE_Y + 4, 470) };
+      this.aimShown = false; // the mouse is aiming again
+    });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const me = this.role, m = this.m;
       if (this.tutorial || m.tension) return;
@@ -117,6 +132,54 @@ export class StellarFishingScene extends MinigameScene {
       }
       if (p.worldY > SURFACE_Y && p.worldY < 470 && p.worldX > 20 && p.worldX < W - 20) this.act(me, 'cast', { x: p.worldX, y: p.worldY });
     });
+  }
+
+  /** Esc closes the how to play card first, and only then asks about leaving. */
+  protected onEscape() {
+    if (this.tutorial) return this.tutClose?.();
+    super.onEscape();
+  }
+
+  // ---------- keyboard: arrows aim or pull, Space casts and taps ----------
+  private setupKeys() {
+    this.arrows = this.input.keyboard?.addKeys('LEFT,RIGHT,UP,DOWN') as typeof this.arrows;
+    const hold = (role: PlayerId, on: boolean) => {
+      if (!this.can(role) || this.heldKeys[role] === on) return;
+      if (on && !this.m.tension) return;
+      this.heldKeys[role] = on;
+      this.act(role, 'hold', on); // the same input as the on screen hold buttons
+    };
+    this.onKey('ArrowLeft', () => hold('A', true), () => hold('A', false));
+    this.onKey('ArrowRight', () => hold('B', true), () => hold('B', false));
+    this.onKey([' ', 'Enter'], () => {
+      const me = this.role, m = this.m;
+      if (this.tutorial) return this.tutNext?.();
+      if (m.tension) return;
+      if (m.ring) {
+        if (m.ring.taps[me] === undefined) this.act(me, 'tap', this.clock - m.ring.t0); // timed on my own screen
+        return;
+      }
+      this.aimShown = false;
+      this.act(me, 'cast', { x: this.aim.x, y: this.aim.y });
+    });
+  }
+
+  /** Moves the keyboard aim and draws its small ring on the water. */
+  private drawAim(dt: number) {
+    const m = this.m;
+    const a = this.arrows;
+    if (!a || this.tutorial || m.tension || m.ring) return;
+    const dx = (a.RIGHT.isDown ? 1 : 0) - (a.LEFT.isDown ? 1 : 0), dy = (a.DOWN.isDown ? 1 : 0) - (a.UP.isDown ? 1 : 0);
+    if (dx || dy) {
+      this.aimShown = true;
+      this.aim = { x: Phaser.Math.Clamp(this.aim.x + dx * 330 * dt, 20, W - 20), y: Phaser.Math.Clamp(this.aim.y + dy * 330 * dt, SURFACE_Y + 4, 470) };
+    }
+    if (!this.aimShown) return;
+    const c = this.clock, g = this.g;
+    g.lineStyle(3, 0xffffff, 0.9);
+    g.strokeCircle(this.aim.x, this.aim.y, 16 + Math.sin(c * 5) * 2);
+    g.lineStyle(2, 0xffe08a, 0.9);
+    g.strokeCircle(this.aim.x, this.aim.y, 5);
   }
 
   // ---------- tutorial ----------
@@ -170,6 +233,8 @@ export class StellarFishingScene extends MinigameScene {
     skip.on('pointerup', close);
     c.add([next.c, skip]);
     this.tutorial = c;
+    this.tutNext = () => (this.tutStep >= steps.length - 1 ? close() : (this.tutStep++, paint()));
+    this.tutClose = close;
     paint();
   }
 
@@ -327,6 +392,13 @@ export class StellarFishingScene extends MinigameScene {
     }
   }
 
+  /** The painted night pier, carried past its edges on wide or tall windows. */
+  private nightBackdrop(key: string) {
+    const im = this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80);
+    this.extendBackdrop(key, im.x - im.displayWidth / 2, NIGHT_Y, im.displayWidth, im.displayHeight, -81);
+    return im;
+  }
+
   /** A bobber or splash image kept per player, with the bite frame swapped in while something is on the line. */
   private bobberImg(id: string, kind: string, bite: boolean) {
     const key = kind === 'splash' ? 'sf_splash' : `sf_bobber_${kind}${bite ? '_bite' : ''}`;
@@ -341,7 +413,7 @@ export class StellarFishingScene extends MinigameScene {
   }
 
   // ---------- drawing ----------
-  protected draw() {
+  protected draw(dt = 1 / 60) {
     const m = this.m, c = this.clock, g = this.g, me = this.role;
     g.clear();
     // painted sky for the time of day, drawn once as an image behind the water
@@ -363,7 +435,7 @@ export class StellarFishingScene extends MinigameScene {
           this.add.rectangle(480, -1000, 9000, 2596, 0x2a2766).setDepth(-86);
           this.add.rectangle(480, 1798, 9000, 3000, 0x1b6f7e).setDepth(-86);
         }
-        this.bgImg = key === 'sf_bg_night' ? this.add.image(480, NIGHT_Y, key).setOrigin(0.5, 0).setDepth(-80) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
+        this.bgImg = key === 'sf_bg_night' ? this.nightBackdrop(key) : coverBox(this.add.image(480, PIER_TOP, key).setOrigin(0.5, 0).setDepth(-80), 960, H - PIER_TOP);
       }
     }
     if (!this.skyImg) {
@@ -461,6 +533,7 @@ export class StellarFishingScene extends MinigameScene {
       if (im.texture.key !== key) im.setTexture(key);
       im.setScale(im.getData('k') as number).setPosition(PIER_X[r], 240 + Math.sin(c * 1.6 + (r === 'A' ? 0 : 2)) * 1.5);
     }
+    this.drawAim(dt);
     // lines and bobbers
     for (const r of ['A', 'B'] as PlayerId[]) {
       const cs = m.casts[r];
@@ -532,6 +605,11 @@ export class StellarFishingScene extends MinigameScene {
     let hint = 'Tap the water next to a fish. Glowing fish need you both.';
     if (m.ring) hint = m.ring.taps[me] === undefined ? 'Tap together when the ring reaches the green' : 'Waiting for your partner to tap…';
     else if (m.tension) hint = 'Keep the marker in the green. One of you holds left, the other holds right';
+    if (this.desktop) {
+      if (m.ring) hint += m.ring.taps[me] === undefined ? '  (Space)' : '';
+      else if (m.tension) hint += '  (hold the left or right arrow key)';
+      else hint = 'Click the water by a fish, or aim with the arrows and press Space.';
+    }
     this.t.hint.setText(hint);
     g.fillStyle(0x2b5878, 0.55);
     g.fillRoundedRect(110, 446, 740, 44, 22);

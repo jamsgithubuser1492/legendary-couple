@@ -124,6 +124,18 @@ export class OrchardScene extends MinigameScene {
         }
       } else if (this.catcher() === me) this.bx = Phaser.Math.Clamp(p.worldX, 80, W - 80);
     });
+    // keyboard: Space shakes the glowing tree (1, 2, 3 pick a tree), the basket already follows A, D and the arrows
+    const shakeKey = (tree: number | null) => {
+      const me = this.role;
+      if (this.shaker() !== me) return;
+      const lit = this.m.lit;
+      const i = tree ?? (lit && !lit.used ? lit.tree : -1);
+      if (i < 0 || i > 2) return;
+      this.taps.push({ x: TX[i], y: 150, t: this.clock });
+      this.act(me, 'shake', i); // the same input as a tap on the tree
+    };
+    this.onKey(' ', () => shakeKey(null));
+    this.onKey(['1', '2', '3'], (e) => shakeKey(Number(e.key) - 1));
     this.buildArt();
   }
 
@@ -147,12 +159,13 @@ export class OrchardScene extends MinigameScene {
     // sky and hills, with a sunset tint that fades in during the golden shower
     this.far = this.add.image(W / 2, 0, 'or_bg_far').setOrigin(0.5, 0).setDepth(-90).setTint(SEASON_TINT[sk] ?? 0xffffff);
     this.far.setScale(W / this.far.width);
+    for (const e of this.extendBackdrop('or_bg_far', 0, 0, W, this.far.displayHeight, -91)) e.setTint(SEASON_TINT[sk] ?? 0xffffff); // wide and tall windows
     if (this.has('or_bg_dusk')) {
       this.dusk = this.add.image(W / 2, 0, 'or_bg_dusk').setOrigin(0.5, 0).setDepth(-89).setAlpha(0);
       this.dusk.setScale(W / this.dusk.width, (this.far.displayHeight) / this.dusk.height);
     }
-    if (this.has(`or_mid_${sk}`)) this.add.tileSprite(W / 2, GROUND - 78, W, 122, `or_mid_${sk}`).setOrigin(0.5, 1).setTileScale(2).setDepth(-50);
-    if (this.has(`or_ground_${sk}`)) this.add.tileSprite(W / 2, GROUND - 14, W, H - GROUND + 14, `or_ground_${sk}`).setOrigin(0.5, 0).setTileScale(2.3).setDepth(-40);
+    if (this.has(`or_mid_${sk}`)) this.add.tileSprite(W / 2, GROUND - 78, W * 5, 122, `or_mid_${sk}`).setOrigin(0.5, 1).setTileScale(2).setDepth(-50);
+    if (this.has(`or_ground_${sk}`)) this.add.tileSprite(W / 2, GROUND - 14, W * 5, H - GROUND + 14 + 2400, `or_ground_${sk}`).setOrigin(0.5, 0).setTileScale(2.3).setDepth(-40);
     // the orchard row
     TX.forEach((x, i) => {
       const key = i === 1 && this.has('or_tree_fruit') ? 'or_tree_fruit' : 'or_tree';
@@ -273,7 +286,7 @@ export class OrchardScene extends MinigameScene {
       const k = i / (bands - 1);
       const mix = (s: number) => Math.round(((g0 >> s) & 255) + (((g1 >> s) & 255) - ((g0 >> s) & 255)) * k);
       g.fillStyle((mix(16) << 16) | (mix(8) << 8) | mix(0), 1);
-      g.fillRect(0, top + ((H - top) / bands) * i, W, (H - top) / bands + 1);
+      g.fillRect(-2000, top + ((H - top) / bands) * i, W + 4000, (H - top) / bands + 1 + (i === bands - 1 ? 2400 : 0)); // past the window edges too
     }
     const showerOn = c < m.showerUntil;
     // golden shower: dusk light over the sky, a warm pulse, and a golden rain of frames
@@ -607,7 +620,7 @@ export class OrchardScene extends MinigameScene {
     }
     this.texts.score.setText(`🍎 ${m.score}`);
     this.texts.time.setText(`${Math.max(0, Math.ceil(this.duration - c))}s`);
-    const mine = sh === me ? 'You shake: tap the glowing tree' : ct === me ? 'You catch: slide or use A and D' : 'Swapping places…';
+    const mine = sh === me ? `You shake: tap the glowing tree${this.keyHint(' or press Space')}` : ct === me ? `You catch: slide${this.desktop ? ', or use A and D or the arrow keys' : ' or use A and D'}` : 'Swapping places…';
     this.texts.role.setText(mine);
     const showerOn = c < m.showerUntil;
     this.texts.banner.setText(m.flash ? m.flash.text : showerOn ? `🍓 Pastel Shower ${Math.ceil(m.showerUntil - c)}` : '');

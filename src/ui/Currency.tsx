@@ -3,7 +3,7 @@ const SRC = { coin: 'coin_one', gem: 'gem_blue', box: 'box_standard', token: 'mg
 
 /** Your painted coin, gem or blind box, sized to sit inside a line of text. */
 export function CurrencyIcon({ kind, size = 18 }: { kind: keyof typeof SRC; size?: number }) {
-  return <img src={`${base}assets/sprites/${SRC[kind]}.png`} alt={kind} style={{ height: size, width: size }} className="inline-block object-contain align-[-0.2em]" draggable={false} />;
+  return <img src={`${base}assets/sprites/${SRC[kind]}.png`} alt={kind} title={kind === 'coin' ? 'Coins' : kind === 'gem' ? 'Gems' : kind === 'box' ? 'Blind boxes' : 'Arcade tokens'} style={{ height: size, width: size }} className="inline-block object-contain align-[-0.2em]" decoding="async" draggable={false} />;
 }
 
 export const boxFor = (rarity: 'common' | 'rare' | 'epic' | 'legendary') =>

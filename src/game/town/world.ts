@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { DPR } from '../render';
 import { tileCenter } from '../iso';
 import { shade } from '../draw';
 import { LOTS, TOWN, regionOf, type RegionId } from '../../state/town';
@@ -168,11 +169,11 @@ export class Backdrop {
     const inv = 1 / cam.zoom;
     this.sky.setPosition(v.x, v.y).setDisplaySize(v.width, v.height);
     this.light.setPosition(v.x, v.y).setDisplaySize(v.width, v.height);
-    const sunSize = Math.max(v.height * 0.62, 220 * inv);
+    const sunSize = Math.max(v.height * 0.62, 220 * DPR * inv);
     this.sun.setPosition(v.x + v.width * 0.1, v.y + v.height * 0.36).setDisplaySize(sunSize, sunSize);
     for (const c of this.clouds) {
       c.fx = (c.fx + (c.speed * delta) / 1000) % 1.2;
-      c.img.setPosition(v.x + (c.fx - 0.1) * v.width, v.y + c.fy * v.height).setScale(inv * c.size * 1.3);
+      c.img.setPosition(v.x + (c.fx - 0.1) * v.width, v.y + c.fy * v.height).setScale(inv * DPR * c.size * 1.3);
     }
     void this.theme;
   }

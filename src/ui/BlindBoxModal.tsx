@@ -6,7 +6,7 @@ import type { BlindReward } from '../types';
 import ItemIcon, { SpriteImg } from './ItemIcon';
 import { BoxImg, boxFor, CurrencyIcon } from './Currency';
 import { getRoom, useSyncStatus } from '../lib/sync';
-import Sheet, { primaryBtn, softBtn } from './Sheet';
+import Sheet, { primaryBtn, softBtn, useBackdropClose, useDialog } from './Sheet';
 
 export function rewardName(r: BlindReward): string {
   if (r.kind === 'coins') return `${r.amount} coins`;
@@ -92,18 +92,20 @@ export default function BlindBoxModal({ onClose }: { onClose: () => void }) {
 
 export function RevealModal({ reward, openedBy, onClose }: { reward: BlindReward; openedBy: string; onClose: () => void }) {
   const r = RARITY[reward.rarity];
+  const { panel, titleId } = useDialog(onClose);
+  const backdrop = useBackdropClose(onClose);
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-cocoa/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-xs rounded-3xl bg-cream p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="olw-backdrop absolute inset-0 z-40 flex items-center justify-center bg-cocoa/50 p-4 backdrop-blur-sm" {...backdrop}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="olw-dialog w-full max-w-xs rounded-3xl bg-cream p-6 text-center shadow-2xl outline-none sm:max-w-sm">
         <p className="font-display text-sm font-bold text-cocoa/60">Opened together 💕</p>
         <BoxImg sprite={boxFor(reward.rarity)} size={72} className="mt-1 opacity-90" />
         <div className={`animate-pop mx-auto mt-2 flex h-36 w-36 items-center justify-center rounded-3xl ${r.color}`}>
           <RewardArt r={reward} size={96} />
         </div>
         <span className={`mt-3 inline-block rounded-full px-3 py-0.5 text-xs font-bold text-cocoa ${r.color}`}>{r.label}</span>
-        <h3 className="mt-2 font-display text-2xl font-bold text-cocoa">{rewardName(reward)}</h3>
+        <h3 id={titleId} className="mt-2 font-display text-2xl font-bold text-cocoa">{rewardName(reward)}</h3>
         <p className="text-xs text-cocoa/60">{reward.kind === 'item' ? 'Added to your bag' : reward.kind === 'outfit' ? 'Added to your wardrobe' : 'Added to your wallet'}</p>
-        <button className={`${primaryBtn} mt-4 w-full`} onClick={onClose}>Yay!</button>
+        <button className={`${primaryBtn} mt-4 w-full`} data-autofocus onClick={onClose}>Yay!</button>
         <p className="mt-2 text-[10px] text-cocoa/40">{openedBy}</p>
       </div>
     </div>

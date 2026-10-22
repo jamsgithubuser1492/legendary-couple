@@ -2,9 +2,11 @@ import Phaser from 'phaser';
 import type { PlayerId } from '../../types';
 import type { MGResult } from '../../state/minigames';
 import type { MinigameNet } from './net';
+import { DPR } from '../render';
 
 export const W = 960;
 export const H = 540;
+const MAX_FIT = 1.6;
 export const FONT = '"Baloo 2", system-ui, sans-serif';
 export const BOT_NAME = 'Mochi';
 
@@ -41,6 +43,12 @@ export abstract class MinigameScene extends Phaser.Scene {
   private helloTimer?: ReturnType<typeof setInterval>;
   private waitText?: Phaser.GameObjects.Text;
   private offNet?: () => void;
+  private escAt = 0;
+  private paused = false; // a solo game waits while the window is in the background
+  private pausedText?: Phaser.GameObjects.Text;
+  private escText?: Phaser.GameObjects.Text;
+  /** A mouse and keyboard machine (not a phone): key hints are shown only here. */
+  protected desktop = (() => { try { return window.matchMedia('(pointer: fine)').matches; } catch { return false; } })();
 
   init(data: MGInit) {
     this.cfg = data;
@@ -60,6 +68,7 @@ export abstract class MinigameScene extends Phaser.Scene {
     this.g = this.add.graphics().setDepth(1);
     this.waitText = this.add.text(W / 2, H / 2, '', { fontFamily: FONT, fontSize: '28px', color: '#6b4f4f', align: 'center' }).setOrigin(0.5).setDepth(50);
     this.build();
+    this.input.keyboard?.on('keydown-ESC', () => this.onEscape());
     const net = this.cfg.net;
     if (net) {
       this.offNet = net.on((m) => this.onNet(m));
@@ -71,17 +80,97 @@ export abstract class MinigameScene extends Phaser.Scene {
         }, 500);
       }
     }
+    // a solo game (just you and Mochi) waits when you switch to another window, so nothing is ever missed. With a
+    // partner it keeps running, because their game cannot wait for yours.
+    const away = () => {
+      if (!this.solo || this.finished || this.paused) return;
+      this.paused = true;
+      this.pausedText?.destroy();
+      this.pausedText = this.add.text(W / 2, H / 2, 'Paused. Come back when you are ready.', { fontFamily: FONT, fontSize: '26px', color: '#6b4f4f', backgroundColor: '#fff8eef0', padding: { x: 18, y: 10 } }).setOrigin(0.5).setDepth(95);
+    };
+    const back = () => {
+      if (!this.paused) return;
+      this.paused = false;
+      this.pausedText?.destroy();
+      this.pausedText = undefined;
+    };
+    window.addEventListener('blur', away);
+    window.addEventListener('focus', back);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('blur', away);
+      window.removeEventListener('focus', back);
       this.scale.off('resize', this.fit, this);
       this.offNet?.();
       clearInterval(this.helloTimer);
     });
   }
 
+  /** Esc asks once, and leaves on a second press: a stray key never throws your game away. */
+  protected onEscape() {
+    if (this.finished) return;
+    const now = this.time.now;
+    if (now - this.escAt < 2200) return this.quit();
+    this.escAt = now;
+    this.escText?.destroy();
+    this.escText = this.add.text(W / 2, 62, 'Press Esc again to leave', { fontFamily: FONT, fontSize: '18px', color: '#6b4f4f', backgroundColor: '#fff8eec8', padding: { x: 12, y: 5 } }).setOrigin(0.5).setDepth(90);
+    this.time.delayedCall(2200, () => this.escText?.destroy());
+  }
+
+  /**
+   * Runs fn when one of these keys goes down (a held key does not repeat). Ignored when a text box has focus or the game
+   * is over. Keys are event.key values such as ' ', 'Enter', '1' or 'ArrowLeft'.
+   */
+  protected onKey(keys: string | string[], fn: (e: KeyboardEvent) => void, up?: (e: KeyboardEvent) => void) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    const typing = () => { const a = document.activeElement as HTMLElement | null; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable); };
+    const kd = (e: KeyboardEvent) => {
+      if (this.finished || e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing() || !list.includes(e.key)) return;
+      e.preventDefault();
+      fn(e);
+    };
+    this.input.keyboard?.on('keydown', kd);
+    const ku = (e: KeyboardEvent) => { if (!this.finished && up && list.includes(e.key)) up(e); };
+    if (up) this.input.keyboard?.on('keyup', ku);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.input.keyboard?.off('keydown', kd); this.input.keyboard?.off('keyup', ku); });
+  }
+
+  /** A key hint for the hint bar, only on a mouse and keyboard machine. */
+  protected keyHint(text: string): string {
+    return this.desktop ? text : '';
+  }
+
   private fit() {
     const cam = this.cameras.main;
-    cam.setZoom(Math.min(cam.width / W, cam.height / H));
+    // fills the window, but never grows past 1.6 times (css pixels), so art stays crisp and the layout stays calm
+    cam.setZoom(Math.min(cam.width / W, cam.height / H, MAX_FIT * DPR));
     cam.centerOn(W / 2, H / 2);
+  }
+
+  /**
+   * Carries a painted backdrop past its edges on wide or tall windows by stretching its outermost row and column of
+   * pixels, so there is never a flat band or a seam. (x, y, w, h) is where the picture is drawn, in game units.
+   */
+  protected extendBackdrop(key: string, x: number, y: number, w: number, h: number, depth: number): Phaser.GameObjects.Image[] {
+    const tex = this.textures.get(key);
+    const src = tex.getSourceImage() as { width: number; height: number };
+    const tw = src.width, th = src.height, BIG = 4000;
+    const frame = (n: string, fx: number, fy: number, fw: number, fh: number) => {
+      const name = `edge_${n}`;
+      if (!tex.has(name)) tex.add(name, 0, fx, fy, fw, fh);
+      return name;
+    };
+    const put = (n: string, fx: number, fy: number, fw: number, fh: number, ix: number, iy: number, ox: number, oy: number, dw: number, dh: number) =>
+      this.add.image(ix, iy, key, frame(n, fx, fy, fw, fh)).setOrigin(ox, oy).setDisplaySize(dw, dh).setDepth(depth);
+    return [
+      put('l', 0, 0, 1, th, x, y, 1, 0, BIG, h),
+      put('r', tw - 1, 0, 1, th, x + w, y, 0, 0, BIG, h),
+      put('t', 0, 0, tw, 1, x, y, 0, 1, w, BIG),
+      put('b', 0, th - 1, tw, 1, x, y + h, 0, 0, w, BIG),
+      put('tl', 0, 0, 1, 1, x, y, 1, 1, BIG, BIG),
+      put('tr', tw - 1, 0, 1, 1, x + w, y, 0, 1, BIG, BIG),
+      put('bl', 0, th - 1, 1, 1, x, y + h, 1, 0, BIG, BIG),
+      put('br', tw - 1, th - 1, 1, 1, x + w, y + h, 0, 0, BIG, BIG),
+    ];
   }
 
   // ---------- networking ----------
@@ -138,7 +227,7 @@ export abstract class MinigameScene extends Phaser.Scene {
 
   // ---------- life cycle ----------
   update(_t: number, delta: number) {
-    if (this.finished) return;
+    if (this.finished || this.paused) return;
     const dt = Math.min(delta, 100) / 1000;
     if (!this.partnerHere) {
       this.waitText?.setText(`Waiting for your partner…\nThey get an invite on their phone.`);

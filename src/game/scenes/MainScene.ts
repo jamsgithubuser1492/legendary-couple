@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { DPR } from '../render';
+import { DesktopInput } from '../desktopInput';
 import {
   GRID_SIZE, TILE_H, TILE_W_HALF,
   cartesianToIso, isoToCartesian, tileCenter, inBounds, findPath,
@@ -28,9 +30,9 @@ import { getTheme, onThemeChange } from '../../state/season';
 import { SkyLife } from '../skylife';
 import type { CompanionId, GameState, PlacedObject, PlayerId } from '../../types';
 
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 2.5;
-const DRAG_THRESHOLD = 8;
+const MIN_ZOOM = 0.5 * DPR;
+const MAX_ZOOM = 2.5 * DPR;
+const DRAG_THRESHOLD = 8 * DPR;
 
 export class MainScene extends Phaser.Scene {
   private highlight!: Phaser.GameObjects.Graphics;
@@ -53,6 +55,7 @@ export class MainScene extends Phaser.Scene {
   private fx!: QuadrantFx;
   private bottleObjs = new Map<string, Phaser.GameObjects.Container>();
   private roamTimer?: Phaser.Time.TimerEvent;
+  private desk!: DesktopInput;
   private keys?: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private stateOverride?: GameState; // lets a ghost preview see its own walls
 
@@ -98,9 +101,7 @@ export class MainScene extends Phaser.Scene {
     this.input.on('pointerdown', this.onPointerDown, this);
     this.input.on('pointermove', this.onPointerMove, this);
     this.input.on('pointerup', this.onPointerUp, this);
-    this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
-      this.zoomBy(dy > 0 ? -0.1 : 0.1);
-    });
+    this.desk = new DesktopInput(this, { minZoom: MIN_ZOOM, maxZoom: MAX_ZOOM, reset: () => this.centerCamera(), label: (p) => this.labelAt(p) });
 
     const onPath = (p: PathPayload) => this.setStartingPath(p);
     const onCenter = () => this.scene.isActive() && this.centerCamera();
@@ -178,8 +179,8 @@ export class MainScene extends Phaser.Scene {
     const me = getMe();
     const av = this.avatars[me];
     if (av.moving || focusActive(me)) return;
-    const up = k.W.isDown || k.UP.isDown, down = k.S.isDown || k.DOWN.isDown;
-    const left = k.A.isDown || k.LEFT.isDown, right = k.D.isDown || k.RIGHT.isDown;
+    const up = k.W.isDown, down = k.S.isDown; // the arrow keys pan the camera instead
+    const left = k.A.isDown, right = k.D.isDown;
     const tx = Math.sign((right ? 1 : 0) - (left ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
     const ty = Math.sign((left ? 1 : 0) - (right ? 1 : 0) - (up ? 1 : 0) + (down ? 1 : 0));
     if (!tx && !ty) return;
@@ -574,6 +575,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p)) return;
     const cam = this.cameras.main;
     this.dragStart = { x: p.x, y: p.y, camX: cam.scrollX, camY: cam.scrollY };
     this.dragging = false;
@@ -581,6 +583,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private onPointerMove(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p) || (!p.wasTouch && (p.middleButtonDown() || p.rightButtonDown()))) return;
     const cam = this.cameras.main;
     const p1 = this.input.pointer1, p2 = this.input.pointer2;
     if (p1.isDown && p2.isDown) {
@@ -603,6 +606,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private onPointerUp(p: Phaser.Input.Pointer): void {
+    if (this.desk.isPanPointer(p)) return;
     this.pinchDist = 0;
     const wasDrag = this.dragging;
     this.dragging = false;
@@ -658,16 +662,31 @@ export class MainScene extends Phaser.Scene {
     if (p.wasTouch) this.setHover(null);
   }
 
+  /** What a click here would do, for the hover label. */
+  private labelAt(p: Phaser.Input.Pointer): string | null {
+    const t = this.pointerTile(p);
+    if (!t || this.edit.active) return null;
+    if (t.x === TREE.x && t.y === TREE.y) return 'Gratitude Tree';
+    const cafeDoor = (this.hasStarter && getState().startingPath === 'shop' && t.x === PLOT.x && t.y === PLOT.y) || this.objectAt(t.x, t.y)?.itemId === 'lm_cafe';
+    if (cafeDoor) return 'Our café (step inside)';
+    if (t.x === LANTERN.x && t.y === LANTERN.y) return 'Synergy Lantern';
+    if (t.x === POST.x && t.y === POST.y) return 'Postbox';
+    const memory = getState().memories.find((m) => m.tileX === t.x && m.tileY === t.y);
+    return memory ? `Memory: ${memory.title}` : null;
+  }
+
   private zoomBy(delta: number): void {
     const cam = this.cameras.main;
-    cam.setZoom(Phaser.Math.Clamp(cam.zoom + delta, MIN_ZOOM, MAX_ZOOM));
+    cam.setZoom(Phaser.Math.Clamp(cam.zoom + delta * DPR, MIN_ZOOM, MAX_ZOOM));
+    this.desk?.sync();
   }
 
   private centerCamera(): void {
     const cam = this.cameras.main;
     const c = tileCenter(GRID_SIZE / 2 - 0.5, GRID_SIZE / 2 - 0.5);
     const fit = Math.min(cam.width / (GRID_SIZE * TILE_W_HALF * 2.6), cam.height / (GRID_SIZE * TILE_H * 1.9));
-    cam.setZoom(Phaser.Math.Clamp(fit, MIN_ZOOM, 1.4));
+    cam.setZoom(Phaser.Math.Clamp(fit, MIN_ZOOM, 1.4 * DPR));
     cam.centerOn(c.x, c.y);
+    this.desk?.sync();
   }
 }

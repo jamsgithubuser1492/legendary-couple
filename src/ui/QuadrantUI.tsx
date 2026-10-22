@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { SpriteImg } from './ItemIcon';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import PhotoPicker from './PhotoPicker';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 import { Amount, CurrencyIcon } from './Currency';
-import { shrinkImage } from './imageUtil';
 import { ArtImg } from './ItemIcon';
 import { BUS, gameBus } from '../game/events';
 import {
@@ -200,10 +200,9 @@ function Letters({ onClose }: { onClose: () => void }) {
       {credits > 0 ? (
         <div className="rounded-2xl bg-white p-3 shadow">
           <div className="mb-1 font-display font-bold">💌 You have {credits} bottle{credits > 1 ? 's' : ''} to seal</div>
-          <textarea className={fieldCls} rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="A secret message…" />
+          <textarea className={fieldCls} rows={3} aria-label="A secret message" data-autofocus value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onEnter(() => { if (sealBottle(me, text, photo)) { setText(''); setPhoto(undefined); onClose(); } }, !!text.trim())} placeholder="A secret message…" />
+          <div className="mt-2"><PhotoPicker value={photo} onChange={setPhoto} label="📷 Photo" /></div>
           <div className="mt-2 flex items-center gap-2">
-            <label className={`${softBtn} cursor-pointer text-sm`}>📷 Photo<input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setPhoto(await shrinkImage(f)); }} /></label>
-            {photo && <img src={photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
             <button className={`${primaryBtn} ml-auto`} disabled={!text.trim()} onClick={() => { if (sealBottle(me, text, photo)) { setText(''); setPhoto(undefined); onClose(); } }}>Seal & send to the shore</button>
           </div>
         </div>

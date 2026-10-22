@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { DPR } from '../render';
+import { DesktopInput } from '../desktopInput';
 import { TILE_W_HALF, TILE_H, cartesianToIso, findPath, inBounds, isoToCartesian, tileCenter } from '../iso';
 import { BUS, gameBus, type EditPayload } from '../events';
 import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
@@ -11,9 +13,9 @@ import { Avatar } from '../Avatar';
 import { artImage, displayWidth, spawnPlaced } from '../placedRender';
 import type { PlacedObject, PlayerId } from '../../types';
 
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 2.5;
-const DRAG_THRESHOLD = 8;
+const MIN_ZOOM = 0.3 * DPR;
+const MAX_ZOOM = 2.5 * DPR;
+const DRAG_THRESHOLD = 8 * DPR;
 const PATRONS = ['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist', 'girl', 'boy', 'oldman', 'jogger', 'dogwalker', 'musician', 'painter', 'postal', 'surfer', 'tourist', 'granny', 'mail', 'cam', 'coffee', 'capy', 'drone', 'crane'];
 
 /** Guests drawn with full walk cycles (down, and the back view when there is one) and, for some, a seated pose per chair facing. */
@@ -81,6 +83,7 @@ export class CafeScene extends Phaser.Scene {
   private dragStart?: { x: number; y: number; camX: number; camY: number };
   private dragging = false;
   private pinchDist = 0;
+  private desk!: DesktopInput;
   private patrons: Patron[] = [];
   private nextPatron = 0;
   private staffObjs = new Map<string, Patron>();
@@ -109,7 +112,7 @@ export class CafeScene extends Phaser.Scene {
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
-    this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? -0.1 : 0.1));
+    this.desk = new DesktopInput(this, { minZoom: MIN_ZOOM, maxZoom: MAX_ZOOM, reset: () => this.fitCamera(), label: (p) => this.labelAt(p) });
 
     const onEdit = (e: EditPayload) => {
       const starting = e.active && !this.edit.active;
@@ -780,6 +783,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private onDown(p: Phaser.Input.Pointer) {
+    if (this.desk.isPanPointer(p)) return;
     const cam = this.cameras.main;
     this.dragStart = { x: p.x, y: p.y, camX: cam.scrollX, camY: cam.scrollY };
     this.dragging = false;
@@ -787,6 +791,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private onMove(p: Phaser.Input.Pointer) {
+    if (this.desk.isPanPointer(p) || (!p.wasTouch && (p.middleButtonDown() || p.rightButtonDown()))) return;
     const cam = this.cameras.main;
     const p1 = this.input.pointer1, p2 = this.input.pointer2;
     if (p1.isDown && p2.isDown) {
@@ -807,6 +812,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer) {
+    if (this.desk.isPanPointer(p)) return;
     this.pinchDist = 0;
     const wasDrag = this.dragging;
     this.dragging = false;
@@ -835,6 +841,20 @@ export class CafeScene extends Phaser.Scene {
     if (it?.effect === 'pet') return this.say('🐾 A cozy pet corner makes guests happy and adds to your tips.');
     if (it?.effect === 'whisk') return this.say('🍵 Whisk station: stocks the pantry once a day.');
     this.walkTo(t);
+  }
+
+  /** What a click here would do, for the hover label. */
+  private labelAt(p: Phaser.Input.Pointer): string | null {
+    if (this.edit.active) return null;
+    const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    if (this.patrons.some((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4)) return 'Guest (see orders)';
+    const t = this.pointerTile(p) ?? this.doorTap(p);
+    if (!t) return null;
+    if (t.y === 0 && t.x === DOOR_X) return 'Front door (back outside)';
+    const hit = getState().cafe.placed.find((o) => tilesOf(o.itemId, o.tileX, o.tileY, o.rotation).some((q) => q.x === t.x && q.y === t.y));
+    const e = hit && itemOf(hit.itemId)?.effect;
+    const names: Record<string, string> = { bench: 'Window bench (sit together)', pastry: 'Pastry case', espresso: 'Espresso station (latte art)', luckycat: 'Lucky Cat', sign: 'Chalkboard', board: 'Community Board', register: 'Register (collect tips)', wifi: 'Wi-Fi router', pet: 'Pet corner', whisk: 'Whisk station' };
+    return e ? names[e] ?? null : null;
   }
 
   /** The door sits in the wall row, so a tap on it is not on a floor tile. */
@@ -900,7 +920,8 @@ export class CafeScene extends Phaser.Scene {
   // ---------------------------------------------------------------- camera
   private zoomBy(d: number) {
     const cam = this.cameras.main;
-    cam.setZoom(Phaser.Math.Clamp(cam.zoom + d, MIN_ZOOM, MAX_ZOOM));
+    cam.setZoom(Phaser.Math.Clamp(cam.zoom + d * DPR, MIN_ZOOM, MAX_ZOOM));
+    this.desk?.sync();
   }
 
   private fitCamera() {
@@ -908,7 +929,8 @@ export class CafeScene extends Phaser.Scene {
     const n = this.size();
     const c = tileCenter(n / 2, n / 2);
     const fit = Math.min(cam.width / (n * TILE_W_HALF * 2.4), cam.height / (n * TILE_H * 1.7 + 120));
-    cam.setZoom(Phaser.Math.Clamp(fit, MIN_ZOOM, 1.5));
+    cam.setZoom(Phaser.Math.Clamp(fit, MIN_ZOOM, 1.5 * DPR));
     cam.centerOn(c.x, c.y - 20);
+    this.desk?.sync();
   }
 }

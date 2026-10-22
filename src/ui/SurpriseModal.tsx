@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { completeSurprise, otherPlayer, sendSurprise, useGameState, useMe } from '../state/store';
 import { SURPRISE_COST, SURPRISE_DELAY_MS, SURPRISE_IDEAS, SURPRISE_PAY } from '../state/weekly';
 import { Amount } from './Currency';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 
 /** The postbox: send your partner a secret act of kindness, or finish the one waiting for you. */
 export default function SurpriseModal({ onClose }: { onClose: () => void }) {
@@ -17,6 +17,11 @@ export default function SurpriseModal({ onClose }: { onClose: () => void }) {
   const done = s.surprises.filter((x) => x.doneAt).slice(-3).reverse();
   const waitMin = (ts: number) => Math.max(0, Math.ceil((SURPRISE_DELAY_MS - (Date.now() - ts)) / 60000));
 
+  const send = () => {
+    const why = sendSurprise(me, act, note);
+    setMsg(why ?? `Sent! ${partner} will find a secret surprise in their world.`);
+    if (!why) { setAct(''); setNote(''); }
+  };
   return (
     <Sheet title="The Postbox 💌" onClose={onClose}>
       {mine.map((x) => (
@@ -45,16 +50,12 @@ export default function SurpriseModal({ onClose }: { onClose: () => void }) {
             <button key={i} className={`${softBtn} !px-3 !py-1 text-xs`} onClick={() => setAct(i)}>{i}</button>
           ))}
         </div>
-        <input className={`${fieldCls} mt-2`} placeholder="Or write your own small act" maxLength={120} value={act} onChange={(e) => setAct(e.target.value)} />
-        <input className={`${fieldCls} mt-2`} placeholder="A sealed note for the reveal (optional)" maxLength={160} value={note} onChange={(e) => setNote(e.target.value)} />
+        <input className={`${fieldCls} mt-2`} placeholder="Or write your own small act" aria-label="A small act" data-autofocus maxLength={120} value={act} onChange={(e) => setAct(e.target.value)} onKeyDown={onEnter(send, !!act.trim())} />
+        <input className={`${fieldCls} mt-2`} placeholder="A sealed note for the reveal (optional)" maxLength={160} aria-label="A sealed note" value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onEnter(send, !!act.trim())} />
         <button
           className={`${primaryBtn} mt-3 w-full`}
           disabled={!act.trim()}
-          onClick={() => {
-            const why = sendSurprise(me, act, note);
-            setMsg(why ?? `Sent! ${partner} will find a secret surprise in their world.`);
-            if (!why) { setAct(''); setNote(''); }
-          }}
+          onClick={send}
         >
           Send the surprise 💌
         </button>

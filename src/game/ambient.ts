@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { DPR } from './render';
 import { GRID_SIZE, TILE_W_HALF, tileCenter } from './iso';
 import { drawIsland, islandOutline } from './island';
 import { cartesianToIso } from './iso';
@@ -142,7 +143,7 @@ export class Ambient {
   private place(p: Particle, anywhere: boolean) {
     const v = this.scene.cameras.main.worldView;
     p.img.x = v.x + Math.random() * v.width;
-    p.img.y = anywhere ? v.y + Math.random() * v.height : v.y - 12 / this.scene.cameras.main.zoom;
+    p.img.y = anywhere ? v.y + Math.random() * v.height : v.y - (12 * DPR) / this.scene.cameras.main.zoom;
     p.phase = Math.random() * Math.PI * 2;
   }
 
@@ -181,14 +182,14 @@ export class Ambient {
     const dt = delta / 1000;
     const kind = KIND[this.theme];
     for (const p of this.particles) {
-      p.img.setScale((p.size * 0.9) / cam.zoom);
+      p.img.setScale((p.size * 0.9 * DPR) / cam.zoom);
       if (kind === 'spark') {
         p.img.setAlpha(0.35 + 0.65 * Math.abs(Math.sin(time / 700 + p.phase)));
         p.img.rotation += dt * 0.6;
         continue;
       }
-      p.img.x += (p.vx + Math.sin(time / 900 + p.phase) * 14) * dt / cam.zoom;
-      p.img.y += p.vy * dt / cam.zoom;
+      p.img.x += (p.vx + Math.sin(time / 900 + p.phase) * 14) * DPR * dt / cam.zoom;
+      p.img.y += p.vy * DPR * dt / cam.zoom;
       if (kind !== 'snow') p.img.rotation += dt * (1 + p.size);
       if (p.img.y > v.bottom + 10 || p.img.x < v.x - 40 || p.img.x > v.right + 40) this.place(p, false);
     }

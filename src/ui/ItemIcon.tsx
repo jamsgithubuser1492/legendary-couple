@@ -19,14 +19,15 @@ export default function ItemIcon({ id, size = 40 }: { id: string; size?: number 
 }
 
 /** Any sprite texture by key, for outfits and other art that is not a catalog item. */
-export function SpriteImg({ sprite, size = 40 }: { sprite: string; size?: number }) {
+export function SpriteImg({ sprite, size = 40, className = '' }: { sprite: string; size?: number; className?: string }) {
   return (
     <img
       src={`${import.meta.env.BASE_URL}assets/sprites/${sprite}.png`}
       alt=""
       style={{ height: size, maxWidth: size * 1.6 }}
-      className="mx-auto object-contain"
+      className={`mx-auto object-contain ${className}`}
       draggable={false}
+      decoding="async"
     />
   );
 }

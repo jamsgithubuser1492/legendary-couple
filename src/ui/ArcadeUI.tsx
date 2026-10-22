@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Amount } from './Currency';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 import { SpriteImg } from './ItemIcon';
 import { CurrencyIcon } from './Currency';
 import { BUS, gameBus } from '../game/events';
@@ -222,7 +222,7 @@ export function MinigameOverlays() {
       {bottle && (
         <Sheet title="🍾 A message in a bottle" onClose={() => setBottle(false)}>
           <p className="mb-2 text-sm text-cocoa">Write a secret note. It is sealed in your Beach Memory Journal for your partner to find later.</p>
-          <textarea className={fieldCls} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Something sweet…" />
+          <textarea className={fieldCls} rows={3} aria-label="Your note" data-autofocus value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onEnter(() => { addBottleNote(getMe(), note.trim()); setNote(''); setBottle(false); }, !!note.trim())} placeholder="Something sweet…" />
           <div className="mt-3 flex gap-2">
             <button className={primaryBtn} disabled={!note.trim()} onClick={() => { addBottleNote(getMe(), note.trim()); setNote(''); setBottle(false); }}>Seal it</button>
             <button className={softBtn} onClick={() => setBottle(false)}>Skip</button>

@@ -17,3 +17,11 @@ canvas { display: block; }
 @keyframes confetti { 0% { transform: translateY(-12vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(108vh) rotate(620deg); opacity: 0.85; } }
 @keyframes drawer { 0% { transform: translateY(14px) scale(0.97); opacity: 0; } 100% { transform: none; opacity: 1; } }
 .animate-drawer { animation: drawer 0.18s ease-out both; }
+
+/* ---- desktop shell ---- */
+.olw-splash { background: linear-gradient(180deg, #fff3e8, #ffe3ea); }
+@keyframes olw-load { 0% { transform: translateX(-120%); } 100% { transform: translateX(330%); } }
+.olw-splash-bar { animation: olw-load 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .olw-splash-bar { animation: none; transform: translateX(100%); } }
+kbd { font-family: inherit; }
+

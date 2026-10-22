@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getPrefs, getPushStatus, sendTest, subscribe, unsubscribe, updateQuietHours, type PushStatus } from '../lib/push';
+import { getPrefs, getPushStatus, isIOS, sendTest, subscribe, unsubscribe, updateQuietHours, type PushStatus } from '../lib/push';
 
 const NOTE: Record<PushStatus, string> = {
-  unsupported: 'This browser cannot send reminders. Try Chrome on Android, or the installed app on iPhone.',
+  unsupported: 'This browser cannot send reminders. A recent Chrome, Edge, Firefox or Safari on a computer works, and so does the installed app on iPhone.',
   'needs-install': 'On iPhone, tap Share, then Add to Home Screen, and open the game from there. Then you can turn reminders on.',
   'no-key': 'Reminders are not set up for this copy of the game yet.',
   'no-room': 'Connect your shared room above first, so your partner can reach this phone.',
@@ -39,6 +39,7 @@ export default function RemindersRow() {
     <div data-testid="reminders">
       <p className="mt-3 text-sm font-bold text-cocoa">Reminders 🔔</p>
       <p className="text-xs text-cocoa/60">{status ? NOTE[status] : 'Checking…'}</p>
+      {status === 'off' && !isIOS() && <p className="mt-1 text-xs text-cocoa/60">On a computer, Chrome, Edge, Firefox and Safari can send reminders without installing anything. They arrive while the browser is running, even when this tab is in the background.</p>}
       {status === 'off' && (
         <button disabled={busy} onClick={() => void run(subscribe)} className="mt-1 rounded-full bg-pink-400 px-4 py-1.5 text-sm font-bold text-white disabled:opacity-50">Enable reminders</button>
       )}

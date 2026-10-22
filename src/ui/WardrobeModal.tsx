@@ -14,7 +14,7 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
   const wearing = outfitOf(s.wardrobe.equipped[cid]);
 
   return (
-    <Sheet title="Wardrobe 👗" onClose={onClose} wide>
+    <Sheet title="Wardrobe 👗" onClose={onClose} size="lg">
       <div className="flex items-center justify-between text-sm font-bold text-cocoa">
         <span className="inline-flex items-center gap-2"><Amount kind="coin" n={s.coins} /><Amount kind="gem" n={s.gems} /></span>
       </div>
@@ -24,21 +24,23 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
           <div key={p} className="mt-1 flex items-center gap-2 text-sm text-cocoa">
             <span className="w-20 font-bold">{s.names[p]}</span>
             {([['cream', '🧢 Cream cap'], ['dark', '🖤 Dark cap & beanie']] as const).map(([id, label]) => (
-              <button key={id} onClick={() => setLook(p, id)} className={`rounded-full px-3 py-1 font-display font-bold ${s.looks[p] === id ? 'bg-pink-400 text-white' : 'bg-blush'}`}>{label}</button>
+              <button key={id} onClick={() => setLook(p, id)} aria-pressed={s.looks[p] === id} className={`cursor-pointer rounded-full px-3 py-1 font-display font-bold transition hover:brightness-95 ${s.looks[p] === id ? 'bg-pink-400 text-white' : 'bg-blush'}`}>{label}</button>
             ))}
           </div>
         ))}
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="lg:mt-3 lg:grid lg:grid-cols-[250px_1fr] lg:gap-5">
+        <div className="lg:sticky lg:top-0 lg:self-start">
+      <div className="mt-3 flex flex-wrap gap-2 lg:flex-col" role="group" aria-label="Companions">
         {COMPANIONS.map((c) => (
-          <button key={c.id} onClick={() => setCid(c.id)} className={`rounded-full px-4 py-1.5 font-display font-bold ${cid === c.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
+          <button key={c.id} onClick={() => setCid(c.id)} aria-pressed={cid === c.id} className={`cursor-pointer rounded-full px-4 py-1.5 text-left font-display font-bold transition hover:brightness-95 lg:rounded-2xl ${cid === c.id ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>
             {c.icon} {c.name}
           </button>
         ))}
       </div>
 
-      <div className="mt-3 flex items-center gap-4 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3">
-        <div className="flex h-28 w-24 items-end justify-center">{wearing && <SpriteImg sprite={wearing.sprite} size={104} />}</div>
+      <div className="mt-3 flex items-center gap-4 rounded-2xl bg-gradient-to-r from-pink-100 to-amber-100 p-3 lg:flex-col lg:text-center">
+        <div className="flex h-28 w-24 items-end justify-center lg:h-44 lg:w-40">{wearing && <SpriteImg sprite={wearing.sprite} size={104} className="lg:origin-bottom lg:scale-125" />}</div>
         <div className="flex-1">
           <div className="font-display text-lg font-bold text-cocoa">{comp.name}</div>
           <div className="text-sm text-cocoa/70">Wearing {wearing?.name}</div>
@@ -48,7 +50,8 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:mt-0 xl:grid-cols-4">
         {outfitsFor(cid).map((o) => {
           const owned = s.wardrobe.owned.includes(o.id);
           const equipped = s.wardrobe.equipped[cid] === o.id;
@@ -58,17 +61,18 @@ export default function WardrobeModal({ onClose }: { onClose: () => void }) {
               <div className="flex h-24 items-end justify-center"><SpriteImg sprite={o.sprite} size={88} /></div>
               <div className="mt-1 font-display font-bold text-cocoa">{o.name}</div>
               {owned ? (
-                <button disabled={equipped} onClick={() => wearOutfit(o.id)} className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:bg-green-300">
+                <button disabled={equipped} onClick={() => wearOutfit(o.id)} className="mt-2 cursor-pointer rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow transition hover:bg-pink-500 active:scale-95 disabled:cursor-default disabled:bg-green-300">
                   {equipped ? 'Wearing ✓' : 'Wear'}
                 </button>
               ) : (
-                <button disabled={!afford} onClick={() => buyOutfit(o.id)} className="mt-2 rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow active:scale-95 disabled:opacity-40">
+                <button disabled={!afford} onClick={() => buyOutfit(o.id)} className="mt-2 cursor-pointer rounded-full bg-pink-400 px-3 py-1.5 font-display text-sm font-bold text-white shadow transition hover:bg-pink-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
                   <Price coins={o.price.coins} gems={o.price.gems} />
                 </button>
               )}
             </div>
           );
         })}
+      </div>
       </div>
       <p className="mt-3 text-xs text-cocoa/60">
         Outfits for the two of you need new character sprites. They are on the art wish list, and this wardrobe is ready for them.

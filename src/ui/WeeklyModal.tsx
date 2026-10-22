@@ -4,7 +4,8 @@ import { dateKey, streakRun } from '../state/questions';
 import { GOAL_PRESETS, hasActivity, isSunday, LADDER, lanternTier, lastWeekKey, mondayOf, nextRung, nextWeekKey, progressOf, RECAP_REWARD, recapOf, rungPrize, WEEKLY_REWARD, type Recap } from '../state/weekly';
 import { Amount } from './Currency';
 import { SpriteImg } from './ItemIcon';
-import Sheet, { fieldCls, primaryBtn, softBtn } from './Sheet';
+import { useWide } from './useMedia';
+import Sheet, { fieldCls, primaryBtn, softBtn, onEnter } from './Sheet';
 
 const DUO = ['cp_d_sunset', 'cp_d_beach', 'cp_d_adventure', 'cp_d_picnic', 'cp_d_hands', 'cp_d_dance', 'cp_d_road'];
 export type Tab = 'goal' | 'streak' | 'recap';
@@ -46,7 +47,7 @@ function Goal() {
             <button key={p.title} className={`${softBtn} !px-3 !py-1 text-sm`} onClick={() => { setTitle(p.title); setTarget(p.target); }}>{p.title} <span className="text-[10px] opacity-60">{p.area}</span></button>
           ))}
         </div>
-        <input className={`${fieldCls} mt-3`} placeholder="Or write your own" value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} />
+        <input className={`${fieldCls} mt-3`} placeholder="Or write your own" aria-label="Your own weekly goal" value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} onKeyDown={onEnter(() => setWeeklyGoal(me, title, target, next), !!title.trim())} />
         <div className="mt-3 flex items-center gap-3 text-cocoa">
           <span className="text-sm font-bold">Times this week</span>
           <button className={`${softBtn} !px-3 !py-1`} onClick={() => setTarget((t) => Math.max(1, t - 1))} aria-label="Fewer">−</button>
@@ -194,11 +195,32 @@ function Recap() {
 
 export default function WeeklyModal({ onClose, tab: first = 'goal' }: { onClose: () => void; tab?: Tab }) {
   const [tab, setTab] = useState<Tab>(first);
+  const wide = useWide();
+  if (wide) {
+    // a wide window shows the week as a whole: the goal and the streak on the left, the recap on the right
+    const h = 'mb-2 font-display text-lg font-bold text-cocoa';
+    return (
+      <Sheet title="Our Week 📅" onClose={onClose} size="xl">
+        <div className="grid grid-cols-2 gap-8">
+          <section aria-label="Our weekly goal">
+            <h3 className={h}>Our goal</h3>
+            <Goal />
+            <h3 className={`${h} mt-6`}>Streak ladder</h3>
+            <Streak />
+          </section>
+          <section aria-label="Weekly recap">
+            <h3 className={h}>Recap</h3>
+            <Recap />
+          </section>
+        </div>
+      </Sheet>
+    );
+  }
   return (
     <Sheet title="Our Week 📅" onClose={onClose}>
-      <div className="mb-3 flex gap-2">
+      <div className="mb-3 flex gap-2" role="tablist">
         {TABS.map((t) => (
-          <button key={t.id} className={`${tab === t.id ? primaryBtn : softBtn} !px-4 !py-1 text-sm`} onClick={() => setTab(t.id)}>{t.label}</button>
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={`${tab === t.id ? primaryBtn : softBtn} !px-4 !py-1 text-sm`} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
       {tab === 'goal' && <Goal />}
