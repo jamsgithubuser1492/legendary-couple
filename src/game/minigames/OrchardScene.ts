@@ -164,8 +164,20 @@ export class OrchardScene extends MinigameScene {
       this.dusk = this.add.image(W / 2, 0, 'or_bg_dusk').setOrigin(0.5, 0).setDepth(-89).setAlpha(0);
       this.dusk.setScale(W / this.dusk.width, (this.far.displayHeight) / this.dusk.height);
     }
-    if (this.has(`or_mid_${sk}`)) this.add.tileSprite(W / 2, GROUND - 78, W * 5, 122, `or_mid_${sk}`).setOrigin(0.5, 1).setTileScale(2).setDepth(-50);
-    if (this.has(`or_ground_${sk}`)) this.add.tileSprite(W / 2, GROUND - 14, W * 5, H - GROUND + 14 + 2400, `or_ground_${sk}`).setOrigin(0.5, 0).setTileScale(2.3).setDepth(-40);
+    if (this.has(`or_mid_${sk}`)) {
+      // the strip has a pale margin at both ends: tile only the middle so no seam shows between repeats
+      const tex = this.textures.get(`or_mid_${sk}`), mw = (tex.getSourceImage() as { width: number }).width, mh = (tex.getSourceImage() as { height: number }).height;
+      if (!tex.has('trim')) tex.add('trim', 0, 4, 0, Math.max(8, mw - 8), mh);
+      this.add.tileSprite(W / 2, GROUND - 78, W * 5, 122, `or_mid_${sk}`, 'trim').setOrigin(0.5, 1).setTileScale(2).setDepth(-50);
+    }
+    if (this.has(`or_ground_${sk}`)) {
+      this.add.tileSprite(W / 2, GROUND - 14, W * 5, H - GROUND + 14, `or_ground_${sk}`).setOrigin(0.5, 0).setTileScale(2.3).setDepth(-40);
+      // below the strip (tall windows) carry on with the strip's own bottom colour instead of repeating it
+      const gt = this.textures.get(`or_ground_${sk}`), gw = (gt.getSourceImage() as { width: number }).width, gh = (gt.getSourceImage() as { height: number }).height;
+      let r = 0, gg = 0, bb = 0;
+      for (let i = 0; i < 8; i++) { const c = this.textures.getPixel(Math.floor((gw / 8) * i + 3), gh - 2, `or_ground_${sk}`); if (c) { r += c.red; gg += c.green; bb += c.blue; } }
+      this.add.rectangle(W / 2, H, W * 5, 3000, Phaser.Display.Color.GetColor(r / 8, gg / 8, bb / 8)).setOrigin(0.5, 0).setDepth(-41);
+    }
     // the orchard row
     TX.forEach((x, i) => {
       const key = i === 1 && this.has('or_tree_fruit') ? 'or_tree_fruit' : 'or_tree';
@@ -286,7 +298,7 @@ export class OrchardScene extends MinigameScene {
       const k = i / (bands - 1);
       const mix = (s: number) => Math.round(((g0 >> s) & 255) + (((g1 >> s) & 255) - ((g0 >> s) & 255)) * k);
       g.fillStyle((mix(16) << 16) | (mix(8) << 8) | mix(0), 1);
-      g.fillRect(-2000, top + ((H - top) / bands) * i, W + 4000, (H - top) / bands + 1 + (i === bands - 1 ? 2400 : 0)); // past the window edges too
+      g.fillRect(-2000, top + ((H - top) / bands) * i, W + 4000, (H - top) / bands + 1); // past the window sides too
     }
     const showerOn = c < m.showerUntil;
     // golden shower: dusk light over the sky, a warm pulse, and a golden rain of frames

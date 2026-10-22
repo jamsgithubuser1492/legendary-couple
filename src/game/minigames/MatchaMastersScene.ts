@@ -764,7 +764,7 @@ export class MatchaMastersScene extends MinigameScene {
     this.lastPerfect = m.perfect;
     this.t.mult.setText(art ? '' : `Café Rush ×${m.mult.toFixed(2)}`);
     this.t.time.setText(`${Math.max(0, Math.ceil(this.duration - c))}s`);
-    this.t.aTitle.setText(`🧑 ${this.name(this.sous)}: Sous Chef${this.desktop && this.can(this.sous) ? ' (keys 1 to 7)' : ''}`);
+    this.t.aTitle.setText(`🧑 ${this.name(this.sous)}: Sous Chef`);
     this.t.bTitle.setText(`👩 ${this.name(this.bar)}: Barista`);
     const ft = m.flash?.text ?? '';
     this.t.banner.setText(ft);

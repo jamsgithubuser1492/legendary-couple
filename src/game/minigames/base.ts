@@ -147,8 +147,9 @@ export abstract class MinigameScene extends Phaser.Scene {
   }
 
   /**
-   * Carries a painted backdrop past its edges on wide or tall windows by stretching its outermost row and column of
-   * pixels, so there is never a flat band or a seam. (x, y, w, h) is where the picture is drawn, in game units.
+   * Carries a painted backdrop past its edges on wide or tall windows: a mirrored copy on each side (so the scenery
+   * flows on instead of stretching), and the outermost row and column of pixels stretched beyond that and above and
+   * below. (x, y, w, h) is where the picture is drawn, in game units.
    */
   protected extendBackdrop(key: string, x: number, y: number, w: number, h: number, depth: number): Phaser.GameObjects.Image[] {
     const tex = this.textures.get(key);
@@ -159,18 +160,23 @@ export abstract class MinigameScene extends Phaser.Scene {
       if (!tex.has(name)) tex.add(name, 0, fx, fy, fw, fh);
       return name;
     };
-    const put = (n: string, fx: number, fy: number, fw: number, fh: number, ix: number, iy: number, ox: number, oy: number, dw: number, dh: number) =>
-      this.add.image(ix, iy, key, frame(n, fx, fy, fw, fh)).setOrigin(ox, oy).setDisplaySize(dw, dh).setDepth(depth);
-    return [
-      put('l', 0, 0, 1, th, x, y, 1, 0, BIG, h),
-      put('r', tw - 1, 0, 1, th, x + w, y, 0, 0, BIG, h),
-      put('t', 0, 0, tw, 1, x, y, 0, 1, w, BIG),
-      put('b', 0, th - 1, tw, 1, x, y + h, 0, 0, w, BIG),
-      put('tl', 0, 0, 1, 1, x, y, 1, 1, BIG, BIG),
-      put('tr', tw - 1, 0, 1, 1, x + w, y, 0, 1, BIG, BIG),
-      put('bl', 0, th - 1, 1, 1, x, y + h, 1, 0, BIG, BIG),
-      put('br', tw - 1, th - 1, 1, 1, x + w, y + h, 0, 0, BIG, BIG),
-    ];
+    const put = (n: string, fx: number, fy: number, fw: number, fh: number, ix: number, iy: number, ox: number, oy: number, dw: number, dh: number, flip = false) =>
+      this.add.image(ix, iy, key, frame(n, fx, fy, fw, fh)).setOrigin(ox, oy).setDisplaySize(dw, dh).setFlipX(flip).setDepth(depth);
+    const out: Phaser.GameObjects.Image[] = [];
+    for (const k of [-1, 1]) out.push(put('all', 0, 0, tw, th, x + k * w, y, 0, 0, w, h, true)); // mirrored neighbours
+    for (const k of [-1, 0, 1]) {
+      const flip = k !== 0;
+      out.push(put('t', 0, 0, tw, 1, x + k * w, y, 0, 1, w, BIG, flip), put('b', 0, th - 1, tw, 1, x + k * w, y + h, 0, 0, w, BIG, flip));
+    }
+    out.push(
+      put('r', tw - 1, 0, 1, th, x - w, y, 1, 0, BIG, h), // beyond the mirrored copies: the mirror's outer edge, stretched
+      put('l', 0, 0, 1, th, x + 2 * w, y, 0, 0, BIG, h),
+      put('tr', tw - 1, 0, 1, 1, x - w, y, 1, 1, BIG, BIG),
+      put('tl', 0, 0, 1, 1, x + 2 * w, y, 0, 1, BIG, BIG),
+      put('br', tw - 1, th - 1, 1, 1, x - w, y + h, 1, 0, BIG, BIG),
+      put('bl', 0, th - 1, 1, 1, x + 2 * w, y + h, 0, 0, BIG, BIG),
+    );
+    return out;
   }
 
   // ---------- networking ----------
