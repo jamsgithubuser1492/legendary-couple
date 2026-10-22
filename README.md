@@ -340,4 +340,5 @@ Cut from sheets 41 to 44 in `art/source/` by `tools/slice_sheets41_45.py` (210 s
 - Stellar Fishing now always uses the full painted night pier. Matcha Masters has a new painted counter backdrop (tools/slice_matcha_bg.py), with the game panels kept on top and made see through so the scene shows.
 - Matcha Masters interface is painted: stretchy panel frames, order tickets on a rail, wooden prep slots and tray tiles, pressed and off button states, a painted steam meter with a whisk marker, heart patience, a tip jar that fills, ribbons for results (tools/slice_matcha_ui.py).
 - Edge case pass: weather and sky life respect reduced motion and low end phones, café guests stand up gracefully when a chair or table changes under them, minigames survive missing art, damaged snapshots, rapid taps and relaunches, and the result sheet shows coins actually paid under the daily limit.
+- Build 42: sync merges instead of overwriting (counters add up, quests and furniture merge per item, saves are conditional and retry), with tests that simulate two phones. Push reminders and a service worker (offline reopen). Setup steps are in docs/PUSH.md.
 
