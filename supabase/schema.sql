@@ -104,3 +104,25 @@ drop policy if exists "open question_bank" on question_bank;
 drop policy if exists "open daily_question_responses" on daily_question_responses;
 create policy "open question_bank" on question_bank for all using (true) with check (true);
 create policy "open daily_question_responses" on daily_question_responses for all using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Push reminders (see docs/PUSH.md). One row per phone that turned reminders on.
+-- An endpoint is a private capability URL: it cannot send anything without the VAPID private key kept in the
+-- Edge Function secrets. The open policy matches the other tables for now; the security build will tighten it.
+-- ---------------------------------------------------------------------------
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  room_code text not null,
+  player text not null check (player in ('A', 'B')),
+  p256dh text not null,
+  auth text not null,
+  tz_offset_min int not null default 0,          -- what the phone reports: minutes behind UTC
+  quiet_start int not null default 1320,         -- minutes after midnight (22:00)
+  quiet_end int not null default 480,            -- minutes after midnight (08:00)
+  last_sent jsonb not null default '{}'::jsonb,  -- when each kind of reminder last went out
+  updated_at timestamptz not null default now()
+);
+create index if not exists push_subscriptions_room on public.push_subscriptions (room_code, player);
+alter table public.push_subscriptions enable row level security;
+drop policy if exists "push access" on public.push_subscriptions;
+create policy "push access" on public.push_subscriptions for all using (true) with check (true);

@@ -3,6 +3,7 @@ import { generateRoomCode, getRoom, getSyncError, inviteLink, joinRoom, syncAvai
 import { otherPlayer, setNames, setMe, useGameState, useMe } from '../state/store';
 import { setSeasonChoice, THEMES, useSeasonChoice, useTheme } from '../state/season';
 import { setWeatherChoice, useWeatherChoice } from '../game/skylife';
+import RemindersRow from './RemindersRow';
 
 const STATUS: Record<string, string> = {
   local: 'Offline mode (saved on this device)',
@@ -90,6 +91,7 @@ export default function PairingModal({ onClose, onChangePath, onCheats }: { onCl
             <button key={c} onClick={() => setWeatherChoice(c)} className={`rounded-full px-3 py-1 text-sm font-bold ${weather === c ? 'bg-pink-400 text-white' : 'bg-blush text-cocoa'}`}>{label}</button>
           ))}
         </div>
+        <RemindersRow />
         <p className="mt-3 text-xs text-cocoa/60">Status: {STATUS[status]}</p>
         {status === 'error' && <p className="mt-1 break-words rounded-xl bg-white p-2 text-xs text-cocoa/70">Reason: {getSyncError() || 'could not reach the server'}</p>}
         {onChangePath && <button className="mt-3 w-full rounded-full bg-peach py-2 font-display font-bold text-cocoa" onClick={() => { onClose(); onChangePath(); }}>🗺️ Change starting path</button>}

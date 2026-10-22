@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
+import { SyncEngine, type Adapter, type SyncStatus } from './syncCore';
 import { applyRemote, getState, onStateChange, setMe } from '../state/store';
-import type { PlayerId } from '../types';
+import type { GameState, PlayerId } from '../types';
 
-export type SyncStatus = 'local' | 'connecting' | 'synced' | 'pending' | 'error';
+export type { SyncStatus };
 
 const ROOM_KEY = 'olw:room';
 let status: SyncStatus = 'local';
@@ -16,9 +16,6 @@ let room: string | null = (() => {
   }
 })();
 const listeners = new Set<() => void>();
-let channel: RealtimeChannel | null = null;
-let timer: ReturnType<typeof setTimeout> | undefined;
-let dirty = false;
 let started = false;
 
 let lastError = '';
@@ -81,61 +78,85 @@ export function joinRoom(code: string) {
   } catch {
     /* ignore */
   }
-  void connect();
+  startEngine();
 }
 
-async function push() {
+const reason = (e: { message: string; code?: string } | null) => (e ? `${e.message}${e.code ? ` (${e.code})` : ''}` : '');
+
+/** The Supabase side of the engine: one row per room, written only if nobody wrote since we last looked. */
+function supabaseAdapter(): Adapter | null {
   const sb = getSupabase();
-  if (!sb || !room) return;
-  if (!navigator.onLine) {
-    dirty = true;
-    setStatus('pending');
-    return;
-  }
-  const { error } = await sb
-    .from('game_state')
-    .upsert({ room_code: room, state: getState(), updated_at: new Date().toISOString() });
-  if (error) {
-    dirty = true;
-    lastError = `${error.message}${error.code ? ` (${error.code})` : ''}`;
-    setStatus('error');
-  } else {
-    lastError = '';
-    dirty = false;
-    setStatus('synced');
-  }
+  if (!sb) return null;
+  return {
+    async select(room) {
+      const { data, error } = await sb.from('game_state').select('state, updated_at').eq('room_code', room).maybeSingle();
+      if (error) throw new Error(reason(error));
+      return data ? { state: data.state as GameState, stamp: data.updated_at as string } : null;
+    },
+    async conditionalUpdate(room, state, baseStamp) {
+      const { data, error } = await sb
+        .from('game_state')
+        .update({ state, updated_at: new Date().toISOString() })
+        .eq('room_code', room)
+        .eq('updated_at', baseStamp)
+        .select('updated_at');
+      if (error) throw new Error(reason(error));
+      return data && data.length ? (data[0].updated_at as string) : null;
+    },
+    async insert(room, state) {
+      const { data, error } = await sb.from('game_state').insert({ room_code: room, state, updated_at: new Date().toISOString() }).select('updated_at');
+      if (error) {
+        if (error.code === '23505') return null; // the other phone created the room first
+        throw new Error(reason(error));
+      }
+      return data && data.length ? (data[0].updated_at as string) : null;
+    },
+    subscribe(room, onRow, onReady) {
+      const ch = sb
+        .channel(`room:${room}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_state', filter: `room_code=eq.${room}` }, (payload) => {
+          const n = payload.new as { state?: GameState; updated_at?: string } | undefined;
+          if (n) onRow({ stamp: n.updated_at, state: n.state && Object.keys(n.state).length ? n.state : undefined });
+        })
+        .subscribe((st) => st === 'SUBSCRIBED' && onReady());
+      return () => void sb.removeChannel(ch);
+    },
+  };
 }
 
-async function connect() {
-  const sb = getSupabase();
-  if (channel) {
-    await sb?.removeChannel(channel);
-    channel = null;
-  }
-  if (!sb || !room) {
+let engine: SyncEngine | null = null;
+
+function makeEngine(): SyncEngine | null {
+  const adapter = supabaseAdapter();
+  if (!adapter) return null;
+  return new SyncEngine({
+    adapter,
+    getState,
+    applyRemote,
+    storage: { get: (k) => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v) },
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (t) => clearTimeout(t as ReturnType<typeof setTimeout>),
+    random: Math.random,
+    online: () => navigator.onLine,
+    onStatus: (s, err) => {
+      lastError = err;
+      setStatus(s);
+    },
+  });
+}
+
+function startEngine() {
+  engine?.stop();
+  if (!room) {
     setStatus('local');
     return;
   }
-  setStatus('connecting');
-  const code = room;
-  const { data, error } = await sb.from('game_state').select('state').eq('room_code', code).maybeSingle();
-  if (error) {
-    lastError = `${error.message}${error.code ? ` (${error.code})` : ''}`;
-    setStatus('error');
+  engine ??= makeEngine();
+  if (!engine) {
+    setStatus('local');
     return;
   }
-  if (data?.state && Object.keys(data.state).length) applyRemote(data.state);
-  else await push();
-
-  channel = sb
-    .channel(`room:${code}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'game_state', filter: `room_code=eq.${code}` }, (payload) => {
-      const next = (payload.new as { state?: unknown })?.state;
-      if (next && JSON.stringify(next) !== JSON.stringify(getState())) applyRemote(next as never);
-    })
-    .subscribe((s) => {
-      if (s === 'SUBSCRIBED') setStatus(dirty ? 'pending' : 'synced');
-    });
+  void engine.start(room);
 }
 
 /** Call once at startup. Safe to call with no Supabase config (stays in local mode). */
@@ -144,12 +165,11 @@ export function startSync() {
   started = true;
   applyInvite();
   onStateChange((_s, local) => {
-    if (!local || !room || !getSupabase()) return;
-    dirty = true;
-    setStatus('pending');
-    clearTimeout(timer);
-    timer = setTimeout(push, 400);
+    if (local && room) engine?.changed();
   });
-  window.addEventListener('online', () => dirty && void push()); // offline queue: flush on reconnect
-  void connect();
+  window.addEventListener('online', () => void engine?.resync()); // offline queue: flush on reconnect
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void engine?.resync(); // catch up on what a sleeping tab missed
+  });
+  startEngine();
 }
