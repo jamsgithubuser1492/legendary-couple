@@ -16,8 +16,9 @@ function ensureStyle() {
   const s = document.createElement('style');
   s.id = STYLE_ID;
   s.textContent = `
-:where(button, a, input, textarea, select, summary, [role="button"], [tabindex]):focus-visible { outline: 3px solid #f472b6; outline-offset: 2px; }
-:where(input, textarea, select):focus-visible { outline-offset: 0; }
+:where(button, a, input, textarea, select, summary, [role="button"], [tabindex]:not([tabindex="-1"])):where(:focus-visible) { outline: 3px solid #f472b6; outline-offset: 2px; }
+:where(input, textarea, select):where(:focus-visible) { outline-offset: 0; }
+[role="dialog"]:focus { outline: none; }
 .olw-backdrop { animation: olw-fade 0.16s ease-out both; }
 .olw-dialog { animation: olw-up 0.2s ease-out both; }
 @keyframes olw-fade { from { opacity: 0; } to { opacity: 1; } }
