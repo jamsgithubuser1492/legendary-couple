@@ -6,6 +6,8 @@ import { BUS, gameBus, type EditPayload } from '../events';
 import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
 import { dateKey } from '../../state/questions';
 import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, styleOf, themeOf } from '../../state/cafe';
+import { outfitOf } from '../../state/wardrobe';
+import { eligibleVips, nextVisitIn, vipKeys, vipKind, vipVariant, VIP_NAMES, type VipId, type VipKeys } from '../vipArt';
 import { cozyBand, currentShift, hiredCrew, rosterActive, type CrewDef } from '../../state/crew';
 import { oopsSequence, OOPS_PROPS, OOPS_SEQUENCES, pickWorkScene, restEmote, still, walkLoop, wobbleLoop, workScene, type View } from '../crewArt';
 import { canPlace, tilesOf } from '../../state/placement';
@@ -33,7 +35,11 @@ const WALKERS: Record<string, { down: string[]; up?: string[] }> = {
 const SEATED: Record<string, string[]> = {
   granny: ['cs_granny_1a', 'cs_granny_1b'], mail: ['cs_mail_1a', 'cs_mail_1b', 'cs_mail_1c'], cam: ['cs_cam_1a', 'cs_cam_1b'],
   coffee: ['cs_coffee_1a', 'cs_coffee_1b', 'cs_boy_1a'], crane: ['cs_crane_1a', 'cs_crane_1b'],
+  vip_kitty: ['vip_kitty_sit_1', 'vip_kitty_sit_2'], vip_snoopy: ['vip_snoopy_sit_1'], // Miffy has no seated pose, so she stands beside a table
 };
+/** Guests whose seated art has no chair of its own: the placed chair stays, and they sit a little above its floor tile. */
+const KEEP_CHAIR = new Set(['crane', 'vip_kitty', 'vip_snoopy']);
+const SEAT_LIFT = 7;
 const isChair = (id: string) => { const it = itemOf(id); return !!it && it.layer === 'object' && it.w === 1 && it.d === 1 && (it.role === 'chair' || /chair/.test(it.id)); };
 
 interface Patron {
@@ -55,6 +61,9 @@ interface Patron {
   walking?: boolean;
   resume?: () => void; // runs when a cancelled walk reaches its next tile
   leaving?: boolean;
+  vip?: { id: VipId; keys: VipKeys }; // a companion visiting: Hello Kitty, Miffy or Snoopy
+  mark?: Phaser.GameObjects.Image; // the small sparkle that tells a VIP apart
+  cheerAt?: number;
 }
 
 /** One hired crew member in the room: a figure that walks, carries trays, rests, works and has the odd cute oopsie. */
@@ -117,6 +126,7 @@ export class CafeScene extends Phaser.Scene {
   private desk!: DesktopInput;
   private patrons: Patron[] = [];
   private nextPatron = 0;
+  private nextVip = nextVisitIn(Math.random(), true); // seconds until the next VIP visit
   private crew = new Map<string, CrewActor>();
   private crewKey = '';
   private crewClock = 0; // ms, advanced by clamped frame times so a hidden tab never causes a burst
@@ -195,6 +205,7 @@ export class CafeScene extends Phaser.Scene {
     this.patrons = [];
     this.seated.clear();
     this.nextPatron = 0;
+    this.nextVip = nextVisitIn(Math.random(), true);
     this.render(true);
     this.fitCamera();
     const stocked = stockPantry();
@@ -346,7 +357,10 @@ export class CafeScene extends Phaser.Scene {
     this.drawFx(t);
     this.updateCrew(delta);
     this.syncGifts();
-    for (const q of this.patrons) if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
+    for (const q of this.patrons) {
+      if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
+      if (q.mark && q.img.scene) q.mark.setPosition(q.img.x + q.img.displayWidth * 0.42, q.img.y - q.img.displayHeight * 0.96).setAlpha(0.4 + 0.2 * Math.sin(t / 320)); // a soft twinkle
+    }
     this.dayCheck -= delta;
     if (this.dayCheck <= 0) { this.dayCheck = 2000; this.render(false); } // midnight, or an event ending, changes the decor with no state change
     if (this.edit.active) return;
@@ -357,6 +371,12 @@ export class CafeScene extends Phaser.Scene {
     if (this.nextPatron <= 0 && this.patrons.length < max) {
       this.nextPatron = 5 + Math.random() * 6;
       this.addPatron();
+    }
+    // a VIP drops in now and then; the frame time is clamped so a hidden tab never rushes a visit
+    this.nextVip -= Math.min(delta, 100) / 1000;
+    if (this.nextVip <= 0) {
+      if (max > 0 && this.patrons.length < max && this.spawnVip()) this.nextVip = nextVisitIn(Math.random());
+      else this.nextVip = max > 0 ? 20 : 60; // the café is full or closed: look again soon
     }
   }
 
@@ -857,6 +877,8 @@ export class CafeScene extends Phaser.Scene {
     this.tweens.killTweensOf(p.img);
     p.bubble?.destroy();
     p.shadow?.destroy();
+    p.mark?.destroy();
+    p.mark = undefined;
     p.img.destroy();
   }
 
@@ -879,19 +901,20 @@ export class CafeScene extends Phaser.Scene {
     this.abort(p, () => (p.seat ? this.standUp(p) : this.leaveDoor(p)));
   }
 
-  private addPatron() {
+  private addPatron(vip?: { id: VipId; keys: VipKeys }) {
     const s0 = getState();
     const sign = SIGNS.find((g) => g.id === s0.cafe.sign);
     const study = s0.cafe.event?.day === dateKey() && s0.cafe.event.id === 'study';
     const pool = study ? ['student', 'student', 'nomad', 'scholar'] : sign && styleOf(s0).sign && Math.random() < 0.7 ? sign.draws : PATRONS;
-    const kind = pool[Math.floor(Math.random() * pool.length)];
-    const key = this.textures.exists(`cx_p_${kind}`) ? `cx_p_${kind}` : this.textures.exists(`cz_t_${kind}`) ? `cz_t_${kind}` : WALKERS[kind]?.down[0] ?? '';
+    const kind = vip ? vipKind(vip.id) : pool[Math.floor(Math.random() * pool.length)];
+    const key = vip ? vip.keys.stand : this.textures.exists(`cx_p_${kind}`) ? `cx_p_${kind}` : this.textures.exists(`cz_t_${kind}`) ? `cz_t_${kind}` : WALKERS[kind]?.down[0] ?? '';
     if (!key || !this.textures.exists(key)) return;
     const home = tileCenter(DOOR_X, 1);
     const img = artImage(this, key, home.x, home.y + 6, 0.5, 1).setDepth(DOOR_X + 1 + 0.2).setAlpha(0);
-    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, kind, float: kind === 'drone', ...this.walkKit(kind) };
+    const p: Patron = { img, tile: { x: DOOR_X, y: 1 }, busy: true, stand: key, kind, vip, float: kind === 'drone', ...(vip ? { down: vip.keys.down, up: vip.keys.up } : this.walkKit(kind)) };
     p.shadow = this.add.ellipse(img.x, img.y - 1, 24, 9, 0x6b4f4f, 0.16).setDepth(DOOR_X + 1 + 0.15);
     this.patrons.push(p);
+    if (vip) this.addMark(p);
     this.tweens.add({ targets: [img, p.shadow], alpha: { from: 0, to: 1 }, duration: 300 });
     p.shadow.setAlpha(0.16);
     // guests with a seated pose take a free chair beside a table when there is one
@@ -903,6 +926,90 @@ export class CafeScene extends Phaser.Scene {
       return;
     }
     this.standOrder(p, kind);
+  }
+
+  // ---------------------------------------------------------------- VIP guests
+  /**
+   * A companion the couple owns (Hello Kitty, Miffy or Snoopy) drops in. Cosmetic only: the order goes through the same
+   * rail as any guest's, and nothing is paid or changed beyond that. Also used by tests to bring one in now.
+   */
+  spawnVip(only?: VipId): boolean {
+    if (!this.scene.isActive() || this.edit.active || this.patrons.some((q) => q.vip)) return false;
+    const s = getState();
+    const pool = eligibleVips(s.wardrobe, (o) => outfitOf(o)?.companion).filter((id) => !only || id === only);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    for (const id of pool) {
+      const keys = vipKeys(id, vipVariant(id, s.wardrobe.equipped?.[id]), (k) => this.textures.exists(k));
+      if (!keys) continue; // art missing: skip this companion
+      this.addPatron({ id, keys });
+      return true;
+    }
+    return false;
+  }
+
+  /** The small sparkle that marks a VIP. */
+  private addMark(p: Patron) {
+    if (!this.textures.exists('or_spark_1')) return;
+    p.mark = this.add.image(p.img.x, p.img.y, 'or_spark_1').setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(13, 13).setAlpha(0.45).setDepth(901);
+  }
+
+  /** The rail ignores an order that comes within 4 seconds of another or when four are waiting, so a VIP asks again a few times. */
+  private placeVipOrder(p: Patron, kind: string, tries = 4) {
+    if (addCafeOrder(kind) || tries <= 1) return;
+    this.later(p, 4200, () => this.placeVipOrder(p, kind, tries - 1));
+  }
+
+  /** Waiting for the drink: the order pose, a taste, then a delighted hop, and out. */
+  private vipAfterOrder(p: Patron, seated: boolean) {
+    const k = p.vip?.keys;
+    if (!k) return;
+    this.later(p, 1400, () => {
+      if (seated) { if (p.seat && this.textures.exists(k.taste)) this.setArt(p.img, k.taste); }
+      else if (k.order !== k.stand) this.setArt(p.img, k.order);
+    });
+    this.later(p, 3000, () => this.vipDelight(p, seated));
+    this.later(p, 5800, () => (seated ? this.standUp(p) : this.leaveDoor(p)));
+  }
+
+  /** A little hop and a heart. Only Snoopy has jump art; the others hop in code. */
+  private vipDelight(p: Patron, seated: boolean) {
+    this.bubble(p, 'cx_b_heart');
+    const k = p.vip?.keys;
+    if (!seated && k?.jump && this.textures.exists(k.jump)) this.setArt(p.img, k.jump);
+    this.hop(p);
+  }
+
+  private hop(p: Patron) {
+    if (this.reduced || !p.img.scene || p.walking) return;
+    const y0 = p.img.y;
+    this.tweens.add({
+      targets: p.img, y: y0 - 7, duration: 150, yoyo: true, repeat: 1, ease: 'Sine.easeOut',
+      onUpdate: () => p.bubble?.setPosition(p.img.x, p.img.y - p.img.displayHeight - 4),
+      onComplete: () => { if (p.img.scene) p.img.setY(y0); },
+    });
+  }
+
+  /** A tap on a VIP: a heart and a tiny jump, nothing else. */
+  private vipCheer(p: Patron) {
+    const now = this.time.now;
+    if (now - (p.cheerAt ?? -9999) < 1600) return;
+    p.cheerAt = now;
+    this.bubble(p, 'cx_b_heart');
+    this.later(p, 1600, () => { if (!p.leaving) { p.bubble?.destroy(); p.bubble = undefined; } });
+    this.hop(p);
+  }
+
+  /** At the door they turn to wave goodbye: front facing, rocking from side to side. */
+  private vipWave(p: Patron, done: () => void) {
+    const k = p.vip?.keys;
+    if (!p.img.scene || !k) return done();
+    p.bubble?.destroy();
+    p.bubble = undefined;
+    const art = k.wave && this.textures.exists(k.wave) ? k.wave : k.stand;
+    this.setArt(p.img, art);
+    p.img.setFlipX(false);
+    if (this.reduced) return this.later(p, 500, done);
+    this.tweens.add({ targets: p.img, angle: { from: -7, to: 7 }, duration: 170, yoyo: true, repeat: 3, onComplete: () => { if (p.img.scene) p.img.setAngle(0); this.later(p, 120, done); } });
   }
 
   /** No chair: stand beside a table, a counter or a pastry case, place the order, then go. */
@@ -924,6 +1031,7 @@ export class CafeScene extends Phaser.Scene {
     }
     this.walkPatron(p, path, () => {
       this.bubble(p, 'cx_b_menu');
+      if (p.vip) { this.placeVipOrder(p, kind); return this.vipAfterOrder(p, false); }
       addCafeOrder(kind);
       this.later(p, 2600, () => {
         this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
@@ -947,7 +1055,7 @@ export class CafeScene extends Phaser.Scene {
     const taken = new Set<string>(avatarTiles.map((t) => `${t.x},${t.y}`));
     const claimed = new Set<string>();
     for (const q of this.patrons) if (q !== p) { taken.add(`${q.tile.x},${q.tile.y}`); if (q.claim) claimed.add(q.claim); if (q.claimFrom) taken.add(`${q.claimFrom.x},${q.claimFrom.y}`); }
-    const chairs = s.cafe.placed.filter((o) => isChair(o.itemId) && !this.seated.has(o.id) && !claimed.has(o.id) && !avatarTiles.some((t) => t.x === o.tileX && t.y === o.tileY) && this.chairHasTable(o));
+    const chairs = s.cafe.placed.filter((o) => isChair(o.itemId) && !(p.vip && o.rotation >= 180) && !this.seated.has(o.id) && !claimed.has(o.id) && !avatarTiles.some((t) => t.x === o.tileX && t.y === o.tileY) && this.chairHasTable(o));
     for (let i = chairs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [chairs[i], chairs[j]] = [chairs[j], chairs[i]]; }
     for (const chair of chairs) {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -964,13 +1072,15 @@ export class CafeScene extends Phaser.Scene {
   private poseOn(p: Patron, chair: PlacedObject, kind: string, row: string) {
     const poses = (SEATED[kind] ?? []).filter((k) => this.textures.exists(k));
     if (!poses.length) return;
-    let key = poses[(chair.rotation / 90 | 0) % poses.length];
-    if (row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
+    let key = p.vip ? poses[0] : poses[(chair.rotation / 90 | 0) % poses.length]; // a VIP always starts with the order pose
+    if (!p.vip && row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
     const b = tileCenter(chair.tileX, chair.tileY);
     this.setArt(p.img, key);
     p.img.setFlipX(chair.rotation >= 180);
-    p.img.setPosition(b.x, b.y + 6).setDepth(chair.tileX + chair.tileY + 0.3);
-    p.shadow?.setPosition(b.x, b.y + 5).setDepth(chair.tileX + chair.tileY + 0.25);
+    const onChair = KEEP_CHAIR.has(kind) && kind !== 'crane'; // a VIP sits on the chair art, which is drawn at depth + 0.4, so they go just above it
+    const lift = onChair ? SEAT_LIFT : 0, d = chair.tileX + chair.tileY + (onChair ? 0.5 : 0.3);
+    p.img.setPosition(b.x, b.y + 6 - lift).setDepth(d);
+    p.shadow?.setPosition(b.x, b.y + 5).setDepth(d - 0.05);
     if (p.bubble) this.bubble(p, p.bubble.texture.key);
   }
 
@@ -986,12 +1096,13 @@ export class CafeScene extends Phaser.Scene {
     p.claimFrom = undefined;
     const row = Math.random() < 0.5 ? '1' : '2';
     p.seat = { chair: chair.id, from: seat.from, tile: { x: chair.tileX, y: chair.tileY }, rot: chair.rotation, row };
-    if (kind !== 'crane') this.showChair(chair.id, false); // the crane stands in front of its chair
+    if (!KEEP_CHAIR.has(kind)) this.showChair(chair.id, false); // the crane and the VIPs sit on a chair that stays
     this.poseOn(p, chair, kind, row);
     p.tile = { x: chair.tileX, y: chair.tileY };
     p.float = false;
     p.img.setOrigin(0.5, 1);
     this.bubble(p, 'cx_b_menu');
+    if (p.vip) { this.placeVipOrder(p, kind); return this.vipAfterOrder(p, true); }
     addCafeOrder(kind);
     this.later(p, 2600, () => {
       this.bubble(p, Math.random() < 0.7 ? 'cx_b_heart' : 'cx_b_coin');
@@ -1134,7 +1245,9 @@ export class CafeScene extends Phaser.Scene {
     const path = findPath(p.tile, ENTRY, this.pathBlocked(), this.size());
     const go = (rest: { x: number; y: number }[]) =>
       this.walkPatron(p, rest, () => {
-        this.tweens.add({ targets: p.img, alpha: 0, duration: 300, onComplete: () => { this.patrons = this.patrons.filter((q) => q !== p); this.dropPatron(p); } });
+        const fade = () => this.tweens.add({ targets: [p.img, p.mark].filter(Boolean), alpha: 0, duration: 300, onComplete: () => { this.patrons = this.patrons.filter((q) => q !== p); this.dropPatron(p); } });
+        if (p.vip) this.vipWave(p, fade);
+        else fade();
       });
     go(path.length || (p.tile.x === ENTRY.x && p.tile.y === ENTRY.y) ? path : []);
   }
@@ -1190,6 +1303,7 @@ export class CafeScene extends Phaser.Scene {
       return gameBus.emit(BUS.openFocus, 'crew', who.id); // the crew card; the second argument is the staff id
     }
     const guest = this.patrons.find((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4);
+    if (guest?.vip && !this.edit.active) return this.vipCheer(guest); // a VIP just feels the love
     if (guest && !this.edit.active) return gameBus.emit(BUS.openFocus, 'orders');
     const t = this.pointerTile(p) ?? this.doorTap(p);
     if (!t) return;
@@ -1219,7 +1333,9 @@ export class CafeScene extends Phaser.Scene {
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     const who = this.crewAt(w);
     if (who) return `${who.def.name}, ${who.def.role}`;
-    if (this.patrons.some((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4)) return 'Guest (see orders)';
+    const over = this.patrons.find((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4);
+    if (over?.vip) return `${VIP_NAMES[over.vip.id]} (VIP guest)`;
+    if (over) return 'Guest (see orders)';
     const t = this.pointerTile(p) ?? this.doorTap(p);
     if (!t) return null;
     if (t.y === 0 && t.x === DOOR_X) return 'Front door (back outside)';

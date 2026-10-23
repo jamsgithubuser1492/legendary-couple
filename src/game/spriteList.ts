@@ -18,10 +18,11 @@ import { BACKDROP_SPRITES } from './spriteListBackdrops';
 import { MATCHA_UI_SPRITES } from './spriteListMatcha';
 import { CREW_SPRITES } from './spriteListCrew';
 import { CREW3_SPRITES } from './spriteListCrew3';
+import { VIP_SPRITES } from './spriteListVip';
 import { BIRD_SPRITES } from './spriteListBirds';
 import { WEATHER_SPRITES } from './spriteListWeather';
 import { CREW2_SPRITES } from './spriteListCrew2';
 import { ORCHARD_SPRITES } from './spriteListOrchard';
 
 export { WALK_SHEET };
-export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...CAFE4_SPRITES, ...TOWN_SPRITES, ...START_SPRITES, ...FISH_SPRITES, ...SKY_SPRITES, ...FINISH_SPRITES, ...BACKDROP_SPRITES, ...MATCHA_UI_SPRITES, ...CREW_SPRITES, ...CREW3_SPRITES, ...BIRD_SPRITES, ...WEATHER_SPRITES, ...CREW2_SPRITES, ...ORCHARD_SPRITES] as const;
+export const SPRITES = [...BASE, ...EXTRA_SPRITES, ...FLOOR_SPRITES, ...MG_SPRITES, ...OUTFIT_SPRITES, ...CAFE_SPRITES, ...CAFE2_SPRITES, ...CAFE3_SPRITES, ...CAFE4_SPRITES, ...TOWN_SPRITES, ...START_SPRITES, ...FISH_SPRITES, ...SKY_SPRITES, ...FINISH_SPRITES, ...BACKDROP_SPRITES, ...MATCHA_UI_SPRITES, ...CREW_SPRITES, ...CREW3_SPRITES, ...VIP_SPRITES, ...BIRD_SPRITES, ...WEATHER_SPRITES, ...CREW2_SPRITES, ...ORCHARD_SPRITES] as const;
