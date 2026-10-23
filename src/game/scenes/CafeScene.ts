@@ -7,7 +7,7 @@ import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject,
 import { dateKey } from '../../state/questions';
 import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, styleOf, themeOf } from '../../state/cafe';
 import { cozyBand, currentShift, hiredCrew, rosterActive, type CrewDef } from '../../state/crew';
-import { anyWorkView, restEmote, still, walkLoop, wobbleLoop, workLoop, OOPS_PROPS, type View } from '../crewArt';
+import { oopsSequence, OOPS_PROPS, OOPS_SEQUENCES, restEmote, still, walkLoop, wobbleLoop, workScene, type View } from '../crewArt';
 import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
@@ -602,7 +602,7 @@ export class CafeScene extends Phaser.Scene {
     if (a.ft < a.fms) return;
     a.ft = 0;
     a.fi = (a.fi + 1) % a.frames.length;
-    this.setLook(a, a.frames[a.fi], a.flip, a.mode === 'work' ? WORK_H : undefined);
+    this.setLook(a, a.frames[a.fi], a.flip, this.workHeight(a, a.frames[a.fi]));
   }
 
   private setLoop(a: CrewActor, frames: string[], fms: number, flip: boolean, height?: number) {
@@ -628,14 +628,14 @@ export class CafeScene extends Phaser.Scene {
     // favorite shift: one little sparkle
     if (!a.sparkled && s.cafe.roster && a.def.favorite === currentShift()) { a.sparkled = true; this.sparkle(a); }
     // a tray wobble now and then for apprentices: cute, free and over in a moment
-    if (!this.reduced && a.level === 1 && wobbleLoop(this.has, a.def).length >= 2 && Math.random() < 0.09) { this.oopsie(a); return false; }
+    if (!this.reduced && wobbleLoop(this.has, a.def, a.level).length >= 2 && Math.random() < 0.09) { this.oopsie(a); return false; }
     const spots = this.patronSpots().filter((t) => !occ.has(`${t.x},${t.y}`));
     const orders = s.cafe.orders.length > 0;
-    const view = anyWorkView(this.has, a.def);
+    const scene = workScene(this.has, a.def, a.level);
     const r = Math.random();
-    if (view && r < 0.22) {
+    if (scene && r < 0.22) {
       const t = this.workTile(occ);
-      if (t) return this.crewGo(a, t, false, () => this.startWork(a, view));
+      if (t) return this.crewGo(a, t, false, () => this.startWork(a));
     }
     if (orders && spots.length && r < 0.7) {
       const t = spots[Math.floor(Math.random() * spots.length)];
@@ -689,7 +689,7 @@ export class CafeScene extends Phaser.Scene {
       const dx = t.x - a.tile.x, dy = t.y - a.tile.y;
       const side = dx < 0 || dy < 0 ? 'b' : 'f'; // moving up the screen shows the back
       a.view = dx > 0 ? 'fr' : dy > 0 ? 'fl' : dx < 0 ? 'bl' : 'br';
-      const frames = walkLoop(this.has, a.def, side, carry);
+      const frames = walkLoop(this.has, a.def, side, carry, a.level);
       const flip = dx > 0 || dy < 0; // the walk art faces left, the right hand views are mirrored
       if (frames.length) this.setLoop(a, frames, Math.round(420 / Math.max(2, frames.length)), flip);
       else { const k = still(this.has, a.def, a.level, a.view); if (k) this.setLook(a, k, false); }
@@ -720,29 +720,49 @@ export class CafeScene extends Phaser.Scene {
     return null;
   }
 
+  /** Work loops cut for a level carry their own scale (the person stays the size of everyone else), the older ones are fitted to WORK_H. */
+  private workHeight(a: CrewActor, key: string): number | undefined {
+    return a.mode === 'work' && !key.startsWith('crewl_') ? WORK_H : undefined;
+  }
+
   /** A short work scene (the loop includes its own counter), then back to the day. */
-  private startWork(a: CrewActor, view: View) {
-    const frames = workLoop(this.has, a.def, view);
-    if (frames.length < 2) return;
+  private startWork(a: CrewActor) {
+    const scene = workScene(this.has, a.def, a.level);
+    if (!scene || scene.frames.length < 2) return;
     a.mode = 'work';
-    a.view = view;
+    a.view = scene.view;
     a.until = this.crewClock + 6000 + Math.random() * 4000;
-    this.setLoop(a, frames, 520, false, WORK_H);
+    this.setLoop(a, scene.frames, scene.frames.length > 2 ? 520 : 900, false, this.workHeight(a, scene.frames[0]));
   }
 
   /** The tray wobbles, a crumb drops, and everyone smiles: nothing is lost. */
   private oopsie(a: CrewActor) {
-    const frames = wobbleLoop(this.has, a.def);
+    const frames = wobbleLoop(this.has, a.def, a.level);
     if (frames.length < 2) return;
     a.mode = 'oops';
     a.until = this.crewClock + frames.length * 300 + 400;
     this.setLoop(a, frames, 300, false);
-    const key = OOPS_PROPS.find((k) => this.has(k));
+    this.oopsMess(a.img.x + 10, a.img.y + 2, a.tile.x + a.tile.y + 0.1);
+  }
+
+  /** A cute little mess that plays as a short sequence, holds for a moment and fades. Falls back to a still prop. */
+  private oopsMess(x: number, y: number, depth: number) {
+    const seqs = OOPS_SEQUENCES.map((b) => oopsSequence(this.has, b)).filter((f) => f.length >= 3);
+    const frames = seqs.length ? seqs[Math.floor(Math.random() * seqs.length)] : [];
+    const key = frames[0] ?? OOPS_PROPS.find((k) => this.has(k));
     if (!key) return;
-    const prop = artImage(this, key, a.img.x + 10, a.img.y + 2, 0.5, 1).setDepth(a.tile.x + a.tile.y + 0.1);
-    prop.setScale(prop.scaleX * 0.7);
+    const prop = artImage(this, key, x, y, 0.5, 1).setDepth(depth);
     this.oopsProps.push(prop);
-    this.tweens.add({ targets: prop, alpha: 0, delay: 2600, duration: 800, onComplete: () => { prop.destroy(); this.oopsProps = this.oopsProps.filter((q) => q !== prop); } });
+    const gone = () => { prop.destroy(); this.oopsProps = this.oopsProps.filter((q) => q !== prop); };
+    if (frames.length >= 3) {
+      // a spreading puddle plays all its frames (the last is the faded one), a sequence of pieces plays through and stays
+      frames.forEach((f, i) => this.time.delayedCall(i * 260, () => {
+        if (!prop.scene) return;
+        prop.setTexture(f);
+        prop.setScale(displayWidth(f, prop.width) / prop.width);
+      }));
+    } else prop.setScale(prop.scaleX * 0.7);
+    this.tweens.add({ targets: prop, alpha: 0, delay: 2600 + frames.length * 260, duration: 800, onComplete: gone });
   }
 
   /** The soft glow for Glowing crew. */

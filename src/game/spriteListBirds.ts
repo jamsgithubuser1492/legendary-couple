@@ -3,141 +3,141 @@ export const BIRD_SPRITES = [
   {
     "key": "wx2_sparrow_1",
     "file": "wx2_sparrow_1.png",
-    "w": 87,
-    "h": 86,
-    "dw": 11
+    "w": 20,
+    "h": 20,
+    "dw": 10
   },
   {
     "key": "wx2_sparrow_2",
     "file": "wx2_sparrow_2.png",
-    "w": 87,
-    "h": 86,
-    "dw": 11
+    "w": 20,
+    "h": 20,
+    "dw": 10
   },
   {
     "key": "wx2_sparrow_3",
     "file": "wx2_sparrow_3.png",
-    "w": 87,
-    "h": 86,
-    "dw": 11
+    "w": 20,
+    "h": 20,
+    "dw": 10
   },
   {
     "key": "wx2_sparrow_4",
     "file": "wx2_sparrow_4.png",
-    "w": 87,
-    "h": 86,
-    "dw": 11
+    "w": 20,
+    "h": 20,
+    "dw": 10
   },
   {
     "key": "wx2_gull_1",
     "file": "wx2_gull_1.png",
-    "w": 102,
-    "h": 82,
-    "dw": 13
+    "w": 68,
+    "h": 55,
+    "dw": 34
   },
   {
     "key": "wx2_gull_2",
     "file": "wx2_gull_2.png",
-    "w": 102,
-    "h": 82,
-    "dw": 13
+    "w": 68,
+    "h": 55,
+    "dw": 34
   },
   {
     "key": "wx2_gull_3",
     "file": "wx2_gull_3.png",
-    "w": 102,
-    "h": 82,
-    "dw": 13
+    "w": 68,
+    "h": 55,
+    "dw": 34
   },
   {
     "key": "wx2_gull_4",
     "file": "wx2_gull_4.png",
-    "w": 102,
-    "h": 82,
-    "dw": 13
+    "w": 68,
+    "h": 55,
+    "dw": 34
   },
   {
     "key": "wx2_bfly_pink_1",
     "file": "wx2_bfly_pink_1.png",
-    "w": 64,
-    "h": 61,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_pink_2",
     "file": "wx2_bfly_pink_2.png",
-    "w": 64,
-    "h": 61,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_pink_3",
     "file": "wx2_bfly_pink_3.png",
-    "w": 64,
-    "h": 61,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_pink_4",
     "file": "wx2_bfly_pink_4.png",
-    "w": 64,
-    "h": 61,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_blue_1",
     "file": "wx2_bfly_blue_1.png",
-    "w": 65,
-    "h": 62,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_blue_2",
     "file": "wx2_bfly_blue_2.png",
-    "w": 65,
-    "h": 62,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_blue_3",
     "file": "wx2_bfly_blue_3.png",
-    "w": 65,
-    "h": 62,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_bfly_blue_4",
     "file": "wx2_bfly_blue_4.png",
-    "w": 65,
-    "h": 62,
-    "dw": 8
+    "w": 13,
+    "h": 12,
+    "dw": 6
   },
   {
     "key": "wx2_sparrow_perch",
     "file": "wx2_sparrow_perch.png",
-    "w": 71,
-    "h": 55,
-    "dw": 9
+    "w": 16,
+    "h": 15,
+    "dw": 8
   },
   {
     "key": "wx2_sparrow_up",
     "file": "wx2_sparrow_up.png",
-    "w": 80,
-    "h": 74,
-    "dw": 10
+    "w": 18,
+    "h": 18,
+    "dw": 9
   },
   {
     "key": "wx2_sparrow_flap",
     "file": "wx2_sparrow_flap.png",
-    "w": 74,
-    "h": 72,
-    "dw": 9
+    "w": 17,
+    "h": 19,
+    "dw": 8
   },
   {
     "key": "wx2_sparrow_glide",
     "file": "wx2_sparrow_glide.png",
-    "w": 97,
-    "h": 43,
+    "w": 23,
+    "h": 12,
     "dw": 12
   }
 ] as const;
