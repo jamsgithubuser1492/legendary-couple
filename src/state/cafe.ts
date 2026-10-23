@@ -5,6 +5,7 @@
 import type { CafeState, CafeTheme, GameState, PlacedObject } from '../types';
 import { itemOf, type CatalogItem } from './catalog';
 import { dateKey } from './questions';
+import { crewPerks, teamBuff } from './crew';
 
 export interface ThemeInfo { id: CafeTheme; name: string; blurb: string; wall: 'plaster' | 'brick' | 'lavender'; floor: string; preview: string; price: number }
 export const THEMES: ThemeInfo[] = [
@@ -22,7 +23,7 @@ export const CAFE_STEPS: { size: number; coins: number }[] = [
 
 export const newCafe = (): CafeState => ({
   theme: 'matcha', themes: ['matcha'], size: CAFE_START, placed: [], avatars: { A: { x: 3, y: 2 }, B: { x: 4, y: 2 } }, tipsAt: Date.now(), sitDay: '', pantryDay: '',
-  staff: [], sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 }, orders: [], rushes: 0, lastOrderTs: 0,
+  staff: [], crew: {}, roster: null, sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 }, orders: [], rushes: 0, lastOrderTs: 0,
 });
 
 export const DOOR_X = 3; // the front door is in the back right wall, here
@@ -105,7 +106,7 @@ export function styleOf(s: GameState): Style {
 /** Every pastry case adds 10 percent to Matcha Masters coins (two count), each star above the first adds 2, and a brewmaster adds 5. */
 export function matchaBonus(s: GameState): number {
   const st = styleOf(s);
-  return Math.min(2, st.pastry) * 0.1 + (st.stars - 1) * 0.02 + (s.cafe.staff.includes('brewmaster') ? 0.05 : 0);
+  return Math.min(2, st.pastry) * 0.1 + (st.stars - 1) * 0.02 + crewPerks(s).matcha + crewPerks(s).glowing * 0.01;
 }
 
 // ---- staff: hired baristas who keep the café running. No wages and no penalties, each one adds something.
@@ -130,18 +131,20 @@ export const SIGNS: Sign[] = [
 export function tipMult(s: GameState): number {
   const st = styleOf(s);
   const sign = SIGNS.find((g) => g.id === s.cafe.sign);
-  const petBonus = 0.03 * Math.min(5, st.pets) * (s.cafe.staff.includes('petsitter') ? 2 : 1);
-  return 1 + (st.register ? 0.15 : 0) + petBonus + (sign && st.sign ? sign.boost : 0) + 0.05 * Math.min(10, s.cafe.popularity) + (s.cafe.staff.includes('manager') ? 0.2 : 0);
+  const perks = crewPerks(s);
+  const petBonus = 0.03 * Math.min(5, st.pets) * perks.petMult;
+  return 1 + (st.register ? 0.15 : 0) + petBonus + (sign && st.sign ? sign.boost : 0) + 0.05 * Math.min(10, s.cafe.popularity) + perks.tips + perks.glowing * 0.03;
 }
 
 /** The café earns tips while it is open (it needs a seat and a table). Tips build up and you collect them. */
-export const tipRate = (s: GameState) => styleOf(s).stars * 2 * tipMult(s); // coins an hour
+/** Coins an hour. It stays passive, and it grows when the crew on the current shift are well matched and cozy (teamBuff). */
+export const tipRate = (s: GameState, now: Date = new Date()) => styleOf(s).stars * 2 * tipMult(s) * (1 + teamBuff(s, now).tips);
 export const tipCap = (s: GameState) => Math.round((20 + styleOf(s).stars * 10) * tipMult(s));
 export function tipsPending(s: GameState, now = Date.now()): number {
   const st = styleOf(s);
   if (st.seats < 1 || st.tables < 1) return 0;
   const hours = Math.max(0, (now - s.cafe.tipsAt) / 3600000);
-  return Math.min(tipCap(s), Math.floor(hours * tipRate(s)));
+  return Math.min(tipCap(s), Math.floor(hours * tipRate(s, new Date(now))));
 }
 
 // ---- the community board: a rotating calendar. Hosting an event takes both of you: one starts it, the other joins.

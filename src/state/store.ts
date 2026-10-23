@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, StartingPath } from '../types';
+import type { CafeTheme, CompanionId, GameState, Memory, MessageKind, Moment, PlayerId, Quest, ShiftId, StartingPath } from '../types';
 import { availableIn, itemOf } from './catalog';
 import { canPlace, canPlacePreset, freeShoreTile, ISLAND_STEPS, presetOrder } from './placement';
 import { cafeView, ESPRESSO_RECIPE, eventOf, EVENT_TEAM, MAX_ORDERS, newOrder, eventReady, eventToday, freePullToday, GACHA, GACHA_COST, matchaBonus, newCafe, nextCafeStep, sitToday, SIGNS, STAFF, styleOf, tipsPending, themeOf, type EventId } from './cafe';
@@ -8,6 +8,7 @@ import { presetOf } from './presets';
 import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
+import * as Crew from './crew';
 import { dateKey, journeyFor, prevKey, streakRun, tomorrowKey } from './questions';
 import { FREEZES_PER_MONTH, LADDER, hasActivity, isSunday, lastWeekKey, mondayOf, nextWeekKey, RECAP_REWARD, recapOf, rungPrize, SURPRISE_COST, SURPRISE_DELAY_MS, SURPRISE_PAY, WEEKLY_BANNER_MS, WEEKLY_REWARD } from './weekly';
 import type { MGResult } from './minigames';
@@ -97,6 +98,10 @@ function load(): GameState {
 }
 
 function withDefaults(saved: Partial<GameState>): GameState {
+  const out = withDefaultsRaw(saved);
+  return { ...out, cafe: Crew.normalizeCafe(out.cafe) }; // crew progress and the roster for saves that predate them
+}
+function withDefaultsRaw(saved: Partial<GameState>): GameState {
   const base = initial();
   const townAvatars = { ...base.townAvatars, ...(saved.townAvatars ?? {}) };
   const w = saved.wardrobe;
@@ -772,6 +777,11 @@ export function applyMinigameReward(r: MGResult) {
     recipes: [...state.recipes, ...r.recipes.filter((x) => !state.recipes.includes(x))],
     mgBest: { ...state.mgBest, [r.type]: Math.max(state.mgBest[r.type] ?? 0, r.score) },
   });
+  // the crew on the current shift learn from a Matcha shift (needs a running roster)
+  if (r.type === 'MATCHA_MASTERS') {
+    const notes = trainCrewFromRush(r.stars);
+    if (notes.length) r.notes = [...(r.notes ?? []), ...notes];
+  }
 }
 
 export function setFigureFree(id: string, free: boolean) {
@@ -1076,7 +1086,7 @@ export function sitTogether(): boolean {
 export function stockPantry(): number {
   const day = dateKey();
   const st = styleOf(state);
-  const n = (st.whisk ? 1 : 0) + (st.kitchen ? 1 : 0) + (state.cafe.staff.includes('apprentice') ? 1 : 0);
+  const n = (st.whisk ? 1 : 0) + (st.kitchen ? 1 : 0) + Crew.crewPerks(state).pantry + Crew.teamBuff(state).pantry; // the apprentice, a gentle helper, and the care crew on shift
   if (!n || state.cafe.pantryDay === day) return 0;
   commit({ ...state, ingredients: state.ingredients + n, cafe: { ...state.cafe, pantryDay: day } });
   return n;
@@ -1086,8 +1096,75 @@ export function stockPantry(): number {
 export function hireStaff(id: string): boolean {
   const st = STAFF.find((x) => x.id === id);
   if (!st || state.cafe.staff.includes(id) || state.coins < st.price) return false;
-  commit({ ...state, coins: state.coins - st.price, cafe: { ...state.cafe, staff: [...state.cafe.staff, id] }, moment: moment('cafe', `${st.name} joined!`, `${st.role}: ${st.perk}.`, '☕') });
+  const hired = { ...state, coins: state.coins - st.price, cafe: { ...state.cafe, staff: [...state.cafe.staff, id] } };
+  commit({ ...Crew.withCrewEntry(hired, id), moment: moment('cafe', `${st.name} joined!`, `${st.role}: ${st.perk}.`, '☕') });
   return true;
+}
+
+// ---------- the crew: grow them together, lead them on a roster ----------
+
+/** What a crew action reports back: ok, or a short plain reason it did not happen (never shown as an error screen). */
+export interface CrewResult { ok: boolean; reason?: string; text?: string; xp?: number; cozy?: number; specific?: boolean; ready?: boolean; level?: number; shells?: number }
+const failed = (r: { ok: false; reason: string }): CrewResult => ({ ok: false, reason: r.reason });
+
+/** An islander at the door asks for work (free, once the café is popular enough). */
+export function welcomeCrew(id: string): CrewResult {
+  const r = Crew.welcome(state, id);
+  if (!r.ok) return failed(r);
+  commit({ ...r.state, moment: moment('cafe', `${r.def.name} joined!`, `${r.def.role} asked for work at your café. ${r.def.perks[0]}.`, '☕') });
+  return { ok: true, text: `${r.def.name} joined the crew.` };
+}
+
+/** A Mentor moment: Praise or Coaching with one kind line, once a day each per crew member. */
+export function giveFeedback(id: string, kind: Crew.FeedbackKind, lineId: string, by: PlayerId = me): CrewResult {
+  const r = Crew.giveFeedback(state, id, kind, lineId, by);
+  if (!r.ok) return failed(r);
+  commit(r.state);
+  return { ok: true, xp: r.xp, cozy: r.cozy, specific: r.specific, ready: r.ready, text: `${r.crew.name} felt ${kind === 'praise' ? 'appreciated' : 'supported'}.` };
+}
+
+/** Promotes a crew member (bar full, plus one Praise and one Coaching moment). +2 heart shells and a new story chapter. */
+export function promoteCrew(id: string): CrewResult {
+  const r = Crew.promote(state, id);
+  if (!r.ok) return failed(r);
+  const lvl = Crew.levelName(r.level);
+  commit({ ...r.state, moment: moment('cafe', `${r.crew.name} is now ${lvl}`, `A new story chapter unlocked. ${r.crew.perks[r.level - 1]}. +${r.shells} heart shells.`, '🌟') });
+  return { ok: true, level: r.level, shells: r.shells, text: `${r.crew.name} is now ${lvl}.` };
+}
+
+/** Shares a pantry treat: costs 2 ingredients, once a day per crew member. */
+export function giveTreat(id: string): CrewResult {
+  const r = Crew.treat(state, id);
+  if (!r.ok) return failed(r);
+  commit(r.state);
+  return { ok: true, cozy: Crew.TREAT_COZY, text: `${r.crew.name} enjoyed the treat.` };
+}
+
+/** Starts a 7 day roster, on any day, when none is running. Refills everyone's energy. */
+export function startRoster(): CrewResult {
+  const r = Crew.startRoster(state);
+  if (!r.ok) return failed(r);
+  commit(r.state);
+  return { ok: true };
+}
+export function assignCrew(shift: ShiftId, id: string): CrewResult {
+  const r = Crew.assign(state, shift, id);
+  if (!r.ok) return failed(r);
+  commit(r.state);
+  return { ok: true };
+}
+export function unassignCrew(shift: ShiftId, id: string): CrewResult {
+  const r = Crew.unassign(state, shift, id);
+  if (!r.ok) return failed(r);
+  commit(r.state);
+  return { ok: true };
+}
+
+/** Matcha Masters trains the crew on the current shift (3 stars 30, 2 stars 20, 1 star 10, Duet +10). Returns the notes to show. */
+export function trainCrewFromRush(stars: number): string[] {
+  const r = Crew.trainCrew(state, stars);
+  if (r.trained.length) commit(r.state);
+  return r.notes;
 }
 
 export function setSign(id: string): boolean {
