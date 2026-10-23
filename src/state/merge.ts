@@ -18,8 +18,11 @@ const COUNTERS = [
   'fauna.*', 'figures.*', 'inventory[].count',
   'today.questCoins', 'today.quests', 'today.tokens', 'today.mgCoins', 'today.wells', // reset by day, see below
   'cafe.popularity', 'cafe.rushes', 'cafe.latte.n', 'cafe.gacha.n', 'cafe.gacha.pity',
+  'cafe.crew.*.xp', 'cafe.crew.*.cozy', // two phones each giving a Mentor moment or a treat both count (cozy is clamped to 100 when the game loads)
 ];
-const isCounter = (path: string) => COUNTERS.some((c) => c === path || (c.endsWith('.*') && path.startsWith(c.slice(0, -1)) && !path.slice(c.length - 1).includes('.')));
+// a `*` stands for exactly one key, anywhere in the path
+const COUNTER_RES = COUNTERS.map((c) => new RegExp(`^${c.split('*').map((p) => p.replace(/[.\\[\]]/g, '\\$&')).join('[^.]+')}$`));
+const isCounter = (path: string) => COUNTER_RES.some((re) => re.test(path));
 
 const isObj = (v: J): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const same = (a: J, b: J) => a === b || JSON.stringify(a) === JSON.stringify(b);

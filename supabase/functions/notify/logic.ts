@@ -1,6 +1,6 @@
 // Pure helpers for the notify function. No Deno or Node globals, so the unit tests can import this file directly.
 
-export const KINDS = ['approve', 'daily', 'whisper', 'box', 'surprise', 'weekly', 'event', 'multi', 'test'] as const;
+export const KINDS = ['approve', 'daily', 'whisper', 'box', 'surprise', 'weekly', 'event', 'crew', 'multi', 'test'] as const;
 export type Kind = (typeof KINDS)[number];
 export type Player = 'A' | 'B';
 

@@ -321,7 +321,7 @@ const setMember = (s: GameState, staff: string, m: CrewMember) => ({ ...(s.cafe.
 /** Makes sure a hired crew member has a progress entry (and energy in a running roster). Used by hiring and welcoming. */
 export function withCrewEntry(s: GameState, staff: string, day = dateKey()): GameState {
   const crew = { ...(s.cafe.crew ?? {}) };
-  if (!crew[staff]) crew[staff] = newCrewMember(day);
+  if (CREW.some((d) => d.staff === staff) && !crew[staff]) crew[staff] = newCrewMember(day);
   let roster = s.cafe.roster;
   if (roster && rosterActive(s, day) && roster.energy[staff] === undefined) roster = { ...roster, energy: { ...roster.energy, [staff]: ENERGY_START } };
   return patch(s, { crew, roster });
@@ -471,6 +471,7 @@ export function trainCrew(s: GameState, stars: number, now: Date = new Date()): 
 export function normalizeCafe(c: CafeState, day = dateKey()): CafeState {
   const crew: Record<string, CrewMember> = {};
   for (const id of c.staff ?? []) {
+    if (!CREW.some((d) => d.staff === id)) continue; // only the staff ids we know get progress
     const have = c.crew?.[id];
     const base = newCrewMember(day);
     const level = Math.min(MAX_LEVEL, Math.max(1, Math.round(have?.level ?? 1)));

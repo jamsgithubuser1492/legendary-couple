@@ -5,8 +5,9 @@
 import type { GameState, PlayerId } from '../types';
 import { dateKey } from './questions';
 import { mondayOf } from './weekly';
+import { hiredCrew, levelGoal } from './crew';
 
-export type WaitingKind = 'approve' | 'daily' | 'whisper' | 'box' | 'surprise' | 'weekly' | 'event';
+export type WaitingKind = 'approve' | 'daily' | 'whisper' | 'box' | 'surprise' | 'weekly' | 'event' | 'crew';
 export interface Waiting { id: string; kind: WaitingKind; text: string }
 
 const other = (p: PlayerId): PlayerId => (p === 'A' ? 'B' : 'A');
@@ -39,5 +40,12 @@ export function waitingFor(s: GameState, player: PlayerId, day = dateKey()): Wai
   // a café event they are hosting that you can join
   const e = s.cafe.event;
   if (e && e.day === day && !e.joined && e.by !== player) out.push({ id: `event:${e.day}:${e.id}`, kind: 'event', text: `${them} is hosting something at the café. Come and join.` });
+  // a crew member is ready for a promotion and your partner already gave their Mentor moment, so yours finishes it
+  for (const { def, member } of s.cafe.staff?.length ? hiredCrew(s) : []) {
+    const goal = levelGoal(member.level);
+    if (goal === null || member.xp < goal) continue;
+    const theirs = (member.praised && !member.coached && member.praiseBy === other(player)) || (member.coached && !member.praised && member.coachBy === other(player));
+    if (theirs) out.push({ id: `crew:${def.staff}:${member.level}`, kind: 'crew', text: `${def.name} is ready for a promotion. ${them} already gave their moment, so yours would finish it.` });
+  }
   return out;
 }

@@ -6,8 +6,8 @@ import type { PhoneAction } from './PocketPhone';
 
 export type TodayAct = PhoneAction | 'quests';
 
-const ICON: Record<WaitingKind, string> = { approve: '📋', daily: '💬', whisper: '🔥', box: '🎁', surprise: '💌', weekly: '🗓️', event: '☕' };
-const GO: Record<WaitingKind, TodayAct> = { approve: 'quests', daily: 'checkin', whisper: 'together', box: 'boxes', surprise: 'surprise', weekly: 'week', event: 'cafe' };
+const ICON: Record<WaitingKind, string> = { approve: '📋', daily: '💬', whisper: '🔥', box: '🎁', surprise: '💌', weekly: '🗓️', event: '☕', crew: '🌟' };
+const GO: Record<WaitingKind, TodayAct> = { approve: 'quests', daily: 'checkin', whisper: 'together', box: 'boxes', surprise: 'surprise', weekly: 'week', event: 'cafe', crew: 'cafe' };
 
 const SUGGEST = [
   'A quiet day: say hi to each other',

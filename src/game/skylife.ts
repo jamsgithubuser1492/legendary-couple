@@ -208,7 +208,7 @@ export class SkyLife {
       const k = `sk_bwide_${1 + Math.floor(Math.random() * 5)}`;
       if (this.has(k)) this.add('bfly', k, view.x + view.width * R(0.1, 0.9), view.y + view.height * R(0.25, 0.85), R(-12, 12), R(-8, 8), undefined, R(14, 26));
     }
-    if (this.night) {
+    if (false as boolean) { // fireflies retired: they read as distracting white blobs
       const want = this.calm ? 0 : Math.round(12 * this.q);
       while (count('ffly') < want) {
         const k = `sk_ffly_${1 + Math.floor(Math.random() * 5)}`;
@@ -332,7 +332,7 @@ export class SkyLife {
     g.clear();
     // a soft blue dusk at night, so the fireflies have something to glow against
     this.dusk += ((this.night ? 1 : 0) - this.dusk) * Math.min(1, dt * 0.8);
-    if (this.dusk > 0.01) {
+    if (false as boolean) { // the dusk tint went with the fireflies
       g.fillStyle(0x1b2a5e, 0.24 * this.dusk);
       g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
     }
