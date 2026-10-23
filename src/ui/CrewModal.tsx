@@ -18,7 +18,7 @@ const BAND_LABEL: Record<CozyBand, string> = { steady: 'Steady', warm: 'Warm', g
 export function CozyMeter({ cozy }: { cozy: number }) {
   const pct = Math.max(0, Math.min(100, cozy));
   return (
-    <div className="relative mt-3" style={{ aspectRatio: '539 / 114' }} role="img" aria-label={`Cozy meter: ${BAND_LABEL[cozyBand(cozy)]}`}>
+    <div className="relative mt-4" style={{ aspectRatio: '539 / 114' }} role="img" aria-label={`Cozy meter: ${BAND_LABEL[cozyBand(cozy)]}`}>
       <Art keys={['cu_cozy_meter_frame']} className="absolute inset-0 h-full w-full" />
       <div className="absolute" style={{ left: `${7 + pct * 0.86}%`, top: '-28%', height: '78%', transform: 'translateX(-50%)', aspectRatio: '51 / 88' }}>
         <Art keys={['cu_cozy_meter_marker']} className="h-full w-full" />
@@ -73,19 +73,21 @@ function CrewCard({ def, m, onMentor, onResult, celebrate }: { def: CrewDef; m: 
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between text-[11px] font-bold text-cocoa/70">
-          <span>Experience</span>
-          <span>{goal === null ? 'Expert' : `${m.xp} of ${goal}`}</span>
+      <div className="grid grid-cols-2 items-start gap-3">
+        <div>
+          <div className="flex items-center justify-between text-[11px] font-bold text-cocoa/70">
+            <span>Experience</span>
+            <span>{goal === null ? 'Expert' : `${m.xp} of ${goal}`}</span>
+          </div>
+          <XpBar m={m} />
         </div>
-        <XpBar m={m} />
-      </div>
-      <div>
-        <div className="flex items-center justify-between text-[11px] font-bold text-cocoa/70">
-          <span>Cozy meter</span>
-          <span>{BAND_LABEL[band]}</span>
+        <div>
+          <div className="flex items-center justify-between text-[11px] font-bold text-cocoa/70">
+            <span>Cozy</span>
+            <span>{BAND_LABEL[band]}</span>
+          </div>
+          <CozyMeter cozy={m.cozy} />
         </div>
-        <CozyMeter cozy={m.cozy} />
       </div>
       <p className="flex items-center gap-1 text-xs text-cocoa/80">
         Favorite shift <Art keys={[slotIconKey(def.favorite)]} className="mx-1 h-5 w-auto" /> <b>{fav.label}</b>

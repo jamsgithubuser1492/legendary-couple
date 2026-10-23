@@ -119,12 +119,12 @@ interface Ripple {
 
 /** What one raindrop, flake or firefly measures in the world (the map's tile is 64 by 32 and a person about 54 tall). */
 const RAIN_LAYERS: { scale: number; speed: number; slant?: number; alpha: number }[] = [
-  { scale: 0.42, speed: 430, slant: 0.42, alpha: 0.55 }, // far drops: short streaks, about 20 px
-  { scale: 0.62, speed: 640, slant: 0.42, alpha: 0.8 }, // near drops: about 30 px, still less than one tile high
+  { scale: 0.24, speed: 380, slant: 0.42, alpha: 0.5 }, // far drops: short streaks, about 20 px
+  { scale: 0.36, speed: 560, slant: 0.42, alpha: 0.75 }, // near drops: about 35 px, a little over one tile high at most
 ];
 const SNOW_LAYERS: { scale: number; speed: number; slant?: number; alpha: number }[] = [
-  { scale: 0.3, speed: 22, alpha: 0.7 }, // flakes a few pixels across
-  { scale: 0.45, speed: 36, alpha: 0.9 }, // the biggest flake is about 14 px, a quarter of a person
+  { scale: 0.5, speed: 22, alpha: 0.75 }, // small flakes, 4 to 14 px across
+  { scale: 0.8, speed: 34, alpha: 0.8 }, // the biggest flake is about 22 px, well under half a person
 ];
 const SWARM_SCALE = 0.24; // a swarm is about 53 px across, a little under one tile
 
@@ -410,7 +410,7 @@ export class SkyLife {
         const x = c.x + R(-18, 18), y = c.y - R(8, 22);
         if (!Phaser.Geom.Rectangle.Contains(view, x, y)) continue;
         if (this.swarms.some((s) => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 40)) continue;
-        const im = this.scene.add.image(x, y, 'wx_firefly_1').setDepth(DEPTH).setScale(SWARM_SCALE).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+        const im = this.scene.add.image(x, y, 'wx_firefly_1').setDepth(DEPTH).setScale(SWARM_SCALE).setAlpha(0).setTint(0xffc65a); // a warm gold, so the glow reads on a light map
         this.swarms.push({ im, x, y, ph: R(0, 6), wob: R(0, 6) });
         break;
       }
@@ -423,7 +423,7 @@ export class SkyLife {
       const p = 0.5 + 0.5 * Math.sin(s.ph * 0.9);
       const f = 1 + Math.round((1 - p) * 7);
       s.im.setTexture(`wx_firefly_${f}`).setPosition(px, py);
-      s.im.setAlpha(s.im.alpha + (0.75 * this.flyFade - s.im.alpha) * Math.min(1, dt * 1.5));
+      s.im.setAlpha(s.im.alpha + (0.95 * this.flyFade - s.im.alpha) * Math.min(1, dt * 1.5));
     }
   }
 }

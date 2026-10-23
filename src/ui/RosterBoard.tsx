@@ -5,7 +5,7 @@ import {
 } from '../state/crew';
 import { assignCrew, startRoster, unassignCrew, useGameState } from '../state/store';
 import type { ShiftId } from '../types';
-import { Art, friendly, slotIconKey, spriteUrl, tokenKeys } from './crewArt';
+import { Art, friendly, slotIconKey, tokenKeys } from './crewArt';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 /** The buff in plain words, one short line for each thing the current shift adds. */
@@ -70,8 +70,8 @@ export default function RosterBoard({ onClose, onCrew }: { onClose: () => void; 
       {note && <p role="status" className="mt-2 rounded-xl bg-white p-2 text-center text-sm font-bold text-cocoa shadow">{note}</p>}
 
       <div
-        className={`relative mt-3 rounded-3xl p-3 shadow ${active ? '' : 'opacity-70'}`}
-        style={{ backgroundImage: `url(${spriteUrl('cu_roster_board_flat')})`, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundColor: '#f6e7d4' }}
+        className={`relative mt-3 rounded-3xl p-3 shadow ${active ? '' : 'opacity-80'}`}
+        style={{ border: '8px solid #b98a5a', backgroundColor: '#f4e2c8', boxShadow: 'inset 0 0 0 3px #e3c295' }}
         aria-label="Shifts"
       >
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -150,7 +150,7 @@ export default function RosterBoard({ onClose, onCrew }: { onClose: () => void; 
                 >
                   <Art keys={tokenKeys(def.staff)} className="h-12 w-12 object-contain" alt="" />
                   <span className="text-xs font-bold">{def.name}</span>
-                  <Pips left={active ? e : 0} />
+                  <Pips left={active ? e : ENERGY_START} />
                   <span className="text-[10px] opacity-70">Likes {shiftLabel(def.favorite)}</span>
                 </button>
               </li>
