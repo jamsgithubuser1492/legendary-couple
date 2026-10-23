@@ -4,28 +4,28 @@ export const BIRD_SPRITES = [
     "key": "wx2_sparrow_1",
     "file": "wx2_sparrow_1.png",
     "w": 87,
-    "h": 60,
+    "h": 86,
     "dw": 11
   },
   {
     "key": "wx2_sparrow_2",
     "file": "wx2_sparrow_2.png",
     "w": 87,
-    "h": 60,
+    "h": 86,
     "dw": 11
   },
   {
     "key": "wx2_sparrow_3",
     "file": "wx2_sparrow_3.png",
     "w": 87,
-    "h": 60,
+    "h": 86,
     "dw": 11
   },
   {
     "key": "wx2_sparrow_4",
     "file": "wx2_sparrow_4.png",
     "w": 87,
-    "h": 60,
+    "h": 86,
     "dw": 11
   },
   {
@@ -115,29 +115,29 @@ export const BIRD_SPRITES = [
   {
     "key": "wx2_sparrow_perch",
     "file": "wx2_sparrow_perch.png",
-    "w": 56,
-    "h": 33,
-    "dw": 7
+    "w": 71,
+    "h": 55,
+    "dw": 9
   },
   {
     "key": "wx2_sparrow_up",
     "file": "wx2_sparrow_up.png",
     "w": 80,
-    "h": 52,
+    "h": 74,
     "dw": 10
   },
   {
     "key": "wx2_sparrow_flap",
     "file": "wx2_sparrow_flap.png",
-    "w": 70,
-    "h": 50,
+    "w": 74,
+    "h": 72,
     "dw": 9
   },
   {
     "key": "wx2_sparrow_glide",
     "file": "wx2_sparrow_glide.png",
-    "w": 95,
-    "h": 21,
+    "w": 97,
+    "h": 43,
     "dw": 12
   }
 ] as const;

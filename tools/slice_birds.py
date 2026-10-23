@@ -58,11 +58,11 @@ def same_canvas(ims):
 
 def main():
     jobs = []
-    for k, ims in {'sparrow': same_canvas(frames(SPARROW_X, 106, 188, True)), 'gull': same_canvas(frames(GULL_X, 106, 206)),
+    for k, ims in {'sparrow': same_canvas(frames(SPARROW_X, 100, 216, True)), 'gull': same_canvas(frames(GULL_X, 106, 206)),
                    'bfly_pink': same_canvas(frames(PINK_X, 455, 548)), 'bfly_blue': same_canvas(frames(BLUE_X, 455, 548))}.items():
         for n, im in enumerate(ims, 1):
             jobs.append((f'wx2_{k}_{n}', im))
-    pose = frames(SPARROW_X, 752, 824, True)
+    pose = frames(SPARROW_X, 748, 846, True)
     for k, im in zip(('perch', 'up', 'flap', 'glide'), pose):
         jobs.append((f'wx2_sparrow_{k}', im))
     entries = []
