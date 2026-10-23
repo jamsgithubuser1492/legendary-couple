@@ -8,7 +8,7 @@ Our values for this spec: the two of you lead the café as a team, nothing punis
 
 **Keep as written**
 * Staff are people you grow: four skills (Speed, Craft, Charm, Care), three training levels, and Mentor moments with kind, specific feedback.
-* The Weekly Roster Board: you decide together who works which peak shift.
+* The Roster Board: you decide together who works which peak shift.
 * Training shifts: playing Matcha Masters beside an apprentice trains them.
 * The R&D Lab, with Classic, Seasonal and Signature rarity tiers and naming drinks together.
 * The Rush Hour Manager as an asymmetric cooperative strategy minigame, contrasting with the action of Matcha Masters.
@@ -16,7 +16,7 @@ Our values for this spec: the two of you lead the café as a team, nothing punis
 * The anti chore principles: grace over guilt, surprises over obligations, playful world.
 
 **Adapt to fit our values**
-* Payroll expenses become an **energy budget**: each crew member has 3 energy pips a week. Assigning a shift spends a pip, and pips refill every Monday. It is a planning puzzle, never a coin drain.
+* Payroll expenses become an **energy budget**: each crew member has 3 energy pips per roster. Assigning a shift spends a pip, and pips refill when you start a new roster. It is a planning puzzle, never a coin drain.
 * Morale that can drop becomes a **cozy meter that only goes up**. Care raises it (break treats, Mentor moments, a thank you). If you ignore the crew, they stay at Steady. Nobody ever turns grumpy. Glowing staff add a small bonus.
 * Apprentice mistakes become **cute oopsies**: a tray wobbles and you can catch it together for a small bonus. A mistake never costs anything.
 * The Stockout Freeze becomes a **Low Stock slowdown**: a station that runs low glows amber and works at half speed. It never stops.
@@ -34,7 +34,7 @@ Our values for this spec: the two of you lead the café as a team, nothing punis
 * A **main skill**: Speed (drinks ready faster), Craft (higher quality and a wider perfect window), Charm (guests stay patient longer, bigger tips), Care (restocks faster and cheers the team).
 * A **favorite shift** (Morning Rush, Weekend Brunch, Quiet Afternoon, Event Night) and a **personal story** of three short chapters that unlock as they level.
 * Three levels: Apprentice, Skilled, Expert. Their perk grows with each level.
-* Energy pips (3 a week), and a **cozy meter** from Steady to Glowing.
+* Energy pips (3 per roster), and a **cozy meter** from Steady to Glowing.
 
 **Mentor moments.** A short, calm scene, once per crew member per day, from the crew card:
 * Pick one of three feedback lines tied to their skill. Examples: "Thank you for staying calm during the rush" (Charm), "I noticed how neat that pour was" (Craft), "Could we try the oat milk first next time?" (a gentle suggestion, never a criticism).
@@ -47,7 +47,7 @@ Our values for this spec: the two of you lead the café as a team, nothing punis
 * Apprentices cause oopsies you catch together. A clean catch gives extra experience.
 * Your hands on skill directly shapes their growth, which keeps Matcha Masters central.
 
-**Weekly Roster Board.** Every Sunday you both open the board (it can be done in turns, like quest approval: one of you proposes, the other signs off):
+**Roster Board.** You can open it on any day, whenever you want to start the mechanic. A roster lasts 7 days from the day you start it, then you can start a new one. You both open the board (it can be done in turns, like quest approval: one of you proposes, the other signs off). You can move people around freely during the 7 days. Energy only refills when a new roster starts:
 * Slots: Weekday Rush, Weekend Brunch, Quiet Afternoon, and an Event Night when the Community Board has an event.
 * Assign crew to slots. Each assignment spends one energy pip. A crew member working their favorite shift gets a happy sparkle and a bonus.
 * **Duets:** certain pairs have a synergy (for example Pip's Craft with Mr. Oren's Speed). Seating the pair together on the same slot gives a Duet bonus.
@@ -62,7 +62,7 @@ Our values for this spec: the two of you lead the café as a team, nothing punis
 
 **Crew Album.** Each personal story chapter you unlock becomes a card in a keepsake album, with a short written note about the person. It is where leading together becomes memories.
 
-**Employee of the Week wall.** Each Sunday, each of you writes one real appreciation for your partner. It pins to the café wall as the Employee of the Week card and also becomes a gratitude note. This is the real world step that keeps the game tied to the relationship.
+**Employee of the Week wall.** Each time you start a new roster, each of you writes one real appreciation for your partner. It pins to the café wall as the Employee of the Week card and also becomes a gratitude note. This is the real world step that keeps the game tied to the relationship.
 
 ## 3. The Seasonal Menu R&D Lab
 
@@ -105,7 +105,7 @@ A 2 minute cooperative strategy minigame set in your own café, played from the 
 **Your real café is the level.** The map is your actual café layout:
 * Seats and tables come from what you placed. A party of 1, 2 or 4 needs a matching table, so decorating is strategy.
 * Stations are your placed station items (espresso station, whisk station, pastry case, register). If you have not built one, a plain station stands in.
-* The crew you rostered that week work the stations.
+* The crew on your current roster work the stations.
 
 **Pace and mood.** Gentle and quick, never frantic. Calm mode slows patience and spawns fewer parties. A solo practice mode has Mochi take the other role.
 
@@ -142,7 +142,7 @@ A 2 minute cooperative strategy minigame set in your own café, played from the 
 
 **Scoring.** 1 to 3 stars from guests served, average hearts, QA taps, Duets and Teamwork.
 * Rewards: Shells, crew experience (for the crew on duty), reputation (once a day on a 3 star shift), a chance at a decor item (the Golden Espresso Tamper from the summary card), and coins.
-* Coins count under the existing daily minigame limit, so the economy stays calm. The special rewards are non coin.
+* Rewards are Shells, crew experience and decor, plus **small coin bonuses** that count under the existing daily minigame limit, so the economy stays calm.
 
 **Shift Summary card.** Guests served, average hearts, stars, tips, VIPs pleased, crew experience gained, and one tiny story from the day ("Pip learned to carry two trays"). Each of you can add one line about what went well. Both lines show side by side.
 
@@ -160,7 +160,7 @@ A 2 minute cooperative strategy minigame set in your own café, played from the 
 ## 6. Data and rules (for building)
 
 * All new data lives in the café state, keyed by id so the per item sync merge works: crew (id, skill, level, experience, cozy, energy, praised, coached, chapters), roster (week, slots), recipes (id, name, layers, tier, glass, art, by, memory), menu board (slots, spotlight), regulars.
-* The roster week and energy reset on Monday in the couple's time zone.
+* A roster stores the date it started. It ends 7 days later in the couple's time zone, and energy refills when the next roster starts. There is no fixed weekday.
 * Coins from Rush Hour Manager use the daily minigame limit. Recipes and crew are not coins.
 * Both minigames run like the others: partner A's phone runs the simulation, partner B sends inputs, practice mode uses Mochi.
 
@@ -179,10 +179,10 @@ A 2 minute cooperative strategy minigame set in your own café, played from the 
 * **Build 46, Rush Hour Manager:** the strategy minigame using your café layout, the events, summary and rewards.
 * **Build 47, Heart and polish:** the Crew Album, Employee of the Week, Regulars Book, Business Date prompts, seasonal collections and festivals.
 
-## 9. Decisions for you
+## 9. Decisions made
 
-* Is the crew all our own characters, or do you want some to be Sanrio style characters (only if you have the art)?
-* Should VIP guests be the companions you already own (Hello Kitty, Miffy, Snoopy)?
-* Should the Roster Board be done only on Sundays, or any day with a weekly reset?
-* Rewards: are Shells, crew experience and decor enough, or should Rush Hour Manager also pay bigger coins under the daily limit?
-* Which art would you like to create first, the crew portraits or the R&D Lab ingredients?
+* **Crew:** our own original characters. Sanrio style crew would not improve the game: the crew are the people you lead and grow, so unique personalities and their own stories matter most, original crew keep the game safe to share, and your Sanrio companions stay special as VIP guests.
+* **VIP guests:** the companions you already own (Hello Kitty, Miffy and Snoopy).
+* **Roster Board:** open it on any day to start it. A roster lasts 7 days from when you start it.
+* **Rush Hour Manager rewards:** Shells, crew experience and decor, with small coin bonuses under the daily minigame limit.
+* **Still open:** which art to draw first, the crew sheets (C1 to C6 and R1 to R3) or the R&D Lab ingredients (L2).

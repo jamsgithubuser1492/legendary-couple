@@ -87,7 +87,7 @@ A new islander at the café door: silhouette in the doorway, walking in with a b
 * The wooden board itself, isometric free standing and a flat UI version (about 960 by 560 at 2x), with four slots: Weekday Rush, Weekend Brunch, Quiet Afternoon, Event Night. Each slot has an icon (a sunrise, a croissant basket, a teacup, a moon with a note).
 * Round crew tokens, 64 px, for all 8 crew (portrait in a round frame with their accent ring), plus an empty token.
 * Energy pips: full and empty, 3 sizes (a small leaf or heart).
-* Favorite shift star, Duet link icon (two small hearts joined by a thread), Duet glow line (a soft curved line on a dark tile), slot filled sparkle, week header ribbon, Sunday lock and unlock lock icons.
+* Favorite shift star, Duet link icon (two small hearts joined by a thread), Duet glow line (a soft curved line on a dark tile), slot filled sparkle, a roster header ribbon, and Roster active and Roster ended icons (a 7 day calendar leaf).
 Keys `roster_*`.
 
 ### Sheet R2: Skill and meter icons
@@ -212,8 +212,8 @@ Keys `hud_*`, `summary_*`, `reward_*`.
 ### Sheet G1: VIP guests (companions you already own)
 Hello Kitty, Miffy and Snoopy as café guests, each in the clothes of their current outfit set, front left, 216 px: walk front 4 frames and back 4 frames, sit on a chair (front left and front right), order (a thought bubble pose), delighted (jump with sparkles), waving goodbye (4 frames), holding a drink, tasting (4 frames), with their VIP star crown overlay (a small separate sprite). Keys `vip_<name>_*`.
 
-### Sheet G2: Optional original VIP guests
-If you want new VIP characters beyond the ones you own, draw 4 original characters with the same sets: a cloud bunny, a toast bear, a lantern fox and a tea cup cat. Same pose list as G1 for each. Skip this sheet if you prefer to reuse your companions.
+### Sheet G2: Not needed
+Decided: VIP guests are the companions you already own (sheet G1), and the crew are our own original characters. This sheet is cancelled.
 
 ### Sheet G3: Regulars
 Six regular guests to recognize by silhouette, each with an accent color and one signature item (a book, a camera, a laptop, a knitting bag, a skateboard, a sketchbook): front walk 4 frames, back walk 4 frames, seated, a "usual" drink pose. Keys `regular_<id>_*`.
@@ -250,7 +250,7 @@ Keys `regularbook_*`, `bizdate_*`.
 * Crew UI and growth: board, tokens, 4 skill icons, 3 level badges, cozy meter, crew card, mentor scene, 24 story icons, 6 treats, album and wall pieces, quiet mode scene.
 * R&D Lab: room, counter, 19 ingredient jars, 2 controls sets, 3 glasses, 6 garnishes, 5 new latte art patterns, 3 recipe card styles (6 variants), menu board, 8 collection pieces.
 * Rush Hour Manager: party tokens, seating and service props, stations, crates, pantry, overheat, pitcher, VIP and QA, Duet, call outs, role badges, the bus and 6 banners, rain and sun overlays, Flash Special, clock, hearts, summary card, a decor reward.
-* Guests: 3 VIP companions (optional 4 new), 6 regulars, Regulars Book and Business Date.
+* Guests: 3 VIP companions, 6 regulars, Regulars Book and Business Date.
 * Shared effects and small details.
 
 ## 10. Where each sheet goes in the game (so you know why it matters)
@@ -258,7 +258,7 @@ Keys `regularbook_*`, `bizdate_*`.
 * Crew sheets C1 to C9 and R1 to R6 power Build 44 (crew and roster).
 * L1 to L6 power Build 45 (R&D Lab).
 * M1 to M6 and G1 power Build 46 (Rush Hour Manager).
-* G2 to G4 and the extras power Build 47 (heart and polish).
+* G3, G4 and the extras power Build 47 (heart and polish).
 
 ## 11. Existing art to keep consistent with
 
@@ -269,4 +269,4 @@ Keys `regularbook_*`, `bizdate_*`.
 1. Build 44: C1, C2, C3, C4, C5, C6, R1, R2, R3, R4, C7.
 2. Build 45: L1, L2, L3, L4, L5, L6.
 3. Build 46: M1 to M6, G1.
-4. Build 47: C8, C9, R5, R6, G3, G4, then G2 if wanted.
+4. Build 47: C8, C9, R5, R6, G3, G4.
