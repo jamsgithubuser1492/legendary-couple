@@ -61,7 +61,38 @@ export interface PlacedObject {
 export interface CafeOrder { id: string; kind: string; drink: string | null; pastry: string | null; by?: PlayerId; ts: number }
 export type CafeTheme = 'matcha' | 'bistro' | 'cloud';
 /** The café interior: its own room, grid and furniture, kept apart from the island outside. */
+/** What a crew member is best at. It also decides what they add to the team buff and which feedback fits them. */
+export type CrewSkill = 'speed' | 'craft' | 'charm' | 'care';
+/** The four roster slots. rush is a weekday morning, brunch a weekend morning, afternoon is 12 to 17, night is the evening. */
+export type ShiftId = 'rush' | 'brunch' | 'afternoon' | 'night';
+
+/** Progress of one hired crew member. Keyed in CafeState.crew by the hired staff id (manager, apprentice, brewmaster, petsitter, hana, kenji, maya, ollie). */
+export interface CrewMember {
+  level: number; // 1 Apprentice, 2 Skilled, 3 Expert
+  xp: number; // toward the next promotion, reset on promotion
+  cozy: number; // 0 to 100: under 34 Steady, 34 to 66 Warm, above 66 Glowing. Only ever goes up from care.
+  praised: boolean; // a Praise moment was given since the last promotion
+  coached: boolean; // a Coaching moment was given since the last promotion
+  praiseBy?: PlayerId;
+  coachBy?: PlayerId;
+  praiseDay: string; // the day a Praise moment was last given (once per day)
+  coachDay: string;
+  treatDay: string; // the day a treat was last shared
+  chapter: number; // story chapters unlocked (equals the level)
+  since: string; // the day they joined
+}
+
+/** A 7 day roster, started on any day. Everything is keyed by staff id so the sync merge can combine two phones. */
+export interface Roster {
+  startedOn: string; // YYYY-MM-DD, the roster lasts 7 days from this day
+  slots: Record<ShiftId, string[]>; // staff ids on each shift, at most 2 per shift
+  energy: Record<string, number>; // pips left for each crew member this roster (3 to start)
+  paid: Record<string, ShiftId[]>; // the shifts each crew member has already paid a pip for this roster
+}
+
 export interface CafeState {
+  crew: Record<string, CrewMember>; // hired crew progress, keyed by staff id
+  roster: Roster | null;
   theme: CafeTheme;
   themes: CafeTheme[]; // themes you own
   size: number; // tiles per side, walls included
