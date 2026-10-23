@@ -5,7 +5,9 @@ import { TILE_W_HALF, TILE_H, cartesianToIso, findPath, inBounds, isoToCartesian
 import { BUS, gameBus, type EditPayload } from '../events';
 import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject, removeObject, setCafePos, stockPantry, sitTogether } from '../../state/store';
 import { dateKey } from '../../state/questions';
-import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, STAFF, styleOf, themeOf } from '../../state/cafe';
+import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, styleOf, themeOf } from '../../state/cafe';
+import { cozyBand, currentShift, hiredCrew, rosterActive, type CrewDef } from '../../state/crew';
+import { anyWorkView, restEmote, still, walkLoop, wobbleLoop, workLoop, OOPS_PROPS, type View } from '../crewArt';
 import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
@@ -55,6 +57,35 @@ interface Patron {
   leaving?: boolean;
 }
 
+/** One hired crew member in the room: a figure that walks, carries trays, rests, works and has the odd cute oopsie. */
+interface CrewActor {
+  id: string; // the staff id saved in cafe.staff
+  def: CrewDef;
+  level: number;
+  img: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Ellipse;
+  halo: Phaser.GameObjects.Ellipse; // a soft glow at the feet while they are Glowing
+  tile: { x: number; y: number };
+  target?: { x: number; y: number }; // where they are heading, so nobody else picks it
+  view: View;
+  mode: 'idle' | 'walk' | 'work' | 'oops';
+  gen: number; // bumped to cancel a walk or an activity
+  frames: string[];
+  fi: number;
+  ft: number;
+  fms: number;
+  flip: boolean;
+  next: number; // ms until the next decision
+  until: number; // crew clock time when a timed activity ends
+  bubble?: Phaser.GameObjects.Container;
+  bubbleUntil: number;
+  sparkled: boolean;
+  hidden: boolean;
+}
+
+const WORK_H = 70; // a work scene includes its own little counter, so it is drawn a bit taller than a person
+const MAX_WALKERS = 5; // at most this many crew walk at once; the rest keep still
+
 /**
  * The café interior: a walled room of its own, apart from the island outside. You decorate it, walk around it, and
  * little customers drop in, so a prettier room feels alive. Its rules (style, rating, bonuses) live in state/cafe.ts.
@@ -86,8 +117,11 @@ export class CafeScene extends Phaser.Scene {
   private desk!: DesktopInput;
   private patrons: Patron[] = [];
   private nextPatron = 0;
-  private staffObjs = new Map<string, Patron>();
-  private staffKey = '';
+  private crew = new Map<string, CrewActor>();
+  private crewKey = '';
+  private crewClock = 0; // ms, advanced by clamped frame times so a hidden tab never causes a burst
+  private oopsProps: Phaser.GameObjects.GameObject[] = [];
+  private reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   private fx!: Phaser.GameObjects.Graphics;
   private gifts: Phaser.GameObjects.Image[] = [];
   private giftKey = '';
@@ -148,6 +182,9 @@ export class CafeScene extends Phaser.Scene {
       this.patrons = [];
       this.seated.clear();
       this.placedObjs.clear();
+      this.crew.clear();
+      this.crewKey = '';
+      this.oopsProps = [];
     });
     this.enter();
   }
@@ -307,7 +344,7 @@ export class CafeScene extends Phaser.Scene {
     if (!this.scene.isActive()) return;
     this.driftBackdrop(t, delta);
     this.drawFx(t);
-    this.syncStaff();
+    this.updateCrew(delta);
     this.syncGifts();
     for (const q of this.patrons) if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
     this.dayCheck -= delta;
@@ -386,25 +423,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- staff and event effects
-  private syncStaff() {
-    const hired = getState().cafe.staff;
-    const key = hired.join(',');
-    if (key === this.staffKey) return;
-    this.staffKey = key;
-    for (const [id, p] of this.staffObjs) if (!hired.includes(id)) { this.dropPatron(p); this.staffObjs.delete(id); }
-    for (const id of hired) {
-      if (this.staffObjs.has(id)) continue;
-      const def = STAFF.find((x) => x.id === id);
-      if (!def || !this.textures.exists(`${def.sprite}_fl`)) continue;
-      const spot = this.patronSpots()[0] ?? { x: 2, y: 2 };
-      const c = tileCenter(spot.x, spot.y);
-      const img = artImage(this, `${def.sprite}_fl`, c.x, c.y + 6, 0.5, 1).setDepth(spot.x + spot.y + 0.25);
-      const p: Patron = { img, tile: spot, busy: false };
-      this.staffObjs.set(id, p);
-      this.time.addEvent({ delay: 4500 + Math.random() * 3500, loop: true, callback: () => this.wanderStaff(def.sprite, p) });
-    }
-  }
-
+__SYNCCREW__
   /** Surprise props appear on a table: a gift box for the one it is meant for, a vase with a note for the one who sent it. */
   private syncGifts() {
     const st = getState();
@@ -424,29 +443,6 @@ export class CafeScene extends Phaser.Scene {
     if (mine) this.gifts.push(artImage(this, 'cz_gift', c.x, c.y - 4, 0.5, 1).setDepth(depth));
     if (sent) this.gifts.push(artImage(this, 'cz_vase', c.x + (mine ? 18 : 0), c.y - 4, 0.5, 1).setDepth(depth + 0.1));
     for (const g of this.gifts) this.tweens.add({ targets: g, y: g.y - 3, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-  }
-
-  private wanderStaff(base: string, p: Patron) {
-    if (!p.img.scene || p.busy) return;
-    const spots = this.patronSpots();
-    if (!spots.length) return;
-    const to = spots[Math.floor(Math.random() * spots.length)];
-    const path = findPath(p.tile, to, this.pathBlocked(), this.size());
-    if (!path.length) return;
-    p.busy = true;
-    let i = 0;
-    const step = () => {
-      if (!p.img.scene) return;
-      if (i >= path.length) { p.busy = false; return; }
-      const t = path[i++];
-      const dx = t.x - p.tile.x, dy = t.y - p.tile.y;
-      const dir = dx > 0 ? 'fr' : dy > 0 ? 'fl' : dx < 0 ? 'bl' : 'br';
-      if (this.textures.exists(`${base}_${dir}`)) p.img.setTexture(`${base}_${dir}`);
-      const b = tileCenter(t.x, t.y);
-      p.img.setDepth(t.x + t.y + 0.25);
-      this.tweens.add({ targets: p.img, x: b.x, y: b.y + 6, duration: 420, onComplete: () => { p.tile = t; step(); } });
-    };
-    step();
   }
 
   /** Rain for Jazz Night, the playpen for Adopt-a-Pet and a soft glow around each Wi-Fi router. */

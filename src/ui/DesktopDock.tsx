@@ -50,6 +50,7 @@ export default function DesktopDock({ view, wide, todayOpen, onToday, onAct, onQ
     ],
     [
       inCafe ? { id: 'cafe', icon: '⭐', label: 'Café rating', hint: hintOf('cafe'), run: act('cafePanel') } : { id: 'cafe', icon: '☕', label: 'Our café', hint: hintOf('cafe'), run: act('cafe') },
+      { id: 'crew', icon: '👥', label: 'Café crew', hint: hintOf('crew'), badge: b.crew, run: act('crew') },
       { id: 'arcade', icon: '🎮', label: 'Arcade', hint: hintOf('arcade'), run: act('arcade') },
       { id: 'view', icon: inTown ? '🏝️' : inCafe ? '🚪' : '🌍', label: inTown ? 'Home island' : inCafe ? 'Back outside' : 'Town map', hint: hintOf('town'), run: () => onView(inTown || inCafe ? 'island' : 'town') },
     ],

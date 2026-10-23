@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import type { View } from '../game/events';
 import { dateKey } from '../state/questions';
+import { arrivalWaiting, promotionReady, rosterActive } from '../state/crew';
 import { otherPlayer, useGameState, useMe } from '../state/store';
 import { hasActivity, lastWeekKey, mondayOf, recapOf, streakNow } from '../state/weekly';
 import { CurrencyIcon } from './Currency';
 
-export type PhoneAction = 'cafe' | 'cafePanel' | 'checkin' | 'week' | 'streak' | 'surprise' | 'together' | 'vault' | 'arcade' | 'boxes' | 'wardrobe' | 'journal' | 'decorate' | 'rituals' | 'townPanel' | 'dream';
+export type PhoneAction = 'cafe' | 'cafePanel' | 'checkin' | 'week' | 'streak' | 'surprise' | 'together' | 'vault' | 'arcade' | 'boxes' | 'wardrobe' | 'journal' | 'decorate' | 'rituals' | 'townPanel' | 'dream' | 'crew' | 'roster';
 
 /** Everything the HUD used to show as a stack of round buttons, tucked into one calm drawer. */
 export function usePhoneBadges() {
@@ -22,6 +23,7 @@ export function usePhoneBadges() {
     surprise: surprises,
     boxes: boxWaiting ? 1 : 0,
     rituals: s.bottleCredits[me] + bottles,
+    crew: arrivalWaiting(s).length + Object.values(s.cafe.crew ?? {}).filter(promotionReady).length + (s.cafe.staff.length > 0 && !rosterActive(s) ? 1 : 0),
   };
 }
 
@@ -65,6 +67,7 @@ export default function PocketPhone({ view, onClose, onAct }: { view: View; onCl
           <Tile icon="💌" label="Postbox" badge={b.surprise} onClick={go('surprise')} />
           <Tile icon="🗝️" label="Memory Vault" onClick={go('vault')} />
           {view === 'cafe' ? <Tile icon="⭐" label="Café rating" onClick={go('cafePanel')} /> : <Tile icon="☕" label="Our café" onClick={go('cafe')} />}
+          <Tile icon="👥" label="Café crew" badge={b.crew} onClick={go('crew')} />
           <Tile icon="🎮" label="Arcade" onClick={go('arcade')} />
           <Tile icon="🌟" label="Rituals" badge={b.rituals} onClick={go('rituals')} />
           {view !== 'town' ? (

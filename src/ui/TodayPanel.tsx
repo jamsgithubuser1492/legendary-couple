@@ -2,12 +2,13 @@ import { dateKey } from '../state/questions';
 import { otherPlayer, pendingFor, useGameState, useMe } from '../state/store';
 import { mondayOf, streakNow } from '../state/weekly';
 import { waitingFor, type WaitingKind } from '../state/waiting';
+import { arrivalWaiting, hiredCrew, promotionReady, rosterActive } from '../state/crew';
 import type { PhoneAction } from './PocketPhone';
 
 export type TodayAct = PhoneAction | 'quests';
 
 const ICON: Record<WaitingKind, string> = { approve: '📋', daily: '💬', whisper: '🔥', box: '🎁', surprise: '💌', weekly: '🗓️', event: '☕', crew: '🌟' };
-const GO: Record<WaitingKind, TodayAct> = { approve: 'quests', daily: 'checkin', whisper: 'together', box: 'boxes', surprise: 'surprise', weekly: 'week', event: 'cafe', crew: 'cafe' };
+const GO: Record<WaitingKind, TodayAct> = { approve: 'quests', daily: 'checkin', whisper: 'together', box: 'boxes', surprise: 'surprise', weekly: 'week', event: 'cafe', crew: 'crew' };
 
 const SUGGEST = [
   'A quiet day: say hi to each other',
@@ -34,6 +35,10 @@ export function TodayContent({ onAct }: { onAct: (a: TodayAct) => void }) {
   const streak = streakNow(s);
   const waiting = waitingFor(s, me);
   const pending = pendingFor(s, me).length;
+  const door = arrivalWaiting(s);
+  const ready = hiredCrew(s).filter((x) => promotionReady(x.member));
+  const needRoster = s.cafe.staff.length > 0 && !rosterActive(s);
+  const crewLine = door.length ? `${door[0].name} is at the café door, hoping for work` : ready.length ? `${ready[0].def.name} is ready for a promotion` : needRoster ? 'Plan this week\'s shifts whenever you like' : '';
   const idea = SUGGEST[Math.floor(Date.now() / 86400000) % SUGGEST.length];
   return (
     <div className="flex flex-col gap-2">
@@ -53,6 +58,12 @@ export function TodayContent({ onAct }: { onAct: (a: TodayAct) => void }) {
         <button className={row} onClick={() => onAct('quests')}>
           <span className="text-xl">📋</span>
           <span className="min-w-0 flex-1"><span className="block font-display text-xs font-bold uppercase opacity-60">Quests</span><span className="block text-sm font-bold">{pending} to look at when you can</span></span>
+        </button>
+      )}
+      {crewLine && !waiting.some((w) => w.kind === 'crew') && (
+        <button className={row} onClick={() => onAct('crew')}>
+          <span className="text-xl">👥</span>
+          <span className="min-w-0 flex-1"><span className="block font-display text-xs font-bold uppercase opacity-60">Café crew</span><span className="block text-sm font-bold">{crewLine}</span></span>
         </button>
       )}
       {waiting.length > 0 ? (
