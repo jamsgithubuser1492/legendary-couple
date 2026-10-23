@@ -382,12 +382,12 @@ export class SkyLife {
       if (Math.abs(x - 4) <= 1 && Math.abs(y - 4) <= 1) return false; // the starter building
       return !this.taken.has(`${x},${y}`);
     }
-    if (x < 0 || y < 0 || x >= TOWN || y >= TOWN || y > 24) return false; // below that is the beach
-    if (!isLand(x, y) || !isLand(x + 2, y) || !isLand(x - 2, y) || !isLand(x, y + 2) || !isLand(x, y - 2)) return false;
+    if (x < 0 || y < 0 || x >= TOWN || y >= TOWN || y > 26) return false; // below that is the beach
+    if (!isLand(x, y) || !isLand(x - 1, y) || !isLand(x, y + 1)) return false;
     const region = regionOf(x, y);
-    if (region !== 'coast' && region !== 'country') return false;
+    if (region === 'downtown') return false; // streets and towers, no meadow
     if (!unlockedRegions(growthOf(getState())).includes(region)) return false;
-    return !LOTS.some((l) => x >= l.x - 1 && x <= l.x + l.w && y >= l.y - 1 && y <= l.y + l.d);
+    return !LOTS.some((l) => x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.d);
   }
 
   private moveSwarms(dt: number, view: Phaser.Geom.Rectangle) {
