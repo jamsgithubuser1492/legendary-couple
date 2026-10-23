@@ -1,11 +1,12 @@
 import { collectTips, expandCafe, hireStaff, setCafeTheme, setSign, useGameState } from '../state/store';
 import { CAFE_STEPS, matchaBonus, nextCafeStep, SET_NAMES, SIGNS, sitToday, STAFF, STAR_AT, styleOf, THEMES, tipCap, tipMult, tipRate, tipsPending } from '../state/cafe';
+import { crewDef, currentShift, hiredCrew, rosterActive, rosterDaysLeft, rosterMatch, shiftLabel } from '../state/crew';
 import { Amount } from './Currency';
 import { SpriteImg } from './ItemIcon';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 /** The café's front desk: its rating, what the room earns, the theme, and how big it is. */
-export default function CafePanel({ onClose, onDecorate }: { onClose: () => void; onDecorate: () => void }) {
+export default function CafePanel({ onClose, onDecorate, onCrew, onRoster }: { onClose: () => void; onDecorate: () => void; onCrew: () => void; onRoster: () => void }) {
   const s = useGameState();
   const st = styleOf(s);
   const tips = tipsPending(s);
@@ -13,6 +14,9 @@ export default function CafePanel({ onClose, onDecorate }: { onClose: () => void
   const open = st.seats > 0 && st.tables > 0;
   const room = s.cafe.size - 1;
   const bonus = Math.round(matchaBonus(s) * 100);
+  const crew = hiredCrew(s);
+  const onShift = rosterMatch(s, currentShift()).crew.map((id) => crewDef(id)?.name).filter(Boolean);
+  const rosterOn = rosterActive(s);
 
   return (
     <Sheet title="Our Café ☕" onClose={onClose}>
@@ -45,8 +49,19 @@ export default function CafePanel({ onClose, onDecorate }: { onClose: () => void
       </div>
 
       <div className="mt-3 rounded-2xl bg-white p-3 shadow">
+        <div className="font-display font-bold text-cocoa">Your crew 👥</div>
+        <p className="text-xs text-cocoa/70">
+          {crew.length} on the crew. {rosterOn ? `Roster running, ${rosterDaysLeft(s)} ${rosterDaysLeft(s) === 1 ? 'day' : 'days'} left. ${shiftLabel(currentShift())}: ${onShift.length ? onShift.join(' and ') : 'nobody yet'}.` : 'No roster running. You can start one any day.'}
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button className={`${primaryBtn} !px-3 !py-1.5 text-sm`} onClick={onCrew}>Café crew</button>
+          <button className={`${softBtn} !px-3 !py-1.5 text-sm`} onClick={onRoster}>Roster</button>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-3 shadow">
         <div className="font-display font-bold text-cocoa">Baristas ☕</div>
-        <p className="text-xs text-cocoa/60">Hire help over time. There are no wages and nothing to manage, each one just adds a perk.</p>
+        <p className="text-xs text-cocoa/60">Hire help over time. There are no wages and nothing to manage, each one just adds a perk. Open the Café crew to grow them.</p>
         <div className="mt-2 space-y-2">
           {STAFF.map((m) => {
             const own = s.cafe.staff.includes(m.id);

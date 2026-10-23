@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { View } from '../game/events';
 import { dateKey } from '../state/questions';
-import { arrivalWaiting, promotionReady, rosterActive } from '../state/crew';
+import { arrivalWaiting, promotionReady } from '../state/crew';
 import { otherPlayer, useGameState, useMe } from '../state/store';
 import { hasActivity, lastWeekKey, mondayOf, recapOf, streakNow } from '../state/weekly';
 import { CurrencyIcon } from './Currency';
@@ -23,7 +23,7 @@ export function usePhoneBadges() {
     surprise: surprises,
     boxes: boxWaiting ? 1 : 0,
     rituals: s.bottleCredits[me] + bottles,
-    crew: arrivalWaiting(s).length + Object.values(s.cafe.crew ?? {}).filter(promotionReady).length + (s.cafe.staff.length > 0 && !rosterActive(s) ? 1 : 0),
+    crew: arrivalWaiting(s).length + Object.values(s.cafe.crew ?? {}).filter(promotionReady).length,
   };
 }
 

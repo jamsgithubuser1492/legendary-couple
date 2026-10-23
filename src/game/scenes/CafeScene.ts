@@ -423,7 +423,355 @@ export class CafeScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- staff and event effects
-__SYNCCREW__
+  private has = (k: string) => this.textures.exists(k);
+
+  /** Keeps one actor per hired crew member, at the look for their level, and runs their day. */
+  private updateCrew(delta: number) {
+    const dt = Math.min(100, delta); // a hidden tab returns with a huge frame time: never let it become a burst
+    this.crewClock += dt;
+    const s = getState();
+    const list = hiredCrew(s);
+    const key = list.map(({ def, member }) => `${def.staff}:${member.level}`).join(',');
+    if (key !== this.crewKey) {
+      this.crewKey = key;
+      for (const [id, a] of [...this.crew]) if (!list.some((x) => x.def.staff === id)) this.dropCrew(a);
+      for (const { def, member } of list) {
+        const a = this.crew.get(def.staff);
+        if (!a) this.addCrew(def, member.level);
+        else if (a.level !== member.level) this.promoteLook(a, member.level);
+      }
+    }
+    const hide = this.edit.active;
+    const occ = this.occupied();
+    let walkers = 0;
+    for (const a of this.crew.values()) if (a.mode === 'walk') walkers++;
+    let i = 0;
+    for (const { def, member } of list) {
+      const a = this.crew.get(def.staff);
+      if (!a || !a.img.scene) continue;
+      this.crewVisible(a, !hide);
+      if (hide) continue;
+      this.crewFx(a, cozyBand(member.cozy) === 'glowing', this.onShift(a));
+      // stuck on a tile that furniture now covers: step to a free one
+      if (a.mode !== 'walk' && this.blocked.has(`${a.tile.x},${a.tile.y}`)) this.snapCrew(a, occ);
+      this.animateCrew(a, dt);
+      if (a.mode === 'walk') continue;
+      if (a.mode === 'work' && this.crewClock >= a.until) { a.mode = 'idle'; this.crewStill(a); a.next = 1500 + Math.random() * 2500; }
+      if (a.mode === 'oops' && this.crewClock >= a.until) { a.mode = 'idle'; this.crewStill(a); a.next = 2500; }
+      if (a.mode !== 'idle') continue;
+      a.next -= dt;
+      if (a.next > 0) continue;
+      if (walkers >= MAX_WALKERS) { a.next = 1500; continue; }
+      if (this.decideCrew(a, i, occ)) walkers++;
+      i++;
+    }
+  }
+
+  private addCrew(def: CrewDef, level: number) {
+    const key = still(this.has, def, level, 'fl');
+    if (!key) return;
+    const occ = this.occupied();
+    const spot = this.restSpotFor(def, occ) ?? this.freeTile(occ) ?? { x: 2, y: 2 };
+    const c = tileCenter(spot.x, spot.y);
+    const img = artImage(this, key, c.x, c.y + 6, 0.5, 1).setDepth(spot.x + spot.y + 0.25).setAlpha(0);
+    const shadow = this.add.ellipse(c.x, c.y + 5, 24, 9, 0x6b4f4f, 0.16).setDepth(spot.x + spot.y + 0.15).setAlpha(0);
+    const halo = this.add.ellipse(c.x, c.y + 4, 46, 18, 0xffe9a8, 0.3).setDepth(spot.x + spot.y + 0.12).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+    const a: CrewActor = { id: def.staff, def, level, img, shadow, halo, tile: spot, view: 'fl', mode: 'idle', gen: 0, frames: [key], fi: 0, ft: 0, fms: 150, flip: false, next: 600 + Math.random() * 2500, until: 0, bubbleUntil: 0, sparkled: false, hidden: false };
+    this.crew.set(def.staff, a);
+    this.tweens.add({ targets: [img], alpha: 1, duration: 300 });
+    this.tweens.add({ targets: [shadow], alpha: 0.16, duration: 300 });
+  }
+
+  private dropCrew(a: CrewActor) {
+    a.gen++;
+    this.tweens.killTweensOf([a.img, a.shadow, a.halo]);
+    a.bubble?.destroy();
+    a.img.destroy();
+    a.shadow.destroy();
+    a.halo.destroy();
+    this.crew.delete(a.id);
+  }
+
+  /** A promotion: swap to the new look with a small pop. */
+  private promoteLook(a: CrewActor, level: number) {
+    a.level = level;
+    if (a.mode !== 'walk' && a.mode !== 'work') this.crewStill(a);
+    if (this.reduced) return;
+    const k = a.img.scaleY;
+    this.tweens.add({ targets: a.img, scaleX: a.img.scaleX * 1.15, scaleY: k * 1.15, duration: 160, yoyo: true, ease: 'Sine.easeOut' });
+    this.sparkle(a);
+  }
+
+  private crewVisible(a: CrewActor, on: boolean) {
+    if (a.hidden === !on) return;
+    a.hidden = !on;
+    if (!on) {
+      a.gen++;
+      this.tweens.killTweensOf([a.img, a.shadow, a.halo]);
+      a.mode = 'idle';
+      a.target = undefined;
+      a.bubble?.destroy();
+      a.bubble = undefined;
+    } else {
+      this.snapCrew(a, this.occupied());
+      this.crewStill(a);
+      a.next = 800 + Math.random() * 1500;
+    }
+    a.img.setVisible(on);
+    a.shadow.setVisible(on);
+    if (!on) a.halo.setVisible(false);
+  }
+
+  /** Tiles taken by guests, the two of you and other crew (and where crew are heading). */
+  private occupied(except?: CrewActor): Set<string> {
+    const set = new Set<string>();
+    for (const p of this.patrons) set.add(`${p.tile.x},${p.tile.y}`);
+    for (const v of Object.values(this.avatars)) set.add(`${v.tile.x},${v.tile.y}`);
+    for (const c of this.crew.values()) {
+      if (c === except) continue;
+      set.add(`${c.tile.x},${c.tile.y}`);
+      if (c.target) set.add(`${c.target.x},${c.target.y}`);
+    }
+    return set;
+  }
+
+  private freeTile(occ: Set<string>): { x: number; y: number } | null {
+    const b = this.pathBlocked();
+    const size = this.size();
+    for (let r = 0; r < 60; r++) {
+      const t = { x: 1 + Math.floor(Math.random() * (size - 1)), y: 1 + Math.floor(Math.random() * (size - 1)) };
+      if (!b.has(`${t.x},${t.y}`) && !occ.has(`${t.x},${t.y}`) && !(t.x === ENTRY.x && t.y === ENTRY.y)) return t;
+    }
+    return null;
+  }
+
+  private snapCrew(a: CrewActor, occ: Set<string>) {
+    const t = this.restSpotFor(a.def, occ, a) ?? this.freeTile(occ);
+    if (!t) return;
+    a.tile = t;
+    const c = tileCenter(t.x, t.y);
+    a.img.setPosition(c.x, c.y + 6).setDepth(t.x + t.y + 0.25);
+    a.shadow.setPosition(c.x, c.y + 5).setDepth(t.x + t.y + 0.15);
+    a.halo.setPosition(c.x, c.y + 4).setDepth(t.x + t.y + 0.12);
+  }
+
+  /** Floor along the two back walls, beside the door, where crew who are off shift wait. Each person has their own place. */
+  private restSpotFor(def: CrewDef, occ: Set<string>, self?: CrewActor): { x: number; y: number } | null {
+    const b = this.pathBlocked();
+    const size = this.size();
+    const spots: { x: number; y: number }[] = [];
+    for (let x = size - 1; x >= 1; x--) if (Math.abs(x - DOOR_X) > 1) spots.push({ x, y: 1 });
+    for (let y = 2; y < size; y++) spots.push({ x: 1, y });
+    const free = spots.filter((t) => !b.has(`${t.x},${t.y}`));
+    if (!free.length) return null;
+    const order = hiredCrew(getState()).findIndex((h) => h.def.id === def.id);
+    for (let k = 0; k < free.length; k++) {
+      const t = free[(Math.max(0, order) * 2 + k) % free.length];
+      const key = `${t.x},${t.y}`;
+      if (!occ.has(key) || (self && self.tile.x === t.x && self.tile.y === t.y)) return t;
+    }
+    return null;
+  }
+
+  /** With no roster everyone works as before; with a roster only the crew on this shift move around, the rest rest. */
+  private onShift(a: CrewActor): boolean {
+    const s = getState();
+    if (!s.cafe.roster || !rosterActive(s)) return true;
+    return (s.cafe.roster.slots[currentShift()] ?? []).includes(a.id);
+  }
+
+  private setLook(a: CrewActor, key: string, flip: boolean, height?: number) {
+    if (!this.has(key)) return;
+    a.img.setTexture(key).setFlipX(flip);
+    const w = height ? (a.img.width / a.img.height) * height : displayWidth(key, a.img.width);
+    a.img.setScale(w / a.img.width);
+    a.flip = flip;
+  }
+
+  private crewStill(a: CrewActor) {
+    const key = still(this.has, a.def, a.level, a.view);
+    if (key) this.setLook(a, key, false);
+    a.frames = key ? [key] : a.frames;
+    a.fi = 0;
+  }
+
+  /** Steps a looping animation by the frame time. */
+  private animateCrew(a: CrewActor, dt: number) {
+    if (a.frames.length < 2) return;
+    a.ft += dt;
+    if (a.ft < a.fms) return;
+    a.ft = 0;
+    a.fi = (a.fi + 1) % a.frames.length;
+    this.setLook(a, a.frames[a.fi], a.flip, a.mode === 'work' ? WORK_H : undefined);
+  }
+
+  private setLoop(a: CrewActor, frames: string[], fms: number, flip: boolean, height?: number) {
+    if (!frames.length) return;
+    a.frames = frames;
+    a.fi = 0;
+    a.ft = 0;
+    a.fms = fms;
+    this.setLook(a, frames[0], flip, height);
+  }
+
+  /** Chooses what a rested crew member does next. Returns true when they set off walking. */
+  private decideCrew(a: CrewActor, order: number, occ: Set<string>): boolean {
+    const s = getState();
+    const onShift = this.onShift(a);
+    a.next = 2500 + Math.random() * 4000;
+    if (!onShift) {
+      const rest = this.restSpotFor(a.def, occ, a);
+      if (rest && (rest.x !== a.tile.x || rest.y !== a.tile.y)) return this.crewGo(a, rest, false);
+      this.restMoment(a, order);
+      return false;
+    }
+    // favorite shift: one little sparkle
+    if (!a.sparkled && s.cafe.roster && a.def.favorite === currentShift()) { a.sparkled = true; this.sparkle(a); }
+    // a tray wobble now and then for apprentices: cute, free and over in a moment
+    if (!this.reduced && a.level === 1 && wobbleLoop(this.has, a.def).length >= 2 && Math.random() < 0.09) { this.oopsie(a); return false; }
+    const spots = this.patronSpots().filter((t) => !occ.has(`${t.x},${t.y}`));
+    const orders = s.cafe.orders.length > 0;
+    const view = anyWorkView(this.has, a.def);
+    const r = Math.random();
+    if (view && r < 0.22) {
+      const t = this.workTile(occ);
+      if (t) return this.crewGo(a, t, false, () => this.startWork(a, view));
+    }
+    if (orders && spots.length && r < 0.7) {
+      const t = spots[Math.floor(Math.random() * spots.length)];
+      return this.crewGo(a, t, true, () => { a.next = 1400; });
+    }
+    if (spots.length && r < 0.9) return this.crewGo(a, spots[Math.floor(Math.random() * spots.length)], false);
+    this.restMoment(a, order);
+    return false;
+  }
+
+  /** Standing around: now and then a small portrait bubble shows how they feel. */
+  private restMoment(a: CrewActor, order: number) {
+    if (this.reduced || Math.random() > 0.5) return;
+    const key = restEmote(this.has, a.def, order + Math.floor(this.crewClock / 7000)) ?? (this.has('cx_b_heart') ? 'cx_b_heart' : undefined);
+    if (!key) return;
+    a.bubble?.destroy();
+    const ring = this.add.ellipse(0, 0, 30, 30, 0xfff4ee, 0.95).setStrokeStyle(2, 0xd9b88a);
+    const im = this.add.image(0, 1, key);
+    const k = key.startsWith('crewx_') ? 26 / im.height : 24 / im.height;
+    im.setScale(k);
+    const box = this.add.container(a.img.x, a.img.y - a.img.displayHeight - 14, [ring, im]).setDepth(900).setAlpha(0);
+    a.bubble = box;
+    a.bubbleUntil = this.crewClock + 2200;
+    this.tweens.add({ targets: box, alpha: 1, duration: 200 });
+    this.time.delayedCall(2200, () => {
+      if (a.bubble === box) a.bubble = undefined;
+      if (box.scene) this.tweens.add({ targets: box, alpha: 0, duration: 250, onComplete: () => box.destroy() });
+    });
+  }
+
+  /** Walks a path to a tile (carrying a tray if asked), then runs `done`. Returns false when there is no way there. */
+  private crewGo(a: CrewActor, to: { x: number; y: number }, carry: boolean, done?: () => void): boolean {
+    const path = findPath(a.tile, to, this.pathBlocked(), this.size());
+    if (!path.length) return false;
+    const gen = ++a.gen;
+    a.mode = 'walk';
+    a.target = to;
+    a.bubble?.destroy();
+    a.bubble = undefined;
+    let i = 0;
+    const step = () => {
+      if (!a.img.scene || a.gen !== gen) return;
+      if (i >= path.length) {
+        a.mode = 'idle';
+        a.target = undefined;
+        this.crewStill(a);
+        if (done) done();
+        return;
+      }
+      const t = path[i++];
+      const dx = t.x - a.tile.x, dy = t.y - a.tile.y;
+      const side = dx < 0 || dy < 0 ? 'b' : 'f'; // moving up the screen shows the back
+      a.view = dx > 0 ? 'fr' : dy > 0 ? 'fl' : dx < 0 ? 'bl' : 'br';
+      const frames = walkLoop(this.has, a.def, side, carry);
+      const flip = dx > 0 || dy < 0; // the walk art faces left, the right hand views are mirrored
+      if (frames.length) this.setLoop(a, frames, Math.round(420 / Math.max(2, frames.length)), flip);
+      else { const k = still(this.has, a.def, a.level, a.view); if (k) this.setLook(a, k, false); }
+      const b = tileCenter(t.x, t.y);
+      a.img.setDepth(t.x + t.y + 0.25);
+      a.shadow.setDepth(t.x + t.y + 0.15);
+      a.halo.setDepth(t.x + t.y + 0.12);
+      this.tweens.add({
+        targets: a.img, x: b.x, y: b.y + 6, duration: 420, ease: 'Linear',
+        onUpdate: () => { a.shadow.setPosition(a.img.x, a.img.y - 1); a.halo.setPosition(a.img.x, a.img.y - 2); if (a.bubble) a.bubble.setPosition(a.img.x, a.img.y - a.img.displayHeight - 14); },
+        onComplete: () => { a.tile = t; step(); },
+      });
+    };
+    step();
+    return true;
+  }
+
+  /** A free floor tile with room around it for a small work scene. */
+  private workTile(occ: Set<string>): { x: number; y: number } | null {
+    const b = this.pathBlocked();
+    const size = this.size();
+    const free = (x: number, y: number) => x >= 1 && y >= 1 && x < size && y < size && !b.has(`${x},${y}`) && !occ.has(`${x},${y}`);
+    for (let r = 0; r < 40; r++) {
+      const x = 2 + Math.floor(Math.random() * Math.max(1, size - 4)), y = 2 + Math.floor(Math.random() * Math.max(1, size - 4));
+      if (Math.abs(x - DOOR_X) < 2 && y < 4) continue;
+      if (free(x, y) && free(x + 1, y) && free(x, y + 1)) return { x, y };
+    }
+    return null;
+  }
+
+  /** A short work scene (the loop includes its own counter), then back to the day. */
+  private startWork(a: CrewActor, view: View) {
+    const frames = workLoop(this.has, a.def, view);
+    if (frames.length < 2) return;
+    a.mode = 'work';
+    a.view = view;
+    a.until = this.crewClock + 6000 + Math.random() * 4000;
+    this.setLoop(a, frames, 520, false, WORK_H);
+  }
+
+  /** The tray wobbles, a crumb drops, and everyone smiles: nothing is lost. */
+  private oopsie(a: CrewActor) {
+    const frames = wobbleLoop(this.has, a.def);
+    if (frames.length < 2) return;
+    a.mode = 'oops';
+    a.until = this.crewClock + frames.length * 300 + 400;
+    this.setLoop(a, frames, 300, false);
+    const key = OOPS_PROPS.find((k) => this.has(k));
+    if (!key) return;
+    const prop = artImage(this, key, a.img.x + 10, a.img.y + 2, 0.5, 1).setDepth(a.tile.x + a.tile.y + 0.1);
+    prop.setScale(prop.scaleX * 0.7);
+    this.oopsProps.push(prop);
+    this.tweens.add({ targets: prop, alpha: 0, delay: 2600, duration: 800, onComplete: () => { prop.destroy(); this.oopsProps = this.oopsProps.filter((q) => q !== prop); } });
+  }
+
+  /** The soft glow for Glowing crew. */
+  private crewFx(a: CrewActor, glowing: boolean, working: boolean) {
+    void working;
+    a.halo.setVisible(glowing && !this.reduced);
+    if (glowing && !this.reduced) a.halo.setAlpha(0.22 + 0.1 * Math.sin(this.crewClock / 500 + a.img.x));
+    if (a.bubble) a.bubble.setPosition(a.img.x, a.img.y - a.img.displayHeight - 14);
+  }
+
+  /** A few sparkles rise from their head. */
+  private sparkle(a: CrewActor) {
+    if (this.reduced) return;
+    for (let i = 0; i < 3; i++) {
+      const k = `or_spark_${1 + Math.floor(Math.random() * 5)}`;
+      if (!this.has(k)) return;
+      const sp = this.add.image(a.img.x + (i - 1) * 10, a.img.y - a.img.displayHeight + 4, k).setDepth(901).setBlendMode(Phaser.BlendModes.ADD).setScale(0.5).setAlpha(0);
+      this.tweens.add({ targets: sp, y: sp.y - 18, alpha: { from: 0.9, to: 0 }, duration: 1100, delay: i * 140, onStart: () => sp.setAlpha(0.9), onComplete: () => sp.destroy() });
+    }
+  }
+
+  private crewAt(w: { x: number; y: number }): CrewActor | undefined {
+    for (const a of this.crew.values()) {
+      if (a.hidden || !a.img.scene) continue;
+      if (Math.abs(a.img.x - w.x) < 18 && w.y < a.img.y + 4 && w.y > a.img.y - a.img.displayHeight - 4) return a;
+    }
+    return undefined;
+  }
+
   /** Surprise props appear on a table: a gift box for the one it is meant for, a vase with a note for the one who sent it. */
   private syncGifts() {
     const st = getState();
@@ -670,6 +1018,7 @@ __SYNCCREW__
     const s = getState();
     const taken = new Set<string>([...this.blocked, `${this.avatars.A.tile.x},${this.avatars.A.tile.y}`, `${this.avatars.B.tile.x},${this.avatars.B.tile.y}`]);
     for (const p of this.patrons) taken.add(`${p.tile.x},${p.tile.y}`);
+    for (const c of this.crew.values()) { taken.add(`${c.tile.x},${c.tile.y}`); if (c.target) taken.add(`${c.target.x},${c.target.y}`); }
     const out: { x: number; y: number }[] = [];
     for (const o of s.cafe.placed) {
       const it = itemOf(o.itemId);
@@ -815,6 +1164,11 @@ __SYNCCREW__
     this.dragStart = undefined;
     if (wasDrag) return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    const who = this.crewAt(w);
+    if (who && !this.edit.active) {
+      if (!this.reduced) this.tweens.add({ targets: who.img, scaleX: who.img.scaleX * 1.08, scaleY: who.img.scaleY * 1.08, duration: 110, yoyo: true });
+      return gameBus.emit(BUS.openFocus, 'crew', who.id); // the crew card; the second argument is the staff id
+    }
     const guest = this.patrons.find((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4);
     if (guest && !this.edit.active) return gameBus.emit(BUS.openFocus, 'orders');
     const t = this.pointerTile(p) ?? this.doorTap(p);
@@ -843,6 +1197,8 @@ __SYNCCREW__
   private labelAt(p: Phaser.Input.Pointer): string | null {
     if (this.edit.active) return null;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
+    const who = this.crewAt(w);
+    if (who) return `${who.def.name}, ${who.def.role}`;
     if (this.patrons.some((q) => Math.abs(q.img.x - w.x) < 18 && w.y < q.img.y + 4 && w.y > q.img.y - q.img.displayHeight - 4)) return 'Guest (see orders)';
     const t = this.pointerTile(p) ?? this.doorTap(p);
     if (!t) return null;

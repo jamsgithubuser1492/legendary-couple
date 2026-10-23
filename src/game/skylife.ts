@@ -1,21 +1,31 @@
 import Phaser from 'phaser';
 import { DPR } from './render';
 import { useSyncExternalStore } from 'react';
-import { getTheme, type Theme } from '../state/season';
+import { themeForDate, type Theme } from '../state/season';
+import { firefliesInSeason, fireflyFade, weatherRule, type Weather, type WeatherChoice } from '../state/weather';
+import { getState } from '../state/store';
+import { LOTS, TOWN, growthOf, regionOf, unlockedRegions } from '../state/town';
+import { tilesOf } from '../state/placement';
+import { GRID_SIZE, tileCenter } from './iso';
+import { isLand } from './town/world';
 
 /**
- * Sky life and weather for the world maps (island and town). Gulls, finches, butterflies and fireflies drift through
- * the part of the map you are looking at; rain and snow are a soft overlay on the screen. All of it is cosmetic and
- * non interactive, so it never gets in the way of a tap.
+ * Sky life and weather for the world maps (island and town). Gulls, finches and butterflies drift through the part of
+ * the map you are looking at. Rain, snow and fireflies are painted into the world itself at world scale: zoom out and the
+ * drops, flakes and glowing swarms get smaller with everything else, exactly like real things would. All of it follows
+ * the real calendar (not a previewed season), is cosmetic and non interactive, and never gets in the way of a tap.
  */
 
-export type Weather = 'clear' | 'rain' | 'snow';
-export type WeatherChoice = 'auto' | Weather;
+export type { Weather, WeatherChoice };
 
 const KEY = 'olw:weather';
+const FLY_KEY = 'olw:fireflies';
+let flyForce = false; // testing only: olw:weather=fireflies or olw:fireflies=1 shows the swarms out of season
 let choice: WeatherChoice = (() => {
   try {
     const v = localStorage.getItem(KEY);
+    flyForce = v === 'fireflies' || localStorage.getItem(FLY_KEY) === '1';
+    if (v === 'fireflies') return 'clear';
     return v === 'clear' || v === 'rain' || v === 'snow' ? v : 'auto';
   } catch {
     return 'auto';
@@ -40,19 +50,10 @@ const subscribe = (l: () => void) => {
 };
 export const useWeatherChoice = () => useSyncExternalStore(subscribe, getWeatherChoice);
 
-/** The same weather for both phones: a hash of the local date and the season, unless you chose one. */
-export function weatherFor(d: Date, theme: Theme): Weather {
-  if (choice !== 'auto') return choice;
-  const day = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-  let h = 2166136261;
-  for (let i = 0; i < day.length; i++) h = Math.imul(h ^ day.charCodeAt(i), 16777619);
-  const r = ((h >>> 0) % 1000) / 1000;
-  if (theme === 'winter' || theme === 'holidays') return r < 0.7 ? 'snow' : 'clear';
-  if (theme === 'spring' || theme === 'autumn') return r < 0.25 ? 'rain' : 'clear';
-  return 'clear';
-}
+/** The same weather for both phones: see weatherRule in state/weather.ts. A chosen weather ignores the season. */
+export const weatherFor = (d: Date, theme: Theme = themeForDate(d)): Weather => weatherRule(d, theme, choice);
+export { firefliesInSeason, fireflyFade };
 
-const isNight = (h: number) => h >= 20 || h < 6;
 /** People who ask their device for less motion get a still scene: no flapping, no falling rain or snow. */
 const calmWanted = () => {
   try {
@@ -72,12 +73,11 @@ const lowEnd = () => {
 };
 const live = new WeakMap<Phaser.Scene, SkyLife>();
 const R = (a: number, b: number) => a + Math.random() * (b - a);
-const pick = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const DEPTH = 4000;
-const PAD = 120; // overlay tints reach past the screen edge so a fast pan never shows a seam
+const PAD = 160; // weather layers reach past the view (in world units) so a fast pan never shows a seam
 
 interface Critter {
-  kind: 'gull' | 'finch' | 'perch' | 'bfly' | 'ffly';
+  kind: 'gull' | 'finch' | 'perch' | 'bfly';
   im: Phaser.GameObjects.Image;
   x: number;
   y: number;
@@ -88,21 +88,58 @@ interface Critter {
   frames?: string[];
 }
 
+/** One tile layer of rain or snow. Scale and speed are in world units, so zooming the map zooms the weather too. */
+interface Layer {
+  ts: Phaser.GameObjects.TileSprite;
+  kind: 'rain' | 'snow';
+  scale: number; // world size of one texture pixel
+  vx: number; // world units a second the pattern travels
+  vy: number;
+  ox: number;
+  oy: number;
+  phase: number; // frame offset so two layers never show the same picture
+  fps: number;
+  frame: number;
+  sway: number;
+}
+
+interface Swarm {
+  im: Phaser.GameObjects.Image;
+  x: number; // world position
+  y: number;
+  ph: number;
+  wob: number;
+}
+
+interface Ripple {
+  im: Phaser.GameObjects.Image;
+  t: number;
+  life: number;
+}
+
+/** What one raindrop, flake or firefly measures in the world (the map's tile is 64 by 32 and a person about 54 tall). */
+const RAIN_LAYERS: { scale: number; speed: number; slant?: number; alpha: number }[] = [
+  { scale: 0.42, speed: 430, slant: 0.42, alpha: 0.55 }, // far drops: short streaks, about 20 px
+  { scale: 0.62, speed: 640, slant: 0.42, alpha: 0.8 }, // near drops: about 30 px, still less than one tile high
+];
+const SNOW_LAYERS: { scale: number; speed: number; slant?: number; alpha: number }[] = [
+  { scale: 0.3, speed: 22, alpha: 0.7 }, // flakes a few pixels across
+  { scale: 0.45, speed: 36, alpha: 0.9 }, // the biggest flake is about 14 px, a quarter of a person
+];
+const SWARM_SCALE = 0.24; // a swarm is about 53 px across, a little under one tile
+
 export class SkyLife {
   private critters: Critter[] = [];
-  private root: Phaser.GameObjects.Container;
-  private g: Phaser.GameObjects.Graphics;
-  private overlay: Phaser.GameObjects.GameObject[] = [];
   private weather: Weather = 'clear';
   private weatherKey = '';
-  private flakes: { im: Phaser.GameObjects.Image; x: number; y: number; vy: number; sw: number; ph: number }[] = [];
-  private drops: { x: number; y: number; len: number; sp: number }[] = [];
-  private ripples: { im: Phaser.GameObjects.Image; t: number; life: number }[] = [];
-  private snowTile?: Phaser.GameObjects.TileSprite;
+  private layers: Layer[] = [];
+  private mist?: Phaser.GameObjects.Rectangle;
+  private ripples: Ripple[] = [];
+  private swarms: Swarm[] = [];
+  private flyFade = 0;
+  private taken = new Set<string>(); // island tiles with something on them, so fireflies keep to the grass
   private t = 0;
   private hourT = 99;
-  private night = false;
-  private dusk = 0;
   private zk = 1; // creatures grow a little when the map is zoomed out, so they stay visible
   private theme: Theme = 'summer';
   private nextGull = 3;
@@ -111,18 +148,17 @@ export class SkyLife {
   private dead = false;
   private calm = calmWanted();
   private q = lowEnd() ? 0.5 : 1; // how many particles we can afford
-  private counts: Record<Critter['kind'], number> = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
+  private counts: Record<Critter['kind'], number> = { gull: 0, finch: 0, perch: 0, bfly: 0 };
   private rect = new Phaser.Geom.Rectangle();
   private out = new Phaser.Geom.Rectangle();
   private unsub?: () => void;
+  private town: boolean;
 
   constructor(private scene: Phaser.Scene) {
     live.get(scene)?.destroy(); // never two of us in one scene
     live.set(scene, this);
+    this.town = scene.sys.settings.key === 'TownScene';
     this.unsub = subscribe(() => { this.hourT = 99; }); // a new weather choice shows at once
-    this.root = scene.add.container(0, 0).setDepth(DEPTH + 10);
-    this.g = scene.add.graphics();
-    this.root.add(this.g);
     scene.events.on(Phaser.Scenes.Events.UPDATE, this.update, this);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
     scene.events.once(Phaser.Scenes.Events.DESTROY, () => this.destroy());
@@ -136,9 +172,8 @@ export class SkyLife {
     this.scene.events.off(Phaser.Scenes.Events.UPDATE, this.update, this);
     for (const c of this.critters) c.im.destroy();
     this.critters = [];
-    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
-    this.clearOverlay();
-    this.root.destroy();
+    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0 };
+    this.clearFx();
   }
 
   private has = (k: string) => this.scene.textures.exists(k);
@@ -155,33 +190,35 @@ export class SkyLife {
     const sx = cam.useBounds ? cam.clampX(cam.scrollX) : cam.scrollX;
     const sy = cam.useBounds ? cam.clampY(cam.scrollY) : cam.scrollY;
     const view = this.rect.setTo(sx + cam.width / 2 - w / 2, sy + cam.height / 2 - h / 2, w, h);
-    // refresh the hour, the season and the weather once in a while
+    // refresh the hour, the real season and the weather once in a while
     this.hourT += dt;
     if (this.hourT > 2) {
       this.hourT = 0;
       this.calm = calmWanted();
       const now = new Date();
-      this.night = isNight(now.getHours());
-      this.theme = getTheme();
-      const wx = weatherFor(now, this.theme);
-      const key = `${wx}|${this.theme}|${this.calm}|${cam.width}x${cam.height}`;
+      this.theme = themeForDate(now); // the real season; the Us panel preview only repaints the island
+      this.weather = weatherFor(now, this.theme);
+      const hour = now.getHours() + now.getMinutes() / 60;
+      this.flyFade = this.weather === 'clear' && (flyForce || firefliesInSeason(now)) ? fireflyFade(hour) : 0;
+      this.notedTiles();
+      const key = `${this.weather}|${this.calm}|${this.q}`;
       if (key !== this.weatherKey) {
         this.weatherKey = key;
-        this.weather = wx;
-        this.buildOverlay();
+        this.buildFx();
       }
     }
     this.zk = Phaser.Math.Clamp((0.9 * DPR) / zoom, 1, 2);
-    this.root.setPosition(view.centerX, view.centerY).setScale(1 / zoom);
     this.spawn(dt, view);
     this.moveCritters(dt, view);
-    this.drawWeather(dt, cam);
+    this.moveFx(dt, view);
+    this.moveSwarms(dt, view);
   }
 
   // ---------------------------------------------------------------- creatures
   private spawn(dt: number, view: Phaser.Geom.Rectangle) {
     const count = (k: Critter['kind']) => this.counts[k];
-    const day = !this.night && this.weather !== 'rain' && !this.calm;
+    const hour = new Date().getHours();
+    const day = hour >= 6 && hour < 20 && this.weather === 'clear' && !this.calm;
     this.nextGull -= dt;
     this.nextFinch -= dt;
     this.nextBfly -= dt;
@@ -208,21 +245,12 @@ export class SkyLife {
       const k = `sk_bwide_${1 + Math.floor(Math.random() * 5)}`;
       if (this.has(k)) this.add('bfly', k, view.x + view.width * R(0.1, 0.9), view.y + view.height * R(0.25, 0.85), R(-12, 12), R(-8, 8), undefined, R(14, 26));
     }
-    if (false as boolean) { // fireflies retired: they read as distracting white blobs
-      const want = this.calm ? 0 : Math.round(12 * this.q);
-      while (count('ffly') < want) {
-        const k = `sk_ffly_${1 + Math.floor(Math.random() * 5)}`;
-        if (!this.has(k)) break;
-        this.add('ffly', k, view.x + view.width * R(0, 1), view.y + view.height * R(0.2, 0.95), R(-6, 6), R(-6, 6));
-      }
-    }
   }
 
   private add(kind: Critter['kind'], key: string, x: number, y: number, vx: number, vy: number, frames?: string[], life = 999) {
     const im = this.scene.add.image(x, y, key).setDepth(DEPTH).setOrigin(0.5);
-    const sc = kind === 'ffly' ? 1.2 : kind === 'gull' ? 1 : kind === 'bfly' ? 0.95 : 0.9;
+    const sc = kind === 'gull' ? 1 : kind === 'bfly' ? 0.95 : 0.9;
     im.setScale(sc * this.zk);
-    if (kind === 'ffly') im.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
     if (kind === 'perch') im.setAlpha(0);
     this.critters.push({ kind, im, x, y, vx, vy, ph: R(0, 6), life, frames });
     this.counts[kind]++;
@@ -232,11 +260,11 @@ export class SkyLife {
     const out = this.out.setTo(view.x, view.y, view.width, view.height);
     Phaser.Geom.Rectangle.Inflate(out, view.width * 0.4, view.height * 0.4);
     const keep: Critter[] = [];
-    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0, ffly: 0 };
+    this.counts = { gull: 0, finch: 0, perch: 0, bfly: 0 };
     for (const c of this.critters) {
       c.ph += dt;
       c.life -= dt;
-      let gone = c.life <= 0 && c.kind !== 'perch' && c.kind !== 'bfly' && c.kind !== 'ffly';
+      let gone = c.life <= 0 && c.kind !== 'perch' && c.kind !== 'bfly';
       if (c.kind === 'gull' || c.kind === 'finch') {
         c.x += c.vx * dt;
         c.y += Math.sin(c.ph * (c.kind === 'gull' ? 1.4 : 5)) * (c.kind === 'gull' ? 10 : 22) * dt;
@@ -252,7 +280,7 @@ export class SkyLife {
           c.y -= 40 * dt;
           gone = c.im.alpha <= 0;
         }
-      } else if (c.kind === 'bfly') {
+      } else {
         c.vx += R(-30, 30) * dt;
         c.vy += R(-30, 30) * dt;
         c.vx = Phaser.Math.Clamp(c.vx, -26, 26);
@@ -263,17 +291,9 @@ export class SkyLife {
         c.im.setAngle(Math.sin(c.ph * 2) * 10);
         c.im.setAlpha(c.life < 2 ? Math.max(0, c.life / 2) : 1);
         gone = c.life <= 0;
-      } else {
-        c.x += c.vx * dt + Math.sin(c.ph * 0.7) * 5 * dt;
-        c.y += c.vy * dt + Math.cos(c.ph * 0.9) * 5 * dt;
-        const a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(c.ph * 2.2));
-        c.im.setAlpha(this.night ? Math.min(c.im.alpha + dt, a) : 0);
-        c.im.setScale((1 + 0.3 * a) * this.zk);
-        gone = !this.night && c.im.alpha <= 0;
       }
       c.im.setPosition(c.x, c.y);
       if (gone || !Phaser.Geom.Rectangle.Contains(out, c.x, c.y)) {
-        // fireflies and butterflies that drift off the view are replaced from inside it by the spawner
         c.im.destroy();
       } else {
         keep.push(c);
@@ -283,98 +303,127 @@ export class SkyLife {
     this.critters = keep;
   }
 
-  // ---------------------------------------------------------------- weather
-  private clearOverlay() {
-    this.overlay.forEach((o) => o.destroy());
-    this.overlay = [];
-    this.flakes = [];
-    this.drops = [];
+  // ---------------------------------------------------------------- rain and snow, painted at world scale
+  private clearFx() {
+    for (const l of this.layers) l.ts.destroy();
+    this.layers = [];
+    this.mist?.destroy();
+    this.mist = undefined;
+    for (const r of this.ripples) r.im.destroy();
     this.ripples = [];
-    this.snowTile = undefined;
-    this.g?.clear();
+    for (const s of this.swarms) s.im.destroy();
+    this.swarms = [];
   }
 
-  private buildOverlay() {
-    this.clearOverlay();
-    const cam = this.scene.cameras.main;
-    const W = cam.width, H = cam.height;
+  private buildFx() {
+    this.clearFx();
     if (this.calm) return; // reduced motion: the weather stays out of the way
-    if (this.weather === 'snow') {
-      const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `sk_flake_${n}`).filter(this.has);
-      for (let i = 0; i < Math.round(38 * this.q) && keys.length; i++) {
-        const im = this.scene.add.image(0, 0, pick(keys)).setAlpha(R(0.55, 0.95)).setScale(R(0.35, 0.7) * DPR);
-        this.root.add(im);
-        this.overlay.push(im);
-        this.flakes.push({ im, x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), vy: R(24, 55) * DPR, sw: R(8, 24) * DPR, ph: R(0, 6) });
-      }
-      if (this.has('sk_snowtile_1')) {
-        this.snowTile = this.scene.add.tileSprite(0, 0, W + PAD * 2, H + PAD * 2, 'sk_snowtile_1').setAlpha(0.5).setTileScale(1.4 * DPR);
-        this.root.add(this.snowTile);
-        this.root.sendToBack(this.snowTile);
-        this.overlay.push(this.snowTile);
-      }
-    } else if (this.weather === 'rain') {
-      for (let i = 0; i < Math.round(70 * this.q); i++) this.drops.push({ x: R(-W / 2, W / 2), y: R(-H / 2, H / 2), len: R(10, 20) * DPR, sp: R(380, 520) * DPR });
-      for (let i = 0; i < 6; i++) {
+    const kind = this.weather === 'rain' ? 'rain' : this.weather === 'snow' ? 'snow' : null;
+    if (!kind || !this.has(`wx_${kind}_1`)) return;
+    // a faint cool wash over the world while it rains or snows
+    this.mist = this.scene.add.rectangle(0, 0, 10, 10, kind === 'rain' ? 0x7d9bc4 : 0xe6f0ff, kind === 'rain' ? 0.07 : 0.04).setOrigin(0, 0).setDepth(DEPTH + 1);
+    const defs = kind === 'rain' ? RAIN_LAYERS : SNOW_LAYERS;
+    const used = this.q < 1 ? defs.slice(1) : defs; // a slow phone gets only the near layer
+    used.forEach((d, i) => {
+      const ts = this.scene.add.tileSprite(0, 0, 100, 100, `wx_${kind}_1`).setOrigin(0, 0).setDepth(DEPTH + 2 + i).setAlpha(d.alpha).setTileScale(d.scale);
+      const slant = d.slant ?? 0;
+      // rain travels along its streaks (down and to the left); snow drifts down and a little sideways
+      this.layers.push({ ts, kind, scale: d.scale, vx: kind === 'rain' ? -d.speed * slant : d.speed * 0.25, vy: d.speed, ox: R(0, 400), oy: R(0, 400), phase: i * 2, fps: kind === 'rain' ? 8 : 3, frame: -1, sway: kind === 'snow' ? R(0, 6) : 0 });
+    });
+    if (kind === 'rain') {
+      for (let i = 0; i < Math.round(8 * this.q); i++) {
         const k = `sk_ripple_${1 + (i % 3)}`;
         if (!this.has(k)) break;
-        const im = this.scene.add.image(R(-W / 2, W / 2), R(0, H / 2), k).setAlpha(0).setScale(0.8 * DPR);
-        this.root.add(im);
-        this.overlay.push(im);
-        this.ripples.push({ im, t: R(0, 1.2), life: 1.2 });
+        this.ripples.push({ im: this.scene.add.image(0, 0, k).setDepth(DEPTH).setAlpha(0).setScale(0.55), t: R(0, 1.4), life: 1.4 });
       }
     }
   }
 
-  private drawWeather(dt: number, cam: Phaser.Cameras.Scene2D.Camera) {
-    const W = cam.width, H = cam.height;
-    const g = this.g;
-    g.clear();
-    // a soft blue dusk at night, so the fireflies have something to glow against
-    this.dusk += ((this.night ? 1 : 0) - this.dusk) * Math.min(1, dt * 0.8);
-    if (false as boolean) { // the dusk tint went with the fireflies
-      g.fillStyle(0x1b2a5e, 0.24 * this.dusk);
-      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
+  private moveFx(dt: number, view: Phaser.Geom.Rectangle) {
+    if (this.mist) this.mist.setPosition(view.x - PAD, view.y - PAD).setSize(view.width + PAD * 2, view.height + PAD * 2);
+    for (const l of this.layers) {
+      l.ox += l.vx * dt;
+      l.oy += l.vy * dt;
+      const sway = l.kind === 'snow' ? Math.sin(this.t * 0.6 + l.sway) * 10 : 0;
+      const left = view.x - PAD, top = view.y - PAD;
+      l.ts.setPosition(left, top).setSize(view.width + PAD * 2, view.height + PAD * 2);
+      // texture coordinate at the layer's corner: fixed to the world (so panning moves the weather with the map), plus the fall
+      l.ts.tilePositionX = left / l.scale - (l.ox + sway) / l.scale;
+      l.ts.tilePositionY = top / l.scale - l.oy / l.scale;
+      const f = (Math.floor(this.t * l.fps) + l.phase) % 4;
+      if (f !== l.frame) {
+        l.frame = f;
+        l.ts.setTexture(`wx_${l.kind}_${f + 1}`);
+      }
     }
-    if (this.weather === 'snow' && !this.calm) {
-      for (const f of this.flakes) {
-        f.y += f.vy * dt;
-        f.ph += dt;
-        if (f.y > H / 2 + 20) {
-          f.y = -H / 2 - 20;
-          f.x = R(-W / 2, W / 2);
-        }
-        f.im.setPosition(f.x + Math.sin(f.ph) * f.sw, f.y).setAngle(f.ph * 20);
+    for (const r of this.ripples) {
+      r.t += dt;
+      if (r.t > r.life) {
+        r.t = 0;
+        r.im.setPosition(view.x + Math.random() * view.width, view.y + Math.random() * view.height);
       }
-      if (this.snowTile) {
-        this.snowTile.setSize(W + PAD * 2, H + PAD * 2);
-        this.snowTile.tilePositionY -= 30 * DPR * dt;
-        this.snowTile.tilePositionX += 8 * DPR * dt;
+      const k = r.t / r.life;
+      r.im.setAlpha(Math.sin(Math.PI * k) * 0.55).setScale(0.4 + k * 0.4);
+    }
+  }
+
+  // ---------------------------------------------------------------- fireflies
+  /** Island tiles that have something placed on them. */
+  private notedTiles() {
+    if (this.town) return;
+    this.taken.clear();
+    for (const o of getState().placed) for (const t of tilesOf(o.itemId, o.tileX, o.tileY, o.rotation)) this.taken.add(`${t.x},${t.y}`);
+  }
+
+  /** Is this a tile where a swarm may hover: open grass, away from buildings and from the shore. */
+  private grassy(x: number, y: number): boolean {
+    if (!this.town) {
+      if (x < 1 || y < 1 || x > GRID_SIZE - 2 || y > GRID_SIZE - 2) return false;
+      if (Math.abs(x - 4) <= 1 && Math.abs(y - 4) <= 1) return false; // the starter building
+      return !this.taken.has(`${x},${y}`);
+    }
+    if (x < 0 || y < 0 || x >= TOWN || y >= TOWN || y > 24) return false; // below that is the beach
+    if (!isLand(x, y) || !isLand(x + 2, y) || !isLand(x - 2, y) || !isLand(x, y + 2) || !isLand(x, y - 2)) return false;
+    const region = regionOf(x, y);
+    if (region !== 'coast' && region !== 'country') return false;
+    if (!unlockedRegions(growthOf(getState())).includes(region)) return false;
+    return !LOTS.some((l) => x >= l.x - 1 && x <= l.x + l.w && y >= l.y - 1 && y <= l.y + l.d);
+  }
+
+  private moveSwarms(dt: number, view: Phaser.Geom.Rectangle) {
+    const want = this.calm || this.flyFade <= 0.02 || !this.has('wx_firefly_1') ? 0 : Math.round(6 * this.q);
+    const out = this.out.setTo(view.x, view.y, view.width, view.height);
+    Phaser.Geom.Rectangle.Inflate(out, 40, 40);
+    // let go of swarms that are out of view, or all of them when the evening is over
+    this.swarms = this.swarms.filter((s) => {
+      const keep = want > 0 && Phaser.Geom.Rectangle.Contains(out, s.x, s.y);
+      if (!keep) s.im.destroy();
+      return keep;
+    });
+    // a new swarm now and then, never a burst
+    if (this.swarms.length < want && Math.random() < dt * 1.2) {
+      const size = this.town ? TOWN : GRID_SIZE;
+      for (let tries = 0; tries < 24; tries++) {
+        const tx = Math.floor(R(0, size)), ty = Math.floor(R(0, size));
+        if (!this.grassy(tx, ty)) continue;
+        const c = tileCenter(tx, ty);
+        const x = c.x + R(-18, 18), y = c.y - R(8, 22);
+        if (!Phaser.Geom.Rectangle.Contains(view, x, y)) continue;
+        if (this.swarms.some((s) => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 40)) continue;
+        const im = this.scene.add.image(x, y, 'wx_firefly_1').setDepth(DEPTH).setScale(SWARM_SCALE).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+        this.swarms.push({ im, x, y, ph: R(0, 6), wob: R(0, 6) });
+        break;
       }
-      g.fillStyle(0xe6f0ff, 0.06);
-      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
-    } else if (this.weather === 'rain' && !this.calm) {
-      g.fillStyle(0x7d9bc4, 0.1);
-      g.fillRect(-W / 2 - PAD, -H / 2 - PAD, W + PAD * 2, H + PAD * 2);
-      g.lineStyle(1.5 * DPR, 0xcfe4ff, 0.55);
-      for (const d of this.drops) {
-        d.y += d.sp * dt;
-        d.x -= d.sp * 0.18 * dt;
-        if (d.y > H / 2 || d.x < -W / 2 - 20) {
-          d.y = -H / 2 - 20;
-          d.x = R(-W / 2, W / 2 + 60);
-        }
-        g.lineBetween(d.x, d.y, d.x + d.len * 0.18, d.y - d.len);
-      }
-      for (const r of this.ripples) {
-        r.t += dt;
-        if (r.t > r.life) {
-          r.t = 0;
-          r.im.setPosition(R(-W / 2, W / 2), R(-H * 0.05, H / 2));
-        }
-        const k = r.t / r.life;
-        r.im.setAlpha(Math.sin(Math.PI * k) * 0.8).setScale((0.6 + k * 0.7) * DPR);
-      }
+    }
+    for (const s of this.swarms) {
+      s.ph += dt;
+      s.wob += dt;
+      const px = s.x + Math.sin(s.wob * 0.5) * 7, py = s.y + Math.cos(s.wob * 0.7) * 4;
+      // pulse through the eight frames, bright to faint and back
+      const p = 0.5 + 0.5 * Math.sin(s.ph * 0.9);
+      const f = 1 + Math.round((1 - p) * 7);
+      s.im.setTexture(`wx_firefly_${f}`).setPosition(px, py);
+      s.im.setAlpha(s.im.alpha + (0.75 * this.flyFade - s.im.alpha) * Math.min(1, dt * 1.5));
     }
   }
 }
