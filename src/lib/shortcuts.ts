@@ -10,7 +10,7 @@ export const SHORTCUTS: { id: ShortcutId; key: string; label: string }[] = [
   { id: 'cafe', key: 'C', label: 'Café, in and out' },
   { id: 'arcade', key: 'G', label: 'Arcade' },
   { id: 'journal', key: 'J', label: 'Journal' },
-  { id: 'crew', key: 'R', label: 'Café crew' },
+  { id: 'crew', key: 'R', label: 'Café crew (inside the café)' },
   { id: 'help', key: '?', label: 'This list (also H)' },
   { id: 'escape', key: 'Esc', label: 'Close, or step back' },
 ];

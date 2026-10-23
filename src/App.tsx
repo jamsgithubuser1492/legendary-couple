@@ -269,7 +269,7 @@ export default function App() {
       else if (view !== 'town') startDecorating();
     } else if (id === 'town') changeView(view === 'island' ? 'town' : 'island');
     else if (id === 'cafe') changeView(view === 'cafe' ? 'island' : 'cafe');
-    else if (id === 'crew') setCrewUi('crew');
+    else if (id === 'crew') { if (view === 'cafe') setCrewUi('crew'); } // the crew lives inside the café
   }, true);
 
   // When a partner's saved game arrives with a starting path already chosen, do not ask again.

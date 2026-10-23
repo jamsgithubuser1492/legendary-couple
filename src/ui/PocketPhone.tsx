@@ -67,7 +67,7 @@ export default function PocketPhone({ view, onClose, onAct }: { view: View; onCl
           <Tile icon="💌" label="Postbox" badge={b.surprise} onClick={go('surprise')} />
           <Tile icon="🗝️" label="Memory Vault" onClick={go('vault')} />
           {view === 'cafe' ? <Tile icon="⭐" label="Café rating" onClick={go('cafePanel')} /> : <Tile icon="☕" label="Our café" onClick={go('cafe')} />}
-          <Tile icon="👥" label="Café crew" badge={b.crew} onClick={go('crew')} />
+          {view === 'cafe' && <Tile icon="👥" label="Café crew" badge={b.crew} onClick={go('crew')} />}
           <Tile icon="🎮" label="Arcade" onClick={go('arcade')} />
           <Tile icon="🌟" label="Rituals" badge={b.rituals} onClick={go('rituals')} />
           {view !== 'town' ? (
