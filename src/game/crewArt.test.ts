@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CREW } from '../state/crew';
 import { SPRITES } from './spriteList';
-import { levelOrder, loopLevel, loopReport, walkLoop, wobbleLoop, workScene, oopsSequence } from './crewArt';
+import { levelOrder, loopLevel, loopReport, pickWorkScene, walkLoop, wobbleLoop, workScene, workScenes, oopsSequence } from './crewArt';
 
 const real = new Set<string>(SPRITES.map((s) => s.key));
 const hasReal = (k: string) => real.has(k);
@@ -54,6 +54,28 @@ describe('crew art lookup', () => {
   });
 });
 
+describe('work scenes and stations', () => {
+  it('offers every station drawn, and never plays a scene from a level the crew member has not reached', () => {
+    const has = fake([...frames('crewl_juno_2_work_shelf_fl', 4), ...frames('crewl_juno_2_work_play_fl', 4), ...frames('crewl_oren_3_work_fl', 4)]);
+    expect(workScenes(has, def('juno'), 2).map((w) => w.station).sort()).toEqual(['play', 'shelf']);
+    expect(workScenes(has, def('juno'), 3).map((w) => w.station).sort()).toEqual(['play', 'shelf']); // level 3 may use the level 2 scenes
+    expect(workScenes(has, def('juno'), 1)).toEqual([]); // level 1 has no scene drawn and must not borrow a higher one
+    expect(workScenes(has, def('oren'), 2)).toEqual([]); // the espresso loops are drawn in the Expert jacket
+    // with an older one outfit loop available, a Level 1 Oren falls back to that, not to the Expert scene
+    const withOld = fake([...frames('crewl_oren_3_work_fl', 4), ...frames('crewx_oren_work_fl', 2)]);
+    expect(workScene(withOld, def('oren'), 1)?.frames).toEqual(frames('crewx_oren_work_fl', 2));
+    expect(workScene(has, def('oren'), 3)?.frames).toEqual(frames('crewl_oren_3_work_fl', 4));
+  });
+
+  it('picks a true loop over a two picture alternation, and a random station when there are several', () => {
+    const has = fake(['crewl_juno_2_work_fl_1', 'crewl_juno_2_work_fr_1', ...frames('crewl_juno_2_work_shelf_fl', 4), ...frames('crewl_juno_2_work_play_fl', 4)]);
+    expect(pickWorkScene(has, def('juno'), 2, () => 0)?.station).toBe('shelf');
+    expect(pickWorkScene(has, def('juno'), 2, () => 0.99)?.station).toBe('play');
+    const only = fake(['crewl_juno_2_work_fl_1', 'crewl_juno_2_work_fr_1']);
+    expect(pickWorkScene(only, def('juno'), 2)?.frames).toEqual(['crewl_juno_2_work_fl_1', 'crewl_juno_2_work_fr_1']);
+  });
+});
+
 describe('the sprites that are cut', () => {
   const report = loopReport(hasReal, CREW);
   it('has a walk loop at the level for Tan, Pip, Juno and Ollie where the sheets drew one', () => {
@@ -66,12 +88,20 @@ describe('the sprites that are cut', () => {
   });
   it('every loop keeps one canvas size across its frames', () => {
     const size = new Map<string, string>(SPRITES.map((s) => [s.key as string, `${s.w}x${s.h}`]));
-    const bases = new Set([...real].filter((k) => /^crewl_/.test(k)).map((k) => k.replace(/_\d+$/, '')));
+    const bases = new Set([...real].filter((k) => /^crewl_.*_\d+$/.test(k)).map((k) => k.replace(/_\d+$/, ''))); // single poses have no frame number
     for (const b of bases) {
       const sizes = new Set<string>();
       for (let i = 1; i <= 5; i++) if (size.has(`${b}_${i}`)) sizes.add(size.get(`${b}_${i}`)!);
       expect(sizes.size, b).toBe(1);
     }
+  });
+  it('has the espresso loops for Oren at Expert and two stations for Juno at Skilled', () => {
+    expect(report.oren[3].work_fl).toBe(4);
+    expect(report.oren[3].work_fr).toBe(4);
+    expect(report.juno[2].work_shelf_fl).toBe(4);
+    expect(report.juno[2].work_play_fr).toBe(4);
+    expect(workScenes(hasReal, def('juno'), 2).length).toBeGreaterThanOrEqual(2);
+    expect(workScenes(hasReal, def('oren'), 3)[0].frames.length).toBe(4);
   });
   it('has the prop sequences in order', () => {
     expect(oopsSequence(hasReal, 'oops_prop_puddle_oat').length).toBe(5);

@@ -82,25 +82,52 @@ export const loopLevel = (key: string): number => Number(/^crewl_[a-z]+_(\d)_/.e
 
 /** The work loop for a view (the station prop is part of the sprite), or an empty list. */
 export function workLoop(has: Has, def: CrewDef, view: View, level = 1): string[] {
-  for (const l of levelOrder(level)) {
+  for (const l of workLevels(level)) {
     const f = cachedLoop(has, crewlBase(def.id, l, `work_${view}`), 4);
     if (f.length >= 2) return f;
   }
   return loop(has, `crewx_${def.id}_work_${view}`, 4);
 }
-/** A work scene for this crew member: a loop with two or more frames at some view, or, when a level only has single
- * frame views (Juno with her pets), the views one after another. */
-export function workScene(has: Has, def: CrewDef, level = 1): { view: View; frames: string[] } | undefined {
-  for (const l of levelOrder(level)) {
-    for (const v of ['fl', 'fr', 'bl', 'br'] as View[]) {
-      const f = cachedLoop(has, crewlBase(def.id, l, `work_${v}`), 4);
-      if (f.length >= 2) return { view: v, frames: f };
+/** The levels a work scene may come from: the crew member's own level, then lower ones. Work scenes show the whole outfit
+ * and a counter, so a Level 1 apprentice never plays a scene drawn in the Expert jacket they have not earned yet. */
+const workLevels = (level: number) => [lv(level), ...[lv(level) - 1, lv(level) - 2].filter((l) => l >= 1)];
+export type WorkScene = { view: View; frames: string[]; station: string };
+/** Stations a crew member can work at. '' is the default station (the first set of loops); the others are named in the key:
+ * crewl_<id>_<level>_work_<station>_<view>_<n>. Juno has a pet shelf counter and a kneeling play scene, Oren the espresso bar. */
+const STATIONS = ['', 'shelf', 'play'];
+/** Every work scene for this crew member at their level: loops with two or more frames, or, when a level only has single
+ * frame views (Juno with her pets at Level 1), the views one after another. */
+export function workScenes(has: Has, def: CrewDef, level = 1): WorkScene[] {
+  const out: WorkScene[] = [];
+  const views = ['fl', 'fr', 'bl', 'br'] as View[];
+  for (const st of STATIONS) {
+    const base = (l: number, v: View) => crewlBase(def.id, l, st ? `work_${st}_${v}` : `work_${v}`);
+    for (const l of workLevels(level)) {
+      const loops = views.map((v) => ({ v, f: cachedLoop(has, base(l, v), 4) })).filter((x) => x.f.length >= 2);
+      if (loops.length) {
+        // prefer the longest loop, the front left view first on a tie
+        loops.sort((x, y) => y.f.length - x.f.length);
+        out.push({ view: loops[0].v, frames: loops[0].f, station: st });
+        break;
+      }
+      const singles = views.map((v) => cachedLoop(has, base(l, v), 4)[0]).filter(Boolean) as string[];
+      if (singles.length >= 2) { out.push({ view: 'fl', frames: singles.slice(0, 2), station: st }); break; }
     }
-    const singles = (['fl', 'fr', 'bl', 'br'] as View[]).map((v) => cachedLoop(has, crewlBase(def.id, l, `work_${v}`), 4)[0]).filter(Boolean) as string[];
-    if (singles.length >= 2) return { view: 'fl', frames: singles.slice(0, 2) };
   }
+  if (out.length) return out;
   const v = anyWorkView(has, def);
-  return v ? { view: v, frames: workLoop(has, def, v, level) } : undefined;
+  return v ? [{ view: v, frames: workLoop(has, def, v, level), station: '' }] : [];
+}
+/** The first work scene (kept for callers that only need to know whether one exists). */
+export function workScene(has: Has, def: CrewDef, level = 1): { view: View; frames: string[] } | undefined {
+  return workScenes(has, def, level)[0];
+}
+/** A random work scene, so a crew member with two stations (Juno) does not always play the same one. */
+export function pickWorkScene(has: Has, def: CrewDef, level = 1, rnd: () => number = Math.random): WorkScene | undefined {
+  const all = workScenes(has, def, level);
+  const real = all.filter((w) => w.frames.length > 2); // true loops beat a two picture alternation
+  const pool = real.length ? real : all;
+  return pool.length ? pool[Math.floor(rnd() * pool.length) % pool.length] : undefined;
 }
 export function anyWorkView(has: Has, def: CrewDef, level = 1): View | undefined {
   for (const v of ['fl', 'fr', 'bl', 'br'] as View[]) if (loop(has, `crewx_${def.id}_work_${v}`, 4).length >= 2) return v;
@@ -142,7 +169,7 @@ export function loopReport(has: Has, defs: CrewDef[]): Record<string, Record<num
     out[d.id] = {};
     for (const l of [1, 2, 3]) {
       const row: Record<string, number> = {};
-      for (const k of ['walk_f', 'walk_b', 'carry_f', 'carry_b', 'work_fl', 'work_fr', 'work_bl', 'work_br', 'wobble']) {
+      for (const k of ['walk_f', 'walk_b', 'carry_f', 'carry_b', 'work_fl', 'work_fr', 'work_bl', 'work_br', 'work_shelf_fl', 'work_shelf_fr', 'work_play_fl', 'work_play_fr', 'wobble']) {
         const n = loop(has, crewlBase(d.id, l, k), 5).length;
         if (n) row[k] = n;
       }

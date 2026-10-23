@@ -7,7 +7,7 @@ import { addCafeOrder, collectTips, getMe, getState, onStateChange, placeObject,
 import { dateKey } from '../../state/questions';
 import { cafeBlocked, cafeView, DOOR_X, ENTRY, eventToday, freePatch, shellPieces, SIGNS, styleOf, themeOf } from '../../state/cafe';
 import { cozyBand, currentShift, hiredCrew, rosterActive, type CrewDef } from '../../state/crew';
-import { oopsSequence, OOPS_PROPS, OOPS_SEQUENCES, restEmote, still, walkLoop, wobbleLoop, workScene, type View } from '../crewArt';
+import { oopsSequence, OOPS_PROPS, OOPS_SEQUENCES, pickWorkScene, restEmote, still, walkLoop, wobbleLoop, workScene, type View } from '../crewArt';
 import { canPlace, tilesOf } from '../../state/placement';
 import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
@@ -727,7 +727,7 @@ export class CafeScene extends Phaser.Scene {
 
   /** A short work scene (the loop includes its own counter), then back to the day. */
   private startWork(a: CrewActor) {
-    const scene = workScene(this.has, a.def, a.level);
+    const scene = pickWorkScene(this.has, a.def, a.level);
     if (!scene || scene.frames.length < 2) return;
     a.mode = 'work';
     a.view = scene.view;

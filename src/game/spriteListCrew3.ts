@@ -652,6 +652,174 @@ export const CREW3_SPRITES = [
     "dw": 23
   },
   {
+    "key": "crewl_oren_3_work_fl_1",
+    "file": "crewl_oren_3_work_fl_1.png",
+    "w": 88,
+    "h": 122,
+    "dw": 41
+  },
+  {
+    "key": "crewl_oren_3_work_fl_2",
+    "file": "crewl_oren_3_work_fl_2.png",
+    "w": 88,
+    "h": 122,
+    "dw": 41
+  },
+  {
+    "key": "crewl_oren_3_work_fl_3",
+    "file": "crewl_oren_3_work_fl_3.png",
+    "w": 88,
+    "h": 122,
+    "dw": 41
+  },
+  {
+    "key": "crewl_oren_3_work_fl_4",
+    "file": "crewl_oren_3_work_fl_4.png",
+    "w": 88,
+    "h": 122,
+    "dw": 41
+  },
+  {
+    "key": "crewl_oren_3_work_fr_1",
+    "file": "crewl_oren_3_work_fr_1.png",
+    "w": 87,
+    "h": 122,
+    "dw": 40
+  },
+  {
+    "key": "crewl_oren_3_work_fr_2",
+    "file": "crewl_oren_3_work_fr_2.png",
+    "w": 87,
+    "h": 122,
+    "dw": 40
+  },
+  {
+    "key": "crewl_oren_3_work_fr_3",
+    "file": "crewl_oren_3_work_fr_3.png",
+    "w": 87,
+    "h": 122,
+    "dw": 40
+  },
+  {
+    "key": "crewl_oren_3_work_fr_4",
+    "file": "crewl_oren_3_work_fr_4.png",
+    "w": 87,
+    "h": 122,
+    "dw": 40
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fl_1",
+    "file": "crewl_juno_2_work_shelf_fl_1.png",
+    "w": 91,
+    "h": 113,
+    "dw": 42
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fl_2",
+    "file": "crewl_juno_2_work_shelf_fl_2.png",
+    "w": 91,
+    "h": 113,
+    "dw": 42
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fl_3",
+    "file": "crewl_juno_2_work_shelf_fl_3.png",
+    "w": 91,
+    "h": 113,
+    "dw": 42
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fl_4",
+    "file": "crewl_juno_2_work_shelf_fl_4.png",
+    "w": 91,
+    "h": 113,
+    "dw": 42
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fr_1",
+    "file": "crewl_juno_2_work_shelf_fr_1.png",
+    "w": 81,
+    "h": 112,
+    "dw": 38
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fr_2",
+    "file": "crewl_juno_2_work_shelf_fr_2.png",
+    "w": 81,
+    "h": 112,
+    "dw": 38
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fr_3",
+    "file": "crewl_juno_2_work_shelf_fr_3.png",
+    "w": 81,
+    "h": 112,
+    "dw": 38
+  },
+  {
+    "key": "crewl_juno_2_work_shelf_fr_4",
+    "file": "crewl_juno_2_work_shelf_fr_4.png",
+    "w": 81,
+    "h": 112,
+    "dw": 38
+  },
+  {
+    "key": "crewl_juno_2_work_play_fl_1",
+    "file": "crewl_juno_2_work_play_fl_1.png",
+    "w": 89,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fl_2",
+    "file": "crewl_juno_2_work_play_fl_2.png",
+    "w": 89,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fl_3",
+    "file": "crewl_juno_2_work_play_fl_3.png",
+    "w": 89,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fl_4",
+    "file": "crewl_juno_2_work_play_fl_4.png",
+    "w": 89,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fr_1",
+    "file": "crewl_juno_2_work_play_fr_1.png",
+    "w": 88,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fr_2",
+    "file": "crewl_juno_2_work_play_fr_2.png",
+    "w": 88,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fr_3",
+    "file": "crewl_juno_2_work_play_fr_3.png",
+    "w": 88,
+    "h": 102,
+    "dw": 41
+  },
+  {
+    "key": "crewl_juno_2_work_play_fr_4",
+    "file": "crewl_juno_2_work_play_fr_4.png",
+    "w": 88,
+    "h": 102,
+    "dw": 41
+  },
+  {
     "key": "crewl_tan_3_wobble_1",
     "file": "crewl_tan_3_wobble_1.png",
     "w": 68,
@@ -706,6 +874,20 @@ export const CREW3_SPRITES = [
     "w": 59,
     "h": 119,
     "dw": 27
+  },
+  {
+    "key": "crewl_oren_3_brew_fl",
+    "file": "crewl_oren_3_brew_fl.png",
+    "w": 86,
+    "h": 154,
+    "dw": 30
+  },
+  {
+    "key": "crewl_oren_3_brew_fr",
+    "file": "crewl_oren_3_brew_fr.png",
+    "w": 86,
+    "h": 153,
+    "dw": 30
   },
   {
     "key": "oops_prop_puddle_oat_1",

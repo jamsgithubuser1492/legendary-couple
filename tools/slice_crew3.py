@@ -16,6 +16,11 @@ away, and the captions do not always match the figures, so figures are picked by
   pip_ollie  same Pip cuts as `pip`, plus Ollie L2 walk (rows C and D) and Ollie L2 tray (bottom row, large figures)
   tan_pip_a  Tan L2 walk and tray (rows A and B), Tan L3 walk (rows C and D), register loops, Tan L3 tray wobble
   tan_pip_b  cleaner Tan L2 and L3 walk, Pip L1 and L2 walk, Pip empty tray walk, Pip L3 wobble, the spill props
+  juno_oren_work  Oren espresso loops (Expert L3, 8 frames of FL and FR, every figure faces the camera, there are no back views),
+                  Juno pet shelf counter loops (top rows) and kneeling toy play loops with the pets (bottom rows), both drawn in the
+                  lilac scarf and flower pin outfit, which is her L2 still. Tray figures at the bottom: one frame each (not a loop)
+  juno_oren_scarf Juno scarf walks (L1 here wears a scarf that the L1 still does not have, so unused), Oren outfit stills,
+                  the brewmaster pose with a steaming pitcher (FL and FR, one frame each)
 SKIPPED (shows the wrong character or no clean frames, redraw these): Juno L2 col 2 row B (a bearded face), Pip rows C and D
 on `pip` (they show Tan), Pip L3 walks (no sheet has them), Pip carry back mint figures (bandana plus mint smock matches no still).
 """
@@ -27,7 +32,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location('s41', os.path.join(HERE, 'slice_sheets41_45.py'))
 s41 = importlib.util.module_from_spec(spec); spec.loader.exec_module(s41)
 ROOT, OUT = s41.ROOT, s41.OUT
-SHEETS = ['juno', 'pip', 'pip_ollie', 'tan_pip_a', 'tan_pip_b']
+SHEETS = ['juno', 'pip', 'pip_ollie', 'tan_pip_a', 'tan_pip_b', 'juno_oren_work', 'juno_oren_scarf']
 SH = {n: s41.Sheet(f'crew3_{n}.jpg') for n in SHEETS}
 PERSON_H = 54
 # the template shared by every sheet: eight figure columns and four figure rows
@@ -108,6 +113,25 @@ LOOPS += [
     ('juno', 3, 'work_fl', [(J, (548, 772, 660, 858))]), ('juno', 3, 'work_fr', [(J, (670, 776, 748, 860))]),
     ('juno', 3, 'work_br', [(J, (548, 862, 660, 936))]),
 ]
+# Oren at the espresso station (Expert L3): 4 of the 8 frames per view. Every figure faces the camera: the left figure of each pair is
+# the front left view and the right figure is the front right view. Hands on the machine (top row) then lifting a steaming cup (bottom row)
+JO = 'juno_oren_work'
+OREN_FL = [(612, 137, 700, 259), (74, 137, 162, 259), (343, 290, 429, 408), (612, 290, 700, 408)]
+OREN_FR = [(701, 137, 790, 259), (164, 137, 250, 259), (433, 291, 517, 409), (701, 293, 790, 408)]
+LOOPS.append(('oren', 3, 'work_fl', [(JO, b) for b in OREN_FL]))
+LOOPS.append(('oren', 3, 'work_fr', [(JO, b) for b in OREN_FR]))
+# Juno, pet shelf counter (a second station): behind a counter with the shelf, a bunny and a toy; four frames per view
+JUNO_SHELF_FL = [(67, 473, 156, 586), (343, 474, 434, 585), (610, 474, 706, 586), (876, 474, 966, 586)]
+JUNO_SHELF_FR = [(167, 473, 246, 585), (444, 474, 522, 585), (715, 474, 796, 585), (977, 473, 1055, 585)]
+# Juno kneeling with the toy and the pets (the sheet calls these BL and BR but the figures face the camera)
+JUNO_PLAY_FL = [(70, 592, 170, 697), (347, 592, 440, 697), (618, 592, 710, 697), (879, 592, 972, 697)]
+JUNO_PLAY_FR = [(170, 592, 252, 697), (440, 592, 530, 697), (710, 592, 801, 697), (972, 592, 1062, 697)]
+for kind, boxes in (('work_shelf_fl', JUNO_SHELF_FL), ('work_shelf_fr', JUNO_SHELF_FR)):
+    LOOPS.append(('juno', 2, kind, [(JO, b) for b in boxes]))
+for kind, boxes in (('work_play_fl', JUNO_PLAY_FL), ('work_play_fr', JUNO_PLAY_FR)):  # keep_all: the bunny and the cat are separate pieces
+    LOOPS.append(('juno', 2, kind, [(JO, b, True) for b in boxes]))
+# one frame poses, not loops (no numbered suffix): Oren the brewmaster with a steaming pitcher
+POSES = [('crewl_oren_3_brew_fl', 'juno_oren_scarf', (837, 778, 931, 932)), ('crewl_oren_3_brew_fr', 'juno_oren_scarf', (949, 778, 1043, 931))]
 # the apprentice tray wobble: left, right, recovering, small smile
 WOBBLE = [
     ('tan', 3, [(TA, (60, 796, 130, 918)), (TA, (158, 797, 224, 917)), (TA, (251, 797, 320, 915)), (TA, (360, 797, 432, 916))]),
@@ -140,12 +164,16 @@ def prop_frame(sheet, box):
 def main():
     counts = {}
     for who, lvl, kind, picks in LOOPS:
-        frames = [frame(s, p) for s, p in picks]
+        frames = [frame(pk[0], pk[1], keep_all=len(pk) > 2) for pk in picks]
         own = kind.startswith('work')
         prefix = f'crewl_{who}_{lvl}_{kind}'
         counts[(who, lvl, kind)] = save_loop(prefix, frames, own_scale=own)
     for who, lvl, picks in WOBBLE:
         counts[(who, lvl, 'wobble')] = save_loop(f'crewl_{who}_{lvl}_wobble', [frame(s, p) for s, p in picks])
+    for key, sheet, box in POSES:
+        im = frame(sheet, box)
+        put(key, im, round(im.width * PERSON_H / im.height))
+        counts[(key, 0, 'pose')] = 1
     for key, sheet, boxes in PROPS:
         frames = [prop_frame(sheet, b) for b in boxes]
         W = max(f.width for f in frames); H = max(f.height for f in frames)
