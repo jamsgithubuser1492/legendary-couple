@@ -9,6 +9,7 @@ import { getTheme } from './season';
 import { defaultWardrobe, outfitOf } from './wardrobe';
 import { BOX_PRICE_GEMS, rollReward } from './blindbox';
 import * as Crew from './crew';
+import * as Lab from './lab';
 import { dateKey, journeyFor, prevKey, streakRun, tomorrowKey } from './questions';
 import { FREEZES_PER_MONTH, LADDER, hasActivity, isSunday, lastWeekKey, mondayOf, nextWeekKey, RECAP_REWARD, recapOf, rungPrize, SURPRISE_COST, SURPRISE_DELAY_MS, SURPRISE_PAY, WEEKLY_BANNER_MS, WEEKLY_REWARD } from './weekly';
 import type { MGResult } from './minigames';
@@ -99,7 +100,7 @@ function load(): GameState {
 
 function withDefaults(saved: Partial<GameState>): GameState {
   const out = withDefaultsRaw(saved);
-  return { ...out, cafe: Crew.normalizeCafe(out.cafe) }; // crew progress and the roster for saves that predate them
+  return { ...out, cafe: Lab.normalizeLab(Crew.normalizeCafe(out.cafe)) }; // crew progress, the roster and the R&D Lab for saves that predate them
 }
 function withDefaultsRaw(saved: Partial<GameState>): GameState {
   const base = initial();
@@ -1258,3 +1259,31 @@ export function takeCafeOrder(by: PlayerId, id: string) {
 export function untakeCafeOrder(id: string) {
   commit({ ...state, cafe: { ...state.cafe, orders: state.cafe.orders.map((o) => (o.id === id ? { ...o, by: undefined } : o)) } });
 }
+
+
+// ---------- the Menu R&D Lab: invent drinks together, name them, put them on the menu board ----------
+
+/** One experiment: costs a pantry ingredient and one of three daily tries. A new recipe is announced to both of you. */
+export function labExperiment(input: Lab.ExperimentInput): Lab.ExperimentResult {
+  const by = getMe();
+  const r = Lab.applyExperiment(state, input, { by });
+  if (!r.ok || !r.state || !r.recipe) return r;
+  const rec = r.recipe;
+  const m = r.discoveredNew
+    ? moment('cafe', rec.tier === 'signature' ? 'New Signature Recipe discovered!' : 'A new recipe!', `${rec.name} joins your Recipe Memory Book. Give it a name that means something to you.`, '🧪')
+    : state.moment;
+  commit({ ...r.state, moment: m });
+  return r;
+}
+function labCommit(r: Lab.LabResult & { state?: GameState }): Lab.LabResult {
+  if (r.ok && r.state) commit(r.state);
+  return { ok: r.ok, reason: r.reason, text: r.text };
+}
+/** Renames a recipe (1 to 28 letters, not the same as another drink). Either of you can do it. */
+export const labNameRecipe = (id: string, name: string) => labCommit(Lab.applyName(state, id, name));
+/** Puts a recipe on a menu board slot 0 to 5, or clears the slot with null. */
+export const labSetMenu = (slot: number, recipeId: string | null) => labCommit(Lab.applyMenuSlot(state, slot, recipeId));
+/** Picks the Spotlight Drink (it must be on the board), or clears it with null. */
+export const labSetSpotlight = (recipeId: string | null) => labCommit(Lab.applySpotlight(state, recipeId));
+/** Links a recipe to a Journal memory it is named after. */
+export const labLinkMemory = (recipeId: string, memoryId: string) => labCommit(Lab.applyMemoryLink(state, recipeId, memoryId));

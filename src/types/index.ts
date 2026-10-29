@@ -90,7 +90,34 @@ export interface Roster {
   paid: Record<string, ShiftId[]>; // the shifts each crew member has already paid a pip for this roster
 }
 
+/** A drink the two of you invented in the Menu R&D Lab. Keyed by id (a stable hash of base, flavor and topping), so two phones merge cleanly. */
+export type LabGlass = 'mason' | 'mug' | 'togo';
+export type LabTier = 'classic' | 'seasonal' | 'signature';
+export interface LabRecipe {
+  id: string;
+  name: string;
+  base: string;
+  flavor: string;
+  topping: string;
+  glass: LabGlass;
+  art: string | null; // latte art id, or null
+  rim: string | null; // rim garnish id, or null
+  quality: number; // 1 to 3, the best you have made of this combination
+  tier: LabTier; // derived from quality and the ingredients (see state/lab.ts), recomputed when a game loads
+  by: string; // who found it first: a partner id or both names
+  day: string; // the day it was found
+  memoryId?: string; // a Journal memory the drink is named after
+}
+export interface LabState {
+  daily: { day: string; n: number }; // experiments done today (kept in its own object so a day rollover never replaces the recipes when two phones merge)
+  recipes: Record<string, LabRecipe>;
+  menu: Record<string, string>; // menu board slot ("0" to "5") to recipe id, a missing slot is empty
+  spotlight: string | null; // the Spotlight Drink, one recipe that is on the menu
+  seen: string[]; // ingredient ids the couple has used
+}
+
 export interface CafeState {
+  lab: LabState;
   crew: Record<string, CrewMember>; // hired crew progress, keyed by staff id
   roster: Roster | null;
   theme: CafeTheme;

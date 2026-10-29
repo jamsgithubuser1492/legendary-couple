@@ -17,7 +17,7 @@ const COUNTERS = [
   'approvedCount', 'notesOpened', 'vault.coins', 'bidStats.sent', 'bidStats.turned', 'bottleCredits.*',
   'fauna.*', 'figures.*', 'inventory[].count',
   'today.questCoins', 'today.quests', 'today.tokens', 'today.mgCoins', 'today.wells', // reset by day, see below
-  'cafe.popularity', 'cafe.rushes', 'cafe.latte.n', 'cafe.gacha.n', 'cafe.gacha.pity',
+  'cafe.popularity', 'cafe.rushes', 'cafe.latte.n', 'cafe.gacha.n', 'cafe.gacha.pity', 'cafe.lab.daily.n', // today's Lab experiments (its own object, so a new day never replaces the recipes)
   'cafe.crew.*.xp', 'cafe.crew.*.cozy', // two phones each giving a Mentor moment or a treat both count (cozy is clamped to 100 when the game loads)
 ];
 // a `*` stands for exactly one key, anywhere in the path

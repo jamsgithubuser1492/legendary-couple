@@ -365,7 +365,7 @@ export class MatchaMastersScene extends MinigameScene {
   private rushOrders(): Order[] {
     const list = getState().cafe.orders.filter((o) => o.by).slice(0, 4);
     return list.map((o, i) => {
-      const d = drinkOf(o.drink);
+      const d = drinkOf(o.drink, getState());
       return { id: this.nextId++, name: d?.name ?? pastryName(o.pastry), recipe: d ? [...d.recipe] : [], patience: 1, combo: false, claimed: false, face: FACES[i % FACES.length], pastry: o.pastry ? pastryName(o.pastry) : undefined, pastryOnly: !d, cafeId: o.id };
     });
   }

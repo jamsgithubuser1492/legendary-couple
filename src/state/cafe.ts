@@ -6,6 +6,7 @@ import type { CafeState, CafeTheme, GameState, PlacedObject } from '../types';
 import { itemOf, type CatalogItem } from './catalog';
 import { dateKey } from './questions';
 import { crewPerks, teamBuff } from './crew';
+import { customDrinkOf, labDrinkPool, labTipBonus, newLab } from './lab';
 
 export interface ThemeInfo { id: CafeTheme; name: string; blurb: string; wall: 'plaster' | 'brick' | 'lavender'; floor: string; preview: string; price: number }
 export const THEMES: ThemeInfo[] = [
@@ -23,7 +24,7 @@ export const CAFE_STEPS: { size: number; coins: number }[] = [
 
 export const newCafe = (): CafeState => ({
   theme: 'matcha', themes: ['matcha'], size: CAFE_START, placed: [], avatars: { A: { x: 3, y: 2 }, B: { x: 4, y: 2 } }, tipsAt: Date.now(), sitDay: '', pantryDay: '',
-  staff: [], crew: {}, roster: null, sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 }, orders: [], rushes: 0, lastOrderTs: 0,
+  staff: [], crew: {}, roster: null, lab: newLab(), sign: 'latte', popularity: 0, event: null, latte: { day: '', n: 0, best: 0, streak: 0 }, gacha: { n: 0, day: '', pity: 0 }, orders: [], rushes: 0, lastOrderTs: 0,
 });
 
 export const DOOR_X = 3; // the front door is in the back right wall, here
@@ -133,7 +134,7 @@ export function tipMult(s: GameState): number {
   const sign = SIGNS.find((g) => g.id === s.cafe.sign);
   const perks = crewPerks(s);
   const petBonus = 0.03 * Math.min(5, st.pets) * perks.petMult;
-  return 1 + (st.register ? 0.15 : 0) + petBonus + (sign && st.sign ? sign.boost : 0) + 0.05 * Math.min(10, s.cafe.popularity) + perks.tips + perks.glowing * 0.03;
+  return 1 + (st.register ? 0.15 : 0) + petBonus + (sign && st.sign ? sign.boost : 0) + 0.05 * Math.min(10, s.cafe.popularity) + perks.tips + perks.glowing * 0.03 + labTipBonus(s);
 }
 
 /** The café earns tips while it is open (it needs a seat and a table). Tips build up and you collect them. */
@@ -223,16 +224,17 @@ export const MENU_DRINKS: { name: string; recipe: string[] }[] = [
   { name: 'Strawberry Latte', recipe: ['Espresso', 'Milk', 'Strawberry'] },
   { name: ESPRESSO_RECIPE, recipe: ['Matcha', 'Espresso', 'Milk'] },
 ];
-export const drinkOf = (name: string | null) => MENU_DRINKS.find((d) => d.name === name);
+/** A drink by name: the built in menu first, then the couple's own recipes on the Lab menu board (pass the state to find those). */
+export const drinkOf = (name: string | null, s?: GameState): { name: string; recipe: string[] } | undefined =>
+  MENU_DRINKS.find((d) => d.name === name) ?? (s && name ? customDrinkOf(s, name) : undefined);
 export const pastryName = (id: string | null) => (id ? itemOf(id)?.name ?? 'Pastry' : '');
 
 /** A fresh order for a guest, drawn from what this café can make today. */
 export function newOrder(s: GameState, kind: string): { drink: string | null; pastry: string | null } {
   const stock = pastryStock(s);
-  const drinks = MENU_DRINKS.filter((d) => d.name !== ESPRESSO_RECIPE || s.recipes.includes(ESPRESSO_RECIPE));
+  const pool = labDrinkPool(s, kind, MENU_DRINKS.filter((d) => d.name !== ESPRESSO_RECIPE || s.recipes.includes(ESPRESSO_RECIPE)).map((d) => d.name));
   const pastry = stock.length && Math.random() < 0.55 ? stock[Math.floor(Math.random() * stock.length)] : null;
   const pastryOnly = !!pastry && Math.random() < 0.22;
-  void kind;
-  return { drink: pastryOnly ? null : drinks[Math.floor(Math.random() * drinks.length)].name, pastry };
+  return { drink: pastryOnly ? null : pool[Math.floor(Math.random() * pool.length)], pastry };
 }
 export const MAX_ORDERS = 4;
