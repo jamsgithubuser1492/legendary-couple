@@ -1,4 +1,5 @@
-"""Cuts the VIP guest and surge event sheet (art/source/vip_surge_events.jpg).
+"""Cuts the VIP guest and surge event sheet (art/source/vip_surge_events.jpg) and the expanded VIP motion sheet
+(art/source/vip_expanded_motion.jpg: Miffy walks, seated and jump and wave, Hello Kitty's green back view, plain Snoopy).
 Run:  python3 tools/slice_vip.py   Writes vip_* guest sprites, cz_t_vip_* order rail icons, surge_*, prop_espresso_overheat_*
 and env_* sprites, and src/game/spriteListVip.ts (export VIP_SPRITES).
 
@@ -17,6 +18,7 @@ spec = importlib.util.spec_from_file_location('s41', os.path.join(HERE, 'slice_s
 s41 = importlib.util.module_from_spec(spec); spec.loader.exec_module(s41)
 ROOT, OUT = s41.ROOT, s41.OUT
 SH = s41.Sheet('vip_surge_events.jpg')
+SH2 = s41.Sheet('vip_expanded_motion.jpg')
 
 # component boxes (x0, y0, x1, y1) on the sheet, found with the outline detector and picked by eye
 BOX = {
@@ -46,6 +48,28 @@ def trim(im):
 def loop(ids):
     """Frames of one loop on one canvas: same height (the median), centred, feet on the bottom edge."""
     fr = [trim(cut(i)) for i in ids]
+    h = sorted(f.height for f in fr)[len(fr) // 2]
+    fr = [f.resize((max(1, round(f.width * h / f.height)), h), Image.LANCZOS) for f in fr]
+    w = max(f.width for f in fr)
+    out = []
+    for f in fr:
+        c = Image.new('RGBA', (w, h))
+        c.paste(f, ((w - f.width) // 2, 0))
+        out.append(c)
+    return out
+
+
+def cutb(box, sheet=None, keep_all=False):
+    """A figure cut from an explicit box (x0, y0, x1, y1) on a sheet."""
+    x0, y0, x1, y1 = box
+    return (sheet or SH2).cutbox('o', x0 - 3, y0 - 3, x1 + 3, y1 + 3, keep_all=keep_all)
+
+
+def loopb(boxes, mirror=False, keep_all=False):
+    """Like loop(), for explicit boxes: one canvas, feet on the bottom edge, optionally mirrored to face left."""
+    fr = [trim(cutb(b, keep_all=keep_all)) for b in boxes]
+    if mirror:
+        fr = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in fr]
     h = sorted(f.height for f in fr)[len(fr) // 2]
     fr = [f.resize((max(1, round(f.width * h / f.height)), h), Image.LANCZOS) for f in fr]
     w = max(f.width for f in fr)
@@ -91,6 +115,40 @@ def main():
     for n, im in enumerate(sw, 1): add(f'vip_snoopy_walk_{n}', im, ss)
     for key, i in {'sit': 43, 'order': 44, 'jump': 55, 'taste': 56, 'wave': 59}.items(): add(f'vip_snoopy_{key}_1', trim(cut(i)), ss)
     add('vip_woodstock_1', trim(cut(47)), ss)
+
+    # ---- expanded motion sheet (vip_expanded_motion.jpg). Boxes are picked by hand: the labels on the sheet are unreliable.
+    # Miffy (blue sweater, her default look): front walk (the first group, faces drawn), back walk (the last group, backs), seated on her
+    # own chair (the chair is part of the art), a hover jump and a wave.
+    mw = loopb([(147, 131, 186, 216), (204, 131, 242, 216), (258, 131, 296, 216), (312, 131, 351, 216)])
+    mbk = loopb([(863, 131, 900, 216), (918, 131, 955, 216), (973, 131, 1010, 216), (1028, 131, 1066, 216)])
+    ms2 = 42 / mw[0].height
+    for n, im in enumerate(mw, 1): add(f'vip_miffy_blue_walk_f_{n}', im, ms2)
+    for n, im in enumerate(mbk, 1): add(f'vip_miffy_blue_walk_b_{n}', im, ms2)
+    msit = [trim(cutb(b)) for b in [(167, 530, 225, 639), (245, 530, 303, 638)]]
+    sit_scale = ms2 * (mw[0].height / 85) * 1.0  # the seated cells are drawn at the same scale as the walkers (about 85 px figures)
+    for n, im in enumerate(msit, 1): add(f'vip_miffy_blue_sit_{n}', im, sit_scale)
+    add('vip_miffy_blue_jump_1', trim(cutb((143, 843, 195, 932))), ms2)
+    add('vip_miffy_blue_wave_1', trim(cutb((223, 844, 274, 932))), ms2)
+    add('cz_t_vip_miffy_blue', mw[0], ms2)
+    # Hello Kitty, green cardigan: a real back walk, a seated pose pair, and the back view jump (3 frames) and wave (2 frames)
+    kgb = loopb([(732, 236, 783, 312), (965, 236, 1017, 312), (786, 236, 837, 312), (1019, 236, 1070, 312)])
+    kgs = 40 / kgb[0].height
+    for n, im in enumerate(kgb, 1): add(f'vip_kitty_green_walk_b_{n}', im, kgs)
+    for n, b in enumerate([(584, 523, 643, 595), (584, 603, 643, 675)], 1): add(f'vip_kitty_green_sit_{n}', trim(cutb(b)), ks)
+    kj = loopb([(360, 863, 410, 934), (445, 863, 497, 935), (529, 864, 581, 935)])
+    kw = loopb([(658, 867, 708, 935), (739, 868, 791, 934)])
+    for n, im in enumerate(kj, 1): add(f'vip_kitty_green_jump_b_{n}', im, kgs * 0.98)
+    for n, im in enumerate(kw, 1): add(f'vip_kitty_green_wave_b_{n}', im, kgs * 0.98)
+    # Snoopy, plain white (no outfit): his side walk is drawn facing right, so it is mirrored to face left like everyone's walking art.
+    # (the very first frame loses its pale body to the paper, so the loop starts on the third column group's first frame)
+    sp = loopb([(376, 366, 424, 440), (204, 366, 252, 438), (257, 366, 305, 440), (306, 366, 354, 440)], mirror=True, keep_all=True)
+    sps = 36 / sp[0].height
+    for n, im in enumerate(sp, 1): add(f'vip_snoopy_plain_walk_{n}', im, sps)
+    for n, b in enumerate([(759, 529, 802, 593), (841, 529, 884, 592)], 1): add(f'vip_snoopy_plain_sit_{n}', trim(cutb(b)).transpose(Image.FLIP_LEFT_RIGHT), sps)
+    add('vip_snoopy_plain_jump_1', trim(cutb((859, 849, 909, 918))).transpose(Image.FLIP_LEFT_RIGHT), sps)
+    add('vip_snoopy_plain_wave_1', trim(cutb((960, 856, 1010, 927))).transpose(Image.FLIP_LEFT_RIGHT), sps)
+    # the olive Snoopy's walk faced right on the first sheet, so the café walked him backwards: left facing copies fix that
+    for n, im in enumerate(sw, 1): add(f'vip_snoopy_walkl_{n}', im.transpose(Image.FLIP_LEFT_RIGHT), ss)
     # ---- order rail icons: the rail shows cz_t_<kind>
     for key, im, sc in [('kitty', k_front[0], ks), ('miffy', mf, ms), ('snoopy', sw[0], ss)]:
         add(f'cz_t_vip_{key}', im, sc)

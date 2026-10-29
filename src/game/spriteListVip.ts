@@ -204,6 +204,258 @@ export const VIP_SPRITES = [
     "dw": 14
   },
   {
+    "key": "vip_miffy_blue_walk_f_1",
+    "file": "vip_miffy_blue_walk_f_1.png",
+    "w": 39,
+    "h": 82,
+    "dw": 20
+  },
+  {
+    "key": "vip_miffy_blue_walk_f_2",
+    "file": "vip_miffy_blue_walk_f_2.png",
+    "w": 39,
+    "h": 82,
+    "dw": 20
+  },
+  {
+    "key": "vip_miffy_blue_walk_f_3",
+    "file": "vip_miffy_blue_walk_f_3.png",
+    "w": 39,
+    "h": 82,
+    "dw": 20
+  },
+  {
+    "key": "vip_miffy_blue_walk_f_4",
+    "file": "vip_miffy_blue_walk_f_4.png",
+    "w": 39,
+    "h": 82,
+    "dw": 20
+  },
+  {
+    "key": "vip_miffy_blue_walk_b_1",
+    "file": "vip_miffy_blue_walk_b_1.png",
+    "w": 38,
+    "h": 82,
+    "dw": 19
+  },
+  {
+    "key": "vip_miffy_blue_walk_b_2",
+    "file": "vip_miffy_blue_walk_b_2.png",
+    "w": 38,
+    "h": 82,
+    "dw": 19
+  },
+  {
+    "key": "vip_miffy_blue_walk_b_3",
+    "file": "vip_miffy_blue_walk_b_3.png",
+    "w": 38,
+    "h": 82,
+    "dw": 19
+  },
+  {
+    "key": "vip_miffy_blue_walk_b_4",
+    "file": "vip_miffy_blue_walk_b_4.png",
+    "w": 38,
+    "h": 82,
+    "dw": 19
+  },
+  {
+    "key": "vip_miffy_blue_sit_1",
+    "file": "vip_miffy_blue_sit_1.png",
+    "w": 58,
+    "h": 109,
+    "dw": 29
+  },
+  {
+    "key": "vip_miffy_blue_sit_2",
+    "file": "vip_miffy_blue_sit_2.png",
+    "w": 58,
+    "h": 109,
+    "dw": 29
+  },
+  {
+    "key": "vip_miffy_blue_jump_1",
+    "file": "vip_miffy_blue_jump_1.png",
+    "w": 52,
+    "h": 84,
+    "dw": 27
+  },
+  {
+    "key": "vip_miffy_blue_wave_1",
+    "file": "vip_miffy_blue_wave_1.png",
+    "w": 51,
+    "h": 88,
+    "dw": 26
+  },
+  {
+    "key": "cz_t_vip_miffy_blue",
+    "file": "cz_t_vip_miffy_blue.png",
+    "w": 39,
+    "h": 82,
+    "dw": 20
+  },
+  {
+    "key": "vip_kitty_green_walk_b_1",
+    "file": "vip_kitty_green_walk_b_1.png",
+    "w": 46,
+    "h": 75,
+    "dw": 25
+  },
+  {
+    "key": "vip_kitty_green_walk_b_2",
+    "file": "vip_kitty_green_walk_b_2.png",
+    "w": 46,
+    "h": 75,
+    "dw": 25
+  },
+  {
+    "key": "vip_kitty_green_walk_b_3",
+    "file": "vip_kitty_green_walk_b_3.png",
+    "w": 46,
+    "h": 75,
+    "dw": 25
+  },
+  {
+    "key": "vip_kitty_green_walk_b_4",
+    "file": "vip_kitty_green_walk_b_4.png",
+    "w": 46,
+    "h": 75,
+    "dw": 25
+  },
+  {
+    "key": "vip_kitty_green_sit_1",
+    "file": "vip_kitty_green_sit_1.png",
+    "w": 52,
+    "h": 72,
+    "dw": 24
+  },
+  {
+    "key": "vip_kitty_green_sit_2",
+    "file": "vip_kitty_green_sit_2.png",
+    "w": 52,
+    "h": 72,
+    "dw": 24
+  },
+  {
+    "key": "vip_kitty_green_jump_b_1",
+    "file": "vip_kitty_green_jump_b_1.png",
+    "w": 50,
+    "h": 69,
+    "dw": 26
+  },
+  {
+    "key": "vip_kitty_green_jump_b_2",
+    "file": "vip_kitty_green_jump_b_2.png",
+    "w": 50,
+    "h": 69,
+    "dw": 26
+  },
+  {
+    "key": "vip_kitty_green_jump_b_3",
+    "file": "vip_kitty_green_jump_b_3.png",
+    "w": 50,
+    "h": 69,
+    "dw": 26
+  },
+  {
+    "key": "vip_kitty_green_wave_b_1",
+    "file": "vip_kitty_green_wave_b_1.png",
+    "w": 50,
+    "h": 68,
+    "dw": 26
+  },
+  {
+    "key": "vip_kitty_green_wave_b_2",
+    "file": "vip_kitty_green_wave_b_2.png",
+    "w": 50,
+    "h": 68,
+    "dw": 26
+  },
+  {
+    "key": "vip_snoopy_plain_walk_1",
+    "file": "vip_snoopy_plain_walk_1.png",
+    "w": 49,
+    "h": 73,
+    "dw": 24
+  },
+  {
+    "key": "vip_snoopy_plain_walk_2",
+    "file": "vip_snoopy_plain_walk_2.png",
+    "w": 49,
+    "h": 73,
+    "dw": 24
+  },
+  {
+    "key": "vip_snoopy_plain_walk_3",
+    "file": "vip_snoopy_plain_walk_3.png",
+    "w": 49,
+    "h": 73,
+    "dw": 24
+  },
+  {
+    "key": "vip_snoopy_plain_walk_4",
+    "file": "vip_snoopy_plain_walk_4.png",
+    "w": 49,
+    "h": 73,
+    "dw": 24
+  },
+  {
+    "key": "vip_snoopy_plain_sit_1",
+    "file": "vip_snoopy_plain_sit_1.png",
+    "w": 46,
+    "h": 65,
+    "dw": 23
+  },
+  {
+    "key": "vip_snoopy_plain_sit_2",
+    "file": "vip_snoopy_plain_sit_2.png",
+    "w": 46,
+    "h": 65,
+    "dw": 23
+  },
+  {
+    "key": "vip_snoopy_plain_jump_1",
+    "file": "vip_snoopy_plain_jump_1.png",
+    "w": 50,
+    "h": 69,
+    "dw": 25
+  },
+  {
+    "key": "vip_snoopy_plain_wave_1",
+    "file": "vip_snoopy_plain_wave_1.png",
+    "w": 53,
+    "h": 70,
+    "dw": 26
+  },
+  {
+    "key": "vip_snoopy_walkl_1",
+    "file": "vip_snoopy_walkl_1.png",
+    "w": 44,
+    "h": 64,
+    "dw": 25
+  },
+  {
+    "key": "vip_snoopy_walkl_2",
+    "file": "vip_snoopy_walkl_2.png",
+    "w": 44,
+    "h": 64,
+    "dw": 25
+  },
+  {
+    "key": "vip_snoopy_walkl_3",
+    "file": "vip_snoopy_walkl_3.png",
+    "w": 44,
+    "h": 64,
+    "dw": 25
+  },
+  {
+    "key": "vip_snoopy_walkl_4",
+    "file": "vip_snoopy_walkl_4.png",
+    "w": 44,
+    "h": 64,
+    "dw": 25
+  },
+  {
     "key": "cz_t_vip_kitty",
     "file": "cz_t_vip_kitty.png",
     "w": 58,

@@ -35,10 +35,10 @@ const WALKERS: Record<string, { down: string[]; up?: string[] }> = {
 const SEATED: Record<string, string[]> = {
   granny: ['cs_granny_1a', 'cs_granny_1b'], mail: ['cs_mail_1a', 'cs_mail_1b', 'cs_mail_1c'], cam: ['cs_cam_1a', 'cs_cam_1b'],
   coffee: ['cs_coffee_1a', 'cs_coffee_1b', 'cs_boy_1a'], crane: ['cs_crane_1a', 'cs_crane_1b'],
-  vip_kitty: ['vip_kitty_sit_1', 'vip_kitty_sit_2'], vip_snoopy: ['vip_snoopy_sit_1'], // Miffy has no seated pose, so she stands beside a table
+  // (a VIP's seated art comes from its own keys, see vipArt.ts)
 };
 /** Guests whose seated art has no chair of its own: the placed chair stays, and they sit a little above its floor tile. */
-const KEEP_CHAIR = new Set(['crane', 'vip_kitty', 'vip_snoopy']);
+const KEEP_CHAIR = new Set(['crane', 'vip_kitty', 'vip_snoopy']); // Miffy's seated art draws her own chair, so hers is hidden like any guest's
 const SEAT_LIFT = 7;
 const isChair = (id: string) => { const it = itemOf(id); return !!it && it.layer === 'object' && it.w === 1 && it.d === 1 && (it.role === 'chair' || /chair/.test(it.id)); };
 
@@ -918,7 +918,7 @@ export class CafeScene extends Phaser.Scene {
     this.tweens.add({ targets: [img, p.shadow], alpha: { from: 0, to: 1 }, duration: 300 });
     p.shadow.setAlpha(0.16);
     // guests with a seated pose take a free chair beside a table when there is one
-    const seat = this.canSit(kind) ? this.pickSeat(p) : null;
+    const seat = this.canSit(kind, p) ? this.pickSeat(p) : null;
     if (seat) {
       p.claim = seat.chair.id;
       p.claimFrom = seat.from;
@@ -964,7 +964,7 @@ export class CafeScene extends Phaser.Scene {
     const k = p.vip?.keys;
     if (!k) return;
     this.later(p, 1400, () => {
-      if (seated) { if (p.seat && this.textures.exists(k.taste)) this.setArt(p.img, k.taste); }
+      if (seated) { const t = k.sitHasChair ? k.sit[1] ?? k.sit[0] : k.taste; if (p.seat && t && this.textures.exists(t)) this.setArt(p.img, t); } // Miffy's seated art includes her chair
       else if (k.order !== k.stand) this.setArt(p.img, k.order);
     });
     this.later(p, 3000, () => this.vipDelight(p, seated));
@@ -999,15 +999,23 @@ export class CafeScene extends Phaser.Scene {
     this.hop(p);
   }
 
-  /** At the door they turn to wave goodbye: front facing, rocking from side to side. */
+  /** At the door they turn to wave goodbye. A look whose art faces away (Hello Kitty in green) hops and waves with its back frames; the others face front and rock side to side. */
   private vipWave(p: Patron, done: () => void) {
     const k = p.vip?.keys;
     if (!p.img.scene || !k) return done();
     p.bubble?.destroy();
     p.bubble = undefined;
-    const art = k.wave && this.textures.exists(k.wave) ? k.wave : k.stand;
-    this.setArt(p.img, art);
     p.img.setFlipX(false);
+    const has = (a: string) => this.textures.exists(a);
+    const back = [...k.exitJump, ...k.waveFrames].every(has) && (k.exitJump.length > 0 || k.waveFrames.length > 1);
+    if (back) {
+      // frame by frame: the back view hop, then the wave swapping between its two frames
+      const seqFrames = this.reduced ? [k.waveFrames[0]] : [...k.exitJump, ...k.waveFrames, ...k.waveFrames, ...k.waveFrames].filter(Boolean);
+      seqFrames.forEach((art, i) => this.later(p, i * 190, () => { if (p.img.scene) this.setArt(p.img, art); }));
+      return this.later(p, seqFrames.length * 190 + 120, done);
+    }
+    const art = k.wave && has(k.wave) ? k.wave : k.stand;
+    this.setArt(p.img, art);
     if (this.reduced) return this.later(p, 500, done);
     this.tweens.add({ targets: p.img, angle: { from: -7, to: 7 }, duration: 170, yoyo: true, repeat: 3, onComplete: () => { if (p.img.scene) p.img.setAngle(0); this.later(p, 120, done); } });
   }
@@ -1040,7 +1048,8 @@ export class CafeScene extends Phaser.Scene {
     });
   }
 
-  private canSit = (kind: string) => !!SEATED[kind]?.some((k) => this.textures.exists(k));
+  private seatArt = (kind: string, p?: Patron) => (p?.vip ? p.vip.keys.sit : SEATED[kind] ?? []).filter((k) => this.textures.exists(k));
+  private canSit = (kind: string, p?: Patron) => this.seatArt(kind, p).length > 0;
 
   private chairHasTable(chair: PlacedObject): boolean {
     const tableTiles = new Set<string>();
@@ -1070,13 +1079,13 @@ export class CafeScene extends Phaser.Scene {
 
   /** Puts the seated pose for a chair's facing on a guest, at the chair. */
   private poseOn(p: Patron, chair: PlacedObject, kind: string, row: string) {
-    const poses = (SEATED[kind] ?? []).filter((k) => this.textures.exists(k));
+    const poses = this.seatArt(kind, p);
     if (!poses.length) return;
     let key = p.vip ? poses[0] : poses[(chair.rotation / 90 | 0) % poses.length]; // a VIP always starts with the order pose
     if (!p.vip && row === '2' && this.textures.exists(key.replace('_1', '_2'))) key = key.replace('_1', '_2');
     const b = tileCenter(chair.tileX, chair.tileY);
     this.setArt(p.img, key);
-    p.img.setFlipX(chair.rotation >= 180);
+    p.img.setFlipX(p.vip?.keys.sitFaces === 'right' ? chair.rotation % 180 === 0 : chair.rotation >= 180); // art that looks right is mirrored for a chair that faces the other way
     const onChair = KEEP_CHAIR.has(kind) && kind !== 'crane'; // a VIP sits on the chair art, which is drawn at depth + 0.4, so they go just above it
     const lift = onChair ? SEAT_LIFT : 0, d = chair.tileX + chair.tileY + (onChair ? 0.5 : 0.3);
     p.img.setPosition(b.x, b.y + 6 - lift).setDepth(d);
@@ -1090,7 +1099,7 @@ export class CafeScene extends Phaser.Scene {
     const chair = getState().cafe.placed.find((o) => o.id === seat.chair.id);
     const avatarOn = [this.avatars.A.tile, this.avatars.B.tile].some((t) => chair && t.x === chair.tileX && t.y === chair.tileY);
     // the chair may have been taken, moved, removed or left without a table while the guest walked over
-    if (!chair || chair.tileX !== seat.chair.tileX || chair.tileY !== seat.chair.tileY || this.seated.has(chair.id) || avatarOn || !this.canSit(kind) || !this.chairHasTable(chair)) return this.standOrder(p, kind);
+    if (!chair || chair.tileX !== seat.chair.tileX || chair.tileY !== seat.chair.tileY || this.seated.has(chair.id) || avatarOn || !this.canSit(kind, p) || !this.chairHasTable(chair)) return this.standOrder(p, kind);
     this.seated.set(chair.id, p);
     p.claim = undefined;
     p.claimFrom = undefined;
@@ -1117,7 +1126,7 @@ export class CafeScene extends Phaser.Scene {
       if (!p.img.scene || !p.seat) { this.seated.delete(id); continue; }
       const chair = placed.find((o) => o.id === id);
       if (!chair || chair.tileX !== p.seat.tile.x || chair.tileY !== p.seat.tile.y || !this.chairHasTable(chair)) { this.sendHome(p); continue; }
-      if (chair.rotation !== p.seat.rot && p.kind && this.canSit(p.kind)) { p.seat.rot = chair.rotation; this.poseOn(p, chair, p.kind, p.seat.row); }
+      if (chair.rotation !== p.seat.rot && p.kind && this.canSit(p.kind, p)) { p.seat.rot = chair.rotation; this.poseOn(p, chair, p.kind, p.seat.row); }
     }
   }
 
