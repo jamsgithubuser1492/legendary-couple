@@ -34,6 +34,8 @@ const SETS: Record<string, { shake: string[]; catch: string[]; win: string[]; ru
 };
 const SEASON_OF = { spring: 'spring', summer: 'summer', autumn: 'autumn', winter: 'winter', holidays: 'winter' } as const;
 const SEASON_TINT: Record<string, number> = { spring: 0xffffff, summer: 0xffffff, autumn: 0xffe6c8, winter: 0xe4ecf8 };
+/** Falling leaves follow the season: pale snow laden bits in winter, pink petals in spring. */
+const LEAF_TINT: Record<string, number | undefined> = { spring: 0xffc9dc, winter: 0xdbe6ee };
 const GRASS: Record<string, [number, number]> = { spring: [0xcfd9b4, 0xb7e0a0], summer: [0xc7cdb2, 0xa9d68c], autumn: [0xd9cfa8, 0xc9b87a], winter: [0xdfe6ee, 0xcfdbe6] };
 
 interface Fx { im: Phaser.GameObjects.Image; t0: number; dur: number; vx: number; vy: number; spin: number; s0: number; s1: number; a0: number; sway: number; ph: number }
@@ -209,7 +211,8 @@ export class OrchardScene extends MinigameScene {
       this.trees.push(im);
     });
     if (this.has('or_shadow_0')) this.basketShadow = this.add.image(480, GROUND + 8, 'or_shadow_0').setDisplaySize(150, 24).setAlpha(0.5).setDepth(1.9).setVisible(false);
-    if (this.has('or_mult_1')) this.multImg = this.add.image(120, 33, 'or_mult_1').setOrigin(0, 0.5).setDepth(10).setAlpha(0.5);
+    if (false && this.has('or_mult_1')) // hidden: the x2 and x3 icons would promise a score multiplier the game does not have
+       this.multImg = this.add.image(120, 33, 'or_mult_1').setOrigin(0, 0.5).setDepth(10).setAlpha(0.5);
     this.basketImg = this.add.image(480, 512, 'or_basket_0').setOrigin(0.5, 1).setDepth(5).setVisible(false);
     if (this.has('or_basket_glow')) this.glowImg = this.add.image(480, 480, 'or_basket_glow').setOrigin(0.5, 1).setDepth(5.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setVisible(false);
     for (let i = 0; i < 4; i++) {
@@ -226,10 +229,11 @@ export class OrchardScene extends MinigameScene {
   }
 
   /** A short lived picture: it fades, drifts and spins on its own and then goes away. */
-  private spawn(key: string, x: number, y: number, o: { dur?: number; vx?: number; vy?: number; spin?: number; s0?: number; s1?: number; a0?: number; add?: boolean; sway?: number; depth?: number } = {}) {
+  private spawn(key: string, x: number, y: number, o: { dur?: number; vx?: number; vy?: number; spin?: number; s0?: number; s1?: number; a0?: number; add?: boolean; sway?: number; depth?: number; tint?: number } = {}) {
     if (!this.has(key) || this.fx.length > 46) return;
     const im = this.add.image(x, y, key).setDepth(o.depth ?? 7);
     if (o.add) im.setBlendMode(Phaser.BlendModes.ADD);
+    if (o.tint !== undefined) im.setTint(o.tint);
     this.fx.push({ im, t0: this.ft, dur: o.dur ?? 0.6, vx: o.vx ?? 0, vy: o.vy ?? 0, spin: o.spin ?? 0, s0: o.s0 ?? 1, s1: o.s1 ?? 1, a0: o.a0 ?? 1, sway: o.sway ?? 0, ph: Math.random() * 6 });
   }
 
@@ -247,7 +251,7 @@ export class OrchardScene extends MinigameScene {
 
   private leaf(x: number, y: number, burst: boolean) {
     const n = 1 + Math.floor(Math.random() * 8);
-    this.spawn(`or_leaf_${n}`, x, y, { dur: burst ? 1.6 : 6, vx: burst ? (Math.random() - 0.5) * 140 : 0, vy: burst ? 20 + Math.random() * 40 : 28 + Math.random() * 18, spin: (Math.random() - 0.5) * 120, s0: 0.5, s1: 0.5, a0: burst ? 0.95 : 0.7, sway: 26, depth: 2.5 });
+    this.spawn(`or_leaf_${n}`, x, y, { dur: burst ? 1.6 : 6, vx: burst ? (Math.random() - 0.5) * 140 : 0, vy: burst ? 20 + Math.random() * 40 : 28 + Math.random() * 18, spin: (Math.random() - 0.5) * 120, s0: 0.5, s1: 0.5, a0: burst ? 0.95 : 0.7, sway: 26, depth: 2.5, tint: LEAF_TINT[this.season] });
   }
 
   private shakeTree(i: number) {
