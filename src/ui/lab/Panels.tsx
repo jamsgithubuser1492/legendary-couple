@@ -32,7 +32,7 @@ function JarButton({ ing, s, picked, onPick, fresh, disabled }: { ing: Ingredien
       <span className="mt-0.5 line-clamp-2 min-h-[24px] text-[10px] font-bold leading-tight text-cocoa">{ing.name}</span>
       {!open && <span className="absolute right-0.5 top-0.5 text-xs" aria-hidden>🔒</span>}
       {open && !inSeason && <span className="absolute right-0.5 top-0.5 text-xs" aria-hidden>🌿</span>}
-      {fresh && usable && <span className="olw-new absolute -right-1 -top-1 rounded-full bg-sky-400 px-1.5 text-[9px] font-bold text-white shadow">New</span>}
+      {fresh && usable && <span className="olw-new absolute -right-1 -top-1 rounded-full bg-pink-400 px-1.5 text-[9px] font-bold text-white shadow">New</span>}
     </button>
   );
 }
