@@ -459,16 +459,16 @@ export class StellarFishingScene extends MinigameScene {
       let im = this.rodImgs.get(r);
       const x = r === 'A' ? PIER_X.A - 100 : PIER_X.B + 100;
       if (!im) {
-        im = this.add.image(x, 232, rod.key).setDepth(2.5).setOrigin(0.5, 0.5);
+        im = this.add.image(x, 224, rod.key).setDepth(2.5).setOrigin(0.5, 0.5);
         this.rodImgs.set(r, im);
       } else if (im.texture.key !== rod.key) im.setTexture(rod.key);
-      im.setScale(84 / im.width).setPosition(x, 232).setFlipX(r === 'B').setAngle(r === 'A' ? -7 : 7);
+      im.setScale(84 / im.width).setPosition(x, 224).setFlipX(r === 'B').setAngle(r === 'A' ? -7 : 7);
       let tag = this.rodTags.get(r);
       if (!tag) {
-        tag = this.add.text(x, 248, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: '12px', color: '#ffffff', stroke: '#2b5878', strokeThickness: 3 }).setOrigin(0.5).setDepth(2.5);
+        tag = this.add.text(x, 240, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: '12px', color: '#ffffff', stroke: '#2b5878', strokeThickness: 3 }).setOrigin(0.5).setDepth(2.5);
         this.rodTags.set(r, tag);
       }
-      tag.setText(rod.name).setPosition(x, 248);
+      tag.setText(rod.name).setPosition(x, 240);
     }
     void c;
   }
