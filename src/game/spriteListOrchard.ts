@@ -895,5 +895,201 @@ export const ORCHARD_SPRITES = [
     "w": 43,
     "h": 37,
     "dw": 40
+  },
+  {
+    "key": "or_t_spring_fruit",
+    "file": "or_t_spring_fruit.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_fade",
+    "file": "or_t_spring_fade.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_shk1",
+    "file": "or_t_spring_shk1.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_shk2",
+    "file": "or_t_spring_shk2.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_shk3",
+    "file": "or_t_spring_shk3.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_shk4",
+    "file": "or_t_spring_shk4.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_spring_shk5",
+    "file": "or_t_spring_shk5.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_fruit",
+    "file": "or_t_summer_fruit.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_fade",
+    "file": "or_t_summer_fade.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_shk1",
+    "file": "or_t_summer_shk1.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_shk2",
+    "file": "or_t_summer_shk2.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_shk3",
+    "file": "or_t_summer_shk3.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_shk4",
+    "file": "or_t_summer_shk4.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_summer_shk5",
+    "file": "or_t_summer_shk5.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_fruit",
+    "file": "or_t_autumn_fruit.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_fade",
+    "file": "or_t_autumn_fade.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_shk1",
+    "file": "or_t_autumn_shk1.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_shk2",
+    "file": "or_t_autumn_shk2.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_shk3",
+    "file": "or_t_autumn_shk3.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_shk4",
+    "file": "or_t_autumn_shk4.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_autumn_shk5",
+    "file": "or_t_autumn_shk5.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_fruit",
+    "file": "or_t_winter_fruit.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_fade",
+    "file": "or_t_winter_fade.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_shk1",
+    "file": "or_t_winter_shk1.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_shk2",
+    "file": "or_t_winter_shk2.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_shk3",
+    "file": "or_t_winter_shk3.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_shk4",
+    "file": "or_t_winter_shk4.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
+  },
+  {
+    "key": "or_t_winter_shk5",
+    "file": "or_t_winter_shk5.png",
+    "w": 138,
+    "h": 142,
+    "dw": 69
   }
 ] as const;

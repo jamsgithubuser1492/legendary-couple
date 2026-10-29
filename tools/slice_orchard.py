@@ -51,6 +51,128 @@ def keyed(sh, key, box, mode, dw=None):
     jobs.append((key, Image.fromarray(np.dstack([a, al]).astype(np.uint8), 'RGBA'), dw, False))
 
 
+# ---- seasonal trees (no new art needed): the summer tree sprites recoloured per season ----------------------------------
+SEASONS = ('spring', 'summer', 'autumn', 'winter')
+TREE_W = 138  # canvas of the fruit tree, every seasonal tree piece shares it so they stack exactly
+
+
+def _noise(shape, cells, seed):
+    """Smooth value noise in 0..1 (random grid, smoothstep blend) so a whole canopy gets patchy, believable colour."""
+    rng = np.random.default_rng(seed)
+    g = rng.random((cells + 2, cells + 2)).astype(np.float32)
+    ys = np.linspace(0, cells, shape[0], endpoint=False)
+    xs = np.linspace(0, cells, shape[1], endpoint=False)
+    y0, x0 = np.floor(ys).astype(int), np.floor(xs).astype(int)
+    fy, fx = ys - y0, xs - x0
+    fy, fx = fy * fy * (3 - 2 * fy), fx * fx * (3 - 2 * fx)
+    top = g[np.ix_(y0, x0)] * (1 - fx)[None, :] + g[np.ix_(y0, x0 + 1)] * fx[None, :]
+    bot = g[np.ix_(y0 + 1, x0)] * (1 - fx)[None, :] + g[np.ix_(y0 + 1, x0 + 1)] * fx[None, :]
+    a = top * (1 - fy)[:, None] + bot * fy[:, None]
+    return (a - a.min()) / max(1e-6, a.max() - a.min())
+
+
+def _smooth(x, a, b):
+    t = np.clip((x - a) / (b - a), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def _hsv_to_rgb(h, s, v):
+    """h in degrees, s and v in 0..1, all arrays."""
+    h = (h % 360) / 60.0
+    i = np.floor(h).astype(int) % 6
+    f = h - np.floor(h)
+    p, q, t = v * (1 - s), v * (1 - s * f), v * (1 - s * (1 - f))
+    r = np.choose(i, [v, q, p, p, t, v]); g = np.choose(i, [t, v, v, q, p, p]); b = np.choose(i, [p, p, t, v, v, q])
+    return np.stack([r, g, b], -1)
+
+
+def season_tree(im, season):
+    """Recolours only the leaves (green pixels) of a tree sprite; fruit, trunk and outline keep their own colours."""
+    a = np.asarray(im.convert('RGBA'), dtype=np.float32)
+    rgb, alpha = a[..., :3] / 255.0, a[..., 3]
+    if season == 'summer':
+        return im.convert('RGBA')
+    hsv = np.asarray(Image.fromarray((rgb * 255).astype(np.uint8), 'RGB').convert('HSV'), dtype=np.float32)
+    H, S, V = hsv[..., 0] * 360 / 255.0, hsv[..., 1] / 255.0, hsv[..., 2] / 255.0
+    w = _smooth(S, 0.08, 0.20) * _smooth(H, 52, 78) * (1 - _smooth(H, 150, 175))  # how green a pixel is
+    shape = H.shape
+    n1, n2, n3 = _noise(shape, 5, 11), _noise(shape, 11, 23), _noise(shape, 3, 5)
+    if season == 'autumn':
+        h = 18 + 34 * n1 + 6 * (n2 - 0.5)
+        red = _smooth(n3, 0.6, 0.76)
+        h = h * (1 - red) + (6 + 8 * n2) * red  # a few soft red patches
+        s = np.clip(S * 1.3 + 0.16, 0, 0.9)
+        v = np.clip(V * (0.97 + 0.08 * n2), 0, 1)
+        new = _hsv_to_rgb(h, s, v)
+    elif season == 'winter':
+        new = _hsv_to_rgb(185 + 12 * n1, np.clip(S * 0.42, 0, 0.24), np.clip(V * 0.9 + 0.02, 0, 1))  # cold slate green under the snow
+    else:  # spring: fresh leaves with soft pink blossom clusters that keep the leaf shading
+        leaf = _hsv_to_rgb(H + 8, np.clip(S, 0, 1), np.clip(V + 0.06, 0, 1))
+        blossom = _hsv_to_rgb(338 + 14 * n2, np.clip(S * 0.35 + 0.1, 0.12, 0.3), np.clip(V * 0.8 + 0.3, 0, 1))
+        b = (_smooth(0.55 * _noise(shape, 9, 23) + 0.45 * _noise(shape, 17, 31), 0.56, 0.66) * 0.88)[..., None]
+        new = leaf * (1 - b) + blossom * b
+    out = rgb * (1 - w[..., None]) + np.clip(new, 0, 1) * w[..., None]
+    if season == 'winter':  # a snow cap on the top of the canopy, shaded by the leaves under it
+        h_, w_ = shape
+        cap = 12 + 10 * np.interp(np.arange(w_), np.linspace(0, w_ - 1, 9), np.random.default_rng(3).random(9))
+        edge = _noise(shape, 24, 41)
+        for x in range(w_):
+            col = np.where(alpha[:, x] > 100)[0]
+            if not len(col):
+                continue
+            y0 = col[0]
+            for y in range(y0, min(h_, int(y0 + cap[x]) + 1)):
+                if alpha[y, x] < 100 or V[y, x] < 0.42:
+                    continue  # leave the dark outline alone
+                t = 1 - (y - y0) / max(1.0, cap[x])
+                k = np.clip(t * 1.7 * (0.8 + 0.4 * edge[y, x]) + 0.12, 0, 1) * 0.95
+                snow = np.array([0.95, 0.97, 1.0]) * (0.86 + 0.14 * V[y, x])
+                out[y, x] = out[y, x] * (1 - k) + snow * k
+    res = np.dstack([np.clip(out, 0, 1) * 255, alpha]).astype(np.uint8)
+    return Image.fromarray(res, 'RGBA')
+
+
+def shake_canopy(im):
+    """The canopy of a shake frame, scaled to the fruit tree's canopy width and top aligned on the shared canvas, with a feathered
+    lower edge so it blends into the fruit tree's own trunk and lower leaves (the shake frames have a stubbier trunk)."""
+    a = np.asarray(im.convert('RGBA'))[..., 3] > 40
+    rows = a.sum(1)
+    f = 137.0 / rows.max()
+    im = im.convert('RGBA').resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+    a = np.asarray(im)[..., 3] > 40
+    ys, xs = np.where(a)
+    cx, top = (xs.min() + xs.max()) / 2.0, ys.min()
+    canvas = Image.new('RGBA', (TREE_W, 142), (0, 0, 0, 0))
+    canvas.paste(im, (round(68 - cx), round(1 - top)), im)
+    arr = np.asarray(canvas).copy()
+    arr[121:, :, 3] = 0  # below the canopy there is only trunk and buds
+    hsv = np.asarray(Image.fromarray(arr[..., :3], 'RGB').convert('HSV'), dtype=np.float32)
+    Hh, Ss, Vv = hsv[..., 0] * 360 / 255.0, hsv[..., 1] / 255.0, hsv[..., 2] / 255.0
+    trunk = (Hh > 8) & (Hh < 48) & (Ss > 0.3) & (Vv > 0.28) & (Vv < 0.9)
+    from scipy import ndimage
+    trunk = ndimage.binary_dilation(trunk, iterations=2)
+    arr[..., 3] = np.where(trunk, 0, arr[..., 3])  # the base tree's own trunk shows through the gap
+    lab, n = ndimage.label(arr[..., 3] > 20)
+    for i in range(1, n + 1):
+        ys_ = np.where(lab == i)[0]
+        if len(ys_) < 40 or ys_.mean() > 108:
+            arr[..., 3][lab == i] = 0  # stray crumbs and trunk buds left by the cut
+    return Image.fromarray(arr, 'RGBA')
+
+
+def add_season_trees(entries):
+    src = lambda k: Image.open(os.path.join(OUT, f'{k}.png')).convert('RGBA')
+    fruit, fade = src('or_tree_fruit'), src('or_tree_fade')
+    shakes = [shake_canopy(src(f'or_shake_{i}')) for i in range(1, 6)]
+    for sea in SEASONS:
+        parts = {'fruit': fruit, 'fade': fade, **{f'shk{i + 1}': im for i, im in enumerate(shakes)}}
+        for name, im in parts.items():
+            out = season_tree(im, sea)
+            key = f'or_t_{sea}_{name}'
+            out.save(os.path.join(OUT, key + '.png'), optimize=True)
+            entries.append({'key': key, 'file': key + '.png', 'w': out.width, 'h': out.height, 'dw': 69})
+
+
 def main():
     # ---- fruit, hazards (sheet 101 what the game draws today)
     for k, b in {'apple_1': (39, 484, 90, 542), 'apple_2': (124, 487, 175, 542), 'apple_3': (207, 483, 260, 543),
@@ -122,6 +244,7 @@ def main():
         else:
             im.save(os.path.join(OUT, f'{key}.png'), optimize=True)
         entries.append({'key': key, 'file': f'{key}.{ext}', 'w': im.width, 'h': im.height, 'dw': dw or max(8, round(im.width / 2))})
+    add_season_trees(entries)
     with open(os.path.join(ROOT, 'src', 'game', 'spriteListOrchard.ts'), 'w') as f:
         f.write('// Generated by tools/slice_orchard.py. Do not edit by hand.\n')
         f.write('export const ORCHARD_SPRITES = ' + json.dumps(entries, indent=2) + ' as const;\n')

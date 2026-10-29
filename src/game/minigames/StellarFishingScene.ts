@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { PlayerId } from '../../types';
 import { FAUNA, emptyResult, type MGResult } from '../../state/minigames';
 import { BUS, gameBus } from '../events';
+import { getState } from '../../state/store';
 import { H, MinigameScene, W, coverBox } from './base';
 
 type Kind = 'normal' | 'coop' | 'crate' | 'bottle';
@@ -33,6 +34,15 @@ const FISH = ['guppy', 'tang', 'bunny', 'bass', 'salmon', 'carp', 'angel', 'nudi
 const fishKey = (sp: string) => (['guppy', 'tang', 'bunny', 'bass'].includes(sp) ? `mg_fish_${sp}` : `sf_${sp}`);
 /** Which way each painted fish faces as drawn, so the other direction can be a mirror. */
 const NATIVE: Record<string, 'e' | 'w'> = { guppy: 'e', tang: 'w', bunny: 'w', bass: 'e', salmon: 'e', carp: 'e', angel: 'e', nudi: 'e', crab: 'e', perch: 'e', grouper: 'e', eel: 'w' };
+/** Swim frames from the animation sheet. Only the species whose frames match their finished sprite are listed. */
+const SWIM_FRAMES: Record<string, number> = { salmon: 3, nudi: 3, carp: 2, crab: 2 };
+const SWIM_ORDER: Record<number, number[]> = { 2: [1, 2], 3: [1, 2, 3, 2] };
+/** The rod upgrade path: the rod rests on the dock, and the best score you two have reached decides which one. */
+const RODS = [
+  { key: 'sf2_rod_bamboo', name: 'Bamboo Rod', from: 0 },
+  { key: 'sf2_rod_carbon', name: 'Carbon Pro', from: 150 },
+  { key: 'sf2_rod_stardust', name: 'Stardust Rod', from: 400 },
+];
 const RING_R = 130;
 const GREEN_FROM = 0.74, GREEN_TO = 0.97, RING_TIME = 2.0; // a wider green band and a slower ring, so it is a shared moment, not a reflex test
 const PIER_X: Record<PlayerId, number> = { A: 300, B: 660 };
@@ -49,6 +59,14 @@ export class StellarFishingScene extends MinigameScene {
   private bgImg?: Phaser.GameObjects.Image;
   private bobbers = new Map<string, Phaser.GameObjects.Image>();
   private casters = new Map<PlayerId, Phaser.GameObjects.Image>();
+  private rodImgs = new Map<PlayerId, Phaser.GameObjects.Image>();
+  private rodTags = new Map<PlayerId, Phaser.GameObjects.Text>();
+  private rodTier = 0;
+  private fx: Phaser.GameObjects.Image[] = []; // pooled ring, spray and splash images
+  private lastCatches = 0;
+  private lastCast: Partial<Record<PlayerId, { x: number; y: number; t: number }>> = {};
+  private sparkles: Phaser.GameObjects.Image[] = [];
+  private ringImgs = new Map<PlayerId, Phaser.GameObjects.Image>();
   private nextFish = 0.3;
   private nextId = 1;
   private nextBottle = 25;
@@ -79,6 +97,14 @@ export class StellarFishingScene extends MinigameScene {
     this.bgImg = undefined;
     this.bobbers.clear();
     this.casters.clear();
+    this.rodImgs.clear();
+    this.rodTags.clear();
+    this.rodTier = 0;
+    this.fx = [];
+    this.lastCatches = 0;
+    this.lastCast = {};
+    this.sparkles = [];
+    this.ringImgs.clear();
     this.nextFish = 0.3;
     this.nextId = 1;
     this.nextBottle = 25;
@@ -399,6 +425,82 @@ export class StellarFishingScene extends MinigameScene {
     return im;
   }
 
+  /** The swim frame for a species at this moment, or null when the species has no matching frames. */
+  private swimKey(sp: string, c: number, ph: number): string | null {
+    const n = SWIM_FRAMES[sp];
+    if (!n || !this.textures.exists(`sf2_${sp}_1`)) return null;
+    const order = SWIM_ORDER[n] ?? [1];
+    const i = order[Math.floor(Math.max(0, c * 5 + ph * 2)) % order.length];
+    const key = `sf2_${sp}_${i}`;
+    return this.textures.exists(key) ? key : `sf2_${sp}_1`;
+  }
+
+  /** The rod tier for the couple: the best Stellar Fishing score so far, or this session's score if it is higher. */
+  private tierNow(): number {
+    let best = 0;
+    try {
+      const b = getState().mgBest?.STELLAR_FISHING;
+      if (typeof b === 'number' && Number.isFinite(b)) best = b;
+    } catch { /* no saved game yet: start with the bamboo rod */ }
+    const now = (this.m.catches || 0) * 10 + (this.m.perfects || 0) * 5;
+    const score = Math.max(best, now);
+    let tier = 0;
+    RODS.forEach((r, i) => { if (score >= r.from && this.textures.exists(r.key)) tier = i; });
+    return tier;
+  }
+
+  /** Each partner's rod rests on the dock beside them, and the line and bobber glow a little more as the rod improves. */
+  private drawRods(c: number) {
+    const tier = this.tierNow();
+    this.rodTier = tier;
+    for (const r of ['A', 'B'] as PlayerId[]) {
+      const rod = RODS[tier];
+      if (!this.textures.exists(rod.key)) continue;
+      let im = this.rodImgs.get(r);
+      const x = r === 'A' ? PIER_X.A - 100 : PIER_X.B + 100;
+      if (!im) {
+        im = this.add.image(x, 232, rod.key).setDepth(2.5).setOrigin(0.5, 0.5);
+        this.rodImgs.set(r, im);
+      } else if (im.texture.key !== rod.key) im.setTexture(rod.key);
+      im.setScale(84 / im.width).setPosition(x, 232).setFlipX(r === 'B').setAngle(r === 'A' ? -7 : 7);
+      let tag = this.rodTags.get(r);
+      if (!tag) {
+        tag = this.add.text(x, 248, '', { fontFamily: '"Baloo 2", system-ui, sans-serif', fontSize: '12px', color: '#ffffff', stroke: '#2b5878', strokeThickness: 3 }).setOrigin(0.5).setDepth(2.5);
+        this.rodTags.set(r, tag);
+      }
+      tag.setText(rod.name).setPosition(x, 248);
+    }
+    void c;
+  }
+
+  /** A pooled image that plays through some frames once: the spray when a line lands, the splash when something is caught. */
+  private playFx(frames: string[], x: number, y: number, dur: number, scale: number) {
+    const keys = frames.filter((k) => this.textures.exists(k));
+    if (!keys.length) return;
+    let im = this.fx.find((f) => !f.visible);
+    if (!im) {
+      if (this.fx.length >= 12) return;
+      im = this.add.image(0, 0, keys[0]).setDepth(5);
+      this.fx.push(im);
+    }
+    im.setData('frames', keys).setData('t0', this.clock).setData('dur', dur).setData('s', scale);
+    im.setTexture(keys[0]).setPosition(x, y).setVisible(true);
+  }
+
+  private stepFx(c: number) {
+    for (const im of this.fx) {
+      if (!im.visible) continue;
+      const frames = im.getData('frames') as string[], dur = im.getData('dur') as number, t0 = im.getData('t0') as number;
+      const age = (c - t0) / dur;
+      if (age >= 1) { im.setVisible(false); continue; }
+      const a = Math.max(0, age);
+      const key = frames[Math.min(frames.length - 1, Math.floor(a * frames.length))];
+      if (im.texture.key !== key) im.setTexture(key);
+      const sc = (im.getData('s') as number) * (0.6 + 0.5 * a);
+      im.setScale(sc * 0.5).setAlpha(1 - a * 0.7);
+    }
+  }
+
   /** A bobber or splash image kept per player, with the bite frame swapped in while something is on the line. */
   private bobberImg(id: string, kind: string, bite: boolean) {
     const key = kind === 'splash' ? 'sf_splash' : `sf_bobber_${kind}${bite ? '_bite' : ''}`;
@@ -485,7 +587,7 @@ export class StellarFishingScene extends MinigameScene {
         let key = f.kind === 'bottle' ? 'mg_bottle' : f.kind === 'crate' ? 'mg_crate' : '';
         if (!key) {
           const sp = FISH[f.id % FISH.length];
-          key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : fishKey(sp);
+          key = f.kind === 'coop' && this.textures.exists(`mg_fish_${sp}_glow`) ? `mg_fish_${sp}_glow` : this.swimKey(sp, c, f.ph) ?? fishKey(sp);
         }
         if (!this.textures.exists(key)) key = f.kind === 'normal' || f.kind === 'coop' ? 'mg_fish_guppy' : key; // missing art falls back to the first fish
         if (!this.textures.exists(key)) continue;
@@ -505,7 +607,14 @@ export class StellarFishingScene extends MinigameScene {
         this.dualTarget(f.x, y - 40);
       } else {
         const faces = NATIVE[sp] ?? 'e';
-        im.setScale((f.kind === 'coop' ? 0.95 : 0.8) * (im.texture.key.startsWith('sf_') ? 0.5 : 1)).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
+        const mult = f.kind === 'coop' ? 0.95 : 0.8;
+        const swim = this.swimKey(sp, c, f.ph);
+        if (swim && im.texture.key.startsWith('sf2_') && im.texture.key !== swim) im.setTexture(swim);
+        const frames = im.texture.key.startsWith('sf2_');
+        // a swim frame is drawn on a slightly larger canvas than the finished sprite, so scale by the fish itself
+        const k = frames ? (0.5 * (this.textures.get(fishKey(sp)).getSourceImage().width as number)) / Math.max(1, im.width - 14) : im.texture.key.startsWith('sf_') ? 0.5 : 1;
+        im.setScale(mult * k).setFlipX((f.vx >= 0 ? 'e' : 'w') !== faces);
+        im.setAngle((Math.sin(c * 3.2 + f.ph) * 2.5) * (im.flipX ? -1 : 1)); // a gentle tail sway
         if (f.kind === 'coop') {
           g.fillStyle(0x9ff3ff, 0.22 + 0.18 * Math.sin(c * 5 + f.ph));
           g.fillCircle(f.x, y, 46);
@@ -533,6 +642,7 @@ export class StellarFishingScene extends MinigameScene {
       if (im.texture.key !== key) im.setTexture(key);
       im.setScale(im.getData('k') as number).setPosition(PIER_X[r], 240 + Math.sin(c * 1.6 + (r === 'A' ? 0 : 2)) * 1.5);
     }
+    this.drawRods(c);
     this.drawAim(dt);
     // lines and bobbers
     for (const r of ['A', 'B'] as PlayerId[]) {
@@ -540,26 +650,62 @@ export class StellarFishingScene extends MinigameScene {
       const px = PIER_X[r];
       if (!cs) continue;
       const age = Math.max(0, c - cs.t);
-      g.lineStyle(2, 0xffffff, 0.8);
+      const tier = this.rodTier;
+      if (tier >= 2) { g.lineStyle(7, 0xb9a8ff, 0.16 + 0.06 * Math.sin(c * 3)); g.beginPath(); g.moveTo(px + 38, 178); g.lineTo(cs.x, cs.y); g.strokePath(); }
+      g.lineStyle(tier ? 2.5 : 2, tier === 1 ? 0xe4f8ff : tier === 2 ? 0xf0eaff : 0xffffff, 0.85);
       g.beginPath();
       g.moveTo(px + 38, 178);
       g.lineTo(cs.x, cs.y);
       g.strokePath();
+      // a new cast sends up a little spray
+      const seenCast = this.lastCast[r];
+      if (!seenCast || seenCast.t !== cs.t) {
+        this.lastCast[r] = { x: cs.x, y: cs.y, t: cs.t };
+        this.playFx(['sf2_spray_1', 'sf2_spray_2', 'sf2_spray_3'], cs.x, cs.y + 2, 0.7, 1.1);
+      }
       const bob = this.bobberImg(`b${r}`, r === 'A' ? 'shell' : 'glow', !!m.ring || !!m.tension);
       if (bob) bob.setPosition(cs.x, cs.y - 8 + Math.sin(c * 3) * 2).setVisible(true);
       else {
         g.fillStyle(r === 'A' ? 0xff7fa1 : 0x6ec6ff, 1);
         g.fillCircle(cs.x, cs.y + Math.sin(c * 3) * 2, 8);
       }
-      // entry splash, then a ring spreading out on the water
+      // entry splash, then a ring that keeps spreading around the bobber
       const sp = this.bobberImg(`s${r}`, 'splash', false);
       if (sp) {
         const k = Math.min(1, age / 0.7);
         sp.setPosition(cs.x, cs.y + 4).setVisible(age < 0.7).setScale((0.55 + k * 0.5) * 0.5).setAlpha(1 - k);
       }
-      g.lineStyle(2, 0xffffff, Math.max(0, 0.7 - (age % 1) * 0.7));
-      g.strokeCircle(cs.x, cs.y, 8 + (age % 1) * 26);
+      if (this.textures.exists('sf2_ring_1')) {
+        let ring = this.ringImgs.get(r);
+        if (!ring) { ring = this.add.image(cs.x, cs.y, 'sf2_ring_1').setDepth(3.5); this.ringImgs.set(r, ring); }
+        const ph = (age % 1.2) / 1.2;
+        ring.setTexture(`sf2_ring_${1 + Math.min(3, Math.floor(ph * 4))}`).setPosition(cs.x, cs.y + 3).setScale(0.62 + ph * 0.25).setAlpha(0.85 - ph * 0.45).setVisible(true);
+      } else {
+        g.lineStyle(2, 0xffffff, Math.max(0, 0.7 - (age % 1) * 0.7));
+        g.strokeCircle(cs.x, cs.y, 8 + (age % 1) * 26);
+      }
+      // the Stardust Rod: tiny stars drift down the line
+      if (tier >= 2 && this.textures.exists('or_spark_2')) {
+        for (let i = 0; i < 3; i++) {
+          const idx = (r === 'A' ? 0 : 3) + i;
+          let st = this.sparkles[idx];
+          if (!st) { st = this.add.image(0, 0, 'or_spark_2').setDepth(4).setBlendMode(Phaser.BlendModes.ADD).setScale(0.28); this.sparkles[idx] = st; }
+          const u = (c * 0.6 + i / 3) % 1;
+          st.setPosition(px + 38 + (cs.x - px - 38) * u, 178 + (cs.y - 178) * u).setAlpha(Math.sin(u * Math.PI) * 0.8).setVisible(true);
+        }
+      } else for (let i = 0; i < 3; i++) this.sparkles[(r === 'A' ? 0 : 3) + i]?.setVisible(false);
     }
+    for (const r of ['A', 'B'] as PlayerId[]) if (!m.casts[r]) {
+      this.ringImgs.get(r)?.setVisible(false);
+      for (let i = 0; i < 3; i++) this.sparkles[(r === 'A' ? 0 : 3) + i]?.setVisible(false);
+    }
+    // something was caught: a splash where the line was
+    if (m.catches > this.lastCatches) {
+      const last = (['A', 'B'] as PlayerId[]).map((r) => this.lastCast[r]).filter((q): q is { x: number; y: number; t: number } => !!q).sort((x, y) => y.t - x.t)[0];
+      if (last) this.playFx(['sf2_splash_star', 'sf2_ring_1', 'sf2_ring_2', 'sf2_ring_3'], last.x, last.y, 0.9, 1.5);
+    }
+    this.lastCatches = m.catches;
+    this.stepFx(c);
     for (const [k, im] of this.bobbers) if (!m.casts[k.slice(1) as PlayerId]) im.setVisible(false);
     // sync ring: tap together when the growing ring meets the green band
     if (m.ring) {

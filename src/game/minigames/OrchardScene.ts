@@ -64,7 +64,15 @@ export class OrchardScene extends MinigameScene {
   private far?: Phaser.GameObjects.Image;
   private dusk?: Phaser.GameObjects.Image;
   private tint?: Phaser.GameObjects.Image;
-  private trees: Phaser.GameObjects.Image[] = [];
+  private trees: Phaser.GameObjects.Image[] = []; // the base tree of each spot
+  private treeFruit: Phaser.GameObjects.Image[] = []; // the fruit laden canopy drawn over the base, faded out when a tree is shaken
+  private treeShake: Phaser.GameObjects.Image[] = []; // the canopy ruffle frames, shown for a moment when a tree is shaken
+  private treeSet = false; // the seasonal tree pieces are all loaded
+  private shookT = [-99, -99, -99]; // when each tree was last shaken (real time)
+  private multImg?: Phaser.GameObjects.Image;
+  private multLvl = 0;
+  private multPopT = -9;
+  private basketShadow?: Phaser.GameObjects.Image;
   private basketImg?: Phaser.GameObjects.Image;
   private glowImg?: Phaser.GameObjects.Image;
   private showerImgs: Phaser.GameObjects.Image[] = [];
@@ -145,8 +153,10 @@ export class OrchardScene extends MinigameScene {
   }
 
   private buildArt() {
-    this.fx = []; this.trees = []; this.showerImgs = []; this.people = [];
+    this.fx = []; this.trees = []; this.treeFruit = []; this.treeShake = []; this.showerImgs = []; this.people = [];
+    this.shookT = [-99, -99, -99]; this.treeSet = false; this.multLvl = 0; this.multPopT = -9;
     this.fruit.clear(); this.shadowImgs.clear(); this.seen.clear();
+    this.multImg = this.basketShadow = undefined;
     this.leafAcc = 0; this.shookAt = -1; this.tapT = -9; this.catchT = -9; this.wobbleT = -9; this.lastTree = 0; this.streak = 0;
     this.far = this.dusk = this.tint = this.basketImg = this.glowImg = undefined;
     this.art = this.has('or_tree') && this.has('or_bg_far') && this.has('or_basket_0') && this.has('or_apple_2');
@@ -178,8 +188,19 @@ export class OrchardScene extends MinigameScene {
       for (let i = 0; i < 8; i++) { const c = this.textures.getPixel(Math.floor((gw / 8) * i + 3), gh - 2, `or_ground_${sk}`); if (c) { r += c.red; gg += c.green; bb += c.blue; } }
       this.add.rectangle(W / 2, H, W * 5, 3000, Phaser.Display.Color.GetColor(r / 8, gg / 8, bb / 8)).setOrigin(0.5, 0).setDepth(-41);
     }
-    // the orchard row
+    // the orchard row: each tree is the seasonal fruit tree with a fade state under it, so it can lose its fruit when shaken and grow it back
+    this.treeSet = this.has(`or_t_${sk}_fruit`) && this.has(`or_t_${sk}_fade`) && [1, 2, 3, 4, 5].every((n) => this.has(`or_t_${sk}_shk${n}`));
     TX.forEach((x, i) => {
+      if (this.treeSet) {
+        const flip = i === 2, sc = TREE_H / 142;
+        // a soft shadow on the ground, falling to the lower right because the light is from the upper left
+        if (this.has('or_shadow_0')) this.add.image(x + 22, GROUND + 3, 'or_shadow_0').setDisplaySize(250, 46).setAlpha(0.42).setDepth(1.8);
+        const mk = (key: string, depth: number) => this.add.image(x, GROUND + 6, key).setOrigin(0.5, 1).setDepth(depth).setFlipX(flip).setScale(sc);
+        this.trees.push(mk(`or_t_${sk}_fade`, 2));
+        this.treeFruit.push(mk(`or_t_${sk}_fruit`, 2.02));
+        this.treeShake.push(mk(`or_t_${sk}_shk1`, 2.04).setVisible(false));
+        return;
+      }
       const key = i === 1 && this.has('or_tree_fruit') ? 'or_tree_fruit' : 'or_tree';
       const im = this.add.image(x, GROUND + 6, key).setOrigin(0.5, 1).setDepth(2).setFlipX(i === 2);
       im.setScale(TREE_H / im.height);
@@ -187,6 +208,8 @@ export class OrchardScene extends MinigameScene {
       else if (sk === 'winter') im.setTint(0xe2ecf4);
       this.trees.push(im);
     });
+    if (this.has('or_shadow_0')) this.basketShadow = this.add.image(480, GROUND + 8, 'or_shadow_0').setDisplaySize(150, 24).setAlpha(0.5).setDepth(1.9).setVisible(false);
+    if (this.has('or_mult_1')) this.multImg = this.add.image(120, 33, 'or_mult_1').setOrigin(0, 0.5).setDepth(10).setAlpha(0.5);
     this.basketImg = this.add.image(480, 512, 'or_basket_0').setOrigin(0.5, 1).setDepth(5).setVisible(false);
     if (this.has('or_basket_glow')) this.glowImg = this.add.image(480, 480, 'or_basket_glow').setOrigin(0.5, 1).setDepth(5.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setVisible(false);
     for (let i = 0; i < 4; i++) {
@@ -196,8 +219,9 @@ export class OrchardScene extends MinigameScene {
     if (this.has('or_tint_strip')) this.tint = this.add.image(W / 2, H / 2, 'or_tint_strip').setDisplaySize(W, H).setDepth(7).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setVisible(false);
     this.people = [0, 1].map(() => this.add.image(0, 0, 'or_james_pose_shake_1').setOrigin(0.5, 1).setDepth(3.5).setVisible(false));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.fx = []; this.trees = []; this.showerImgs = []; this.people = [];
+      this.fx = []; this.trees = []; this.treeFruit = []; this.treeShake = []; this.showerImgs = []; this.people = [];
       this.fruit.clear(); this.shadowImgs.clear(); this.seen.clear();
+      this.multImg = this.basketShadow = undefined;
     });
   }
 
@@ -231,11 +255,32 @@ export class OrchardScene extends MinigameScene {
     if (!t) return;
     this.lastTree = i;
     this.tapT = this.ft;
-    this.tweens.killTweensOf(t);
-    t.setAngle(0);
-    this.tweens.add({ targets: t, angle: { from: -2.2, to: 2.2 }, duration: 55, yoyo: true, repeat: 4, onComplete: () => t.setAngle(0) });
+    this.shookT[i] = this.ft;
+    const layers = [t, this.treeFruit[i], this.treeShake[i]].filter(Boolean);
+    this.tweens.killTweensOf(layers);
+    layers.forEach((l) => l.setAngle(0));
+    this.tweens.add({ targets: layers, angle: { from: -2.2, to: 2.2 }, duration: 55, yoyo: true, repeat: 4, onComplete: () => layers.forEach((l) => l.setAngle(0)) });
     for (let k = 0; k < 6; k++) this.leaf(TX[i] + (Math.random() - 0.5) * 170, 150 + Math.random() * 90, true);
     this.spawn('or_tap_4', TX[i], TARGET_Y, { dur: 0.45, s0: 0.8, s1: 2.2, a0: 0.9, add: true });
+  }
+
+  /** Each tree: ruffled canopy for a moment after a shake, fruit gone, then the fruit slowly grows back. Visual only. */
+  private drawTrees() {
+    if (!this.treeSet) return;
+    TX.forEach((_, i) => {
+      const t = this.ft - this.shookT[i];
+      const fruit = this.treeFruit[i], shake = this.treeShake[i];
+      if (!fruit || !shake) return;
+      const grow = t < 0.3 ? 1 - t / 0.3 : t < 2 ? 0 : Math.min(1, (t - 2) / 7);
+      fruit.setAlpha(grow * grow * (3 - 2 * grow));
+      const on = t >= 0 && t < 0.6;
+      shake.setVisible(on);
+      if (on) {
+        const key = `or_t_${this.season}_shk${1 + (Math.floor(t / 0.11) % 5)}`;
+        if (shake.texture.key !== key && this.has(key)) shake.setTexture(key);
+        shake.setAlpha(Math.min(1, t / 0.04, (0.6 - t) / 0.12));
+      }
+    });
   }
 
   /** What happened to each fruit since the last frame, read from the snapshots so a guest sees the same pops. */
@@ -350,6 +395,8 @@ export class OrchardScene extends MinigameScene {
       if (!im) { im = this.add.image(a.x, a.y, spec.key).setDepth(4); this.fruit.set(a.id, im); }
       if (im.texture.key !== spec.key) im.setTexture(spec.key);
       im.setPosition(a.x, a.y).setAngle(spec.rot).setScale(spec.w / im.width);
+      // over the opening of the basket the fruit drops in front of the heap, so it visibly lands inside instead of sliding behind the sprite
+      im.setDepth(ct && Math.abs(a.x - basketX) < 62 && a.y > BASKET_Y - 70 ? 5.2 : 4);
       if (a.kind === 'golden' && a.bounced) im.setScale((spec.w / im.width) * (1 + 0.18 * Math.sin(this.ft * 20)), (spec.w / im.width) * (1 - 0.14 * Math.sin(this.ft * 20)));
       if (a.kind === 'golden' && Math.random() < 0.18) this.spawn('or_spark_1', a.x + (Math.random() - 0.5) * 30, a.y + (Math.random() - 0.5) * 30, { dur: 0.45, s0: 0.35, s1: 0.7, add: true, depth: 4.5 });
       if (a.kind !== 'berry') {
@@ -378,11 +425,32 @@ export class OrchardScene extends MinigameScene {
         const glow = showerOn ? 0.5 + 0.3 * Math.sin(this.ft * 6) : 0;
         this.glowImg.setVisible(glow > 0).setAlpha(glow).setPosition(basketX, 508).setScale(124 / 170);
       }
-      g2.fillStyle(0x000000, 0.14);
-      g2.fillEllipse(basketX, GROUND + 6, 140, 16);
-    } else this.glowImg?.setVisible(false);
+      if (this.basketShadow) this.basketShadow.setVisible(true).setPosition(basketX + 6, GROUND + 8);
+      else {
+        g2.fillStyle(0x000000, 0.14);
+        g2.fillEllipse(basketX, GROUND + 6, 140, 16);
+      }
+    } else { this.glowImg?.setVisible(false); this.basketShadow?.setVisible(false); }
     this.drawPeople(basketX, ct);
+    this.drawTrees();
+    this.drawMult();
     this.tickFx(dt);
+  }
+
+  /** The combo flair next to the score: x1 faint, x2 after 8 clean catches in a row, x3 after 16. Visual only, scoring is unchanged. */
+  private drawMult() {
+    const im = this.multImg;
+    if (!im) return;
+    const lvl = this.streak >= 16 ? 3 : this.streak >= 8 ? 2 : 1;
+    if (lvl !== this.multLvl) {
+      const key = `or_mult_${lvl}`;
+      if (this.has(key)) im.setTexture(key);
+      if (this.multLvl && lvl > this.multLvl) { this.multPopT = this.ft; this.spawn('or_star_1', im.x + 22, im.y, { dur: 0.7, s0: 0.5, s1: 1.1, add: true, depth: 11 }); }
+      this.multLvl = lvl;
+    }
+    const k = (this.ft - this.multPopT) / 0.4;
+    const pop = k >= 0 && k < 1 ? 1 + 0.4 * Math.sin(Math.PI * k) : 1;
+    im.setPosition(this.texts.score.x + this.texts.score.width + 14, 33).setAlpha(lvl === 1 ? 0.5 : 1).setScale(pop);
   }
 
   private drawPeople(basketX: number, ct: PlayerId | null) {
