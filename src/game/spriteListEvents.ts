@@ -152,7 +152,7 @@ export const EVENT_SPRITES = [
     "file": "ev_wifi_owl.png",
     "w": 96,
     "h": 169,
-    "dw": 36
+    "dw": 24
   },
   {
     "key": "ev_record_player",

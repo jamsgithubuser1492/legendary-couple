@@ -54,7 +54,7 @@ def main():
     cut(E2, 'ev_toy_basket', (868, 125, 1030, 285), 34)
     cut(E2, 'ev_power_tile', (55, 400, 330, 575), 54)
     cut(E2, 'ev_laptop', (438, 372, 725, 572), 56, keep_all=True)
-    cut(E2, 'ev_wifi_owl', (845, 390, 1050, 560), 36, keep_all=True)
+    cut(E2, 'ev_wifi_owl', (845, 390, 1050, 560), 24, keep_all=True)
     cut(E2, 'ev_record_player', (65, 695, 300, 880), 46)
     cut(E2, 'ev_chai_barrel', (460, 655, 670, 880), 40)
     cut(E2, 'ev_chalkboard', (838, 618, 1042, 862), 40)

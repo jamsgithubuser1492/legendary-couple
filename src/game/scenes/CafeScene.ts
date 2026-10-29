@@ -15,6 +15,7 @@ import { itemOf } from '../../state/catalog';
 import { diamond as isoDiamond } from '../draw';
 import { Avatar } from '../Avatar';
 import { artImage, displayWidth, spawnPlaced } from '../placedRender';
+import { planEventDecor, type EventId, type TableAt, type Tile } from '../eventDecor';
 import type { PlacedObject, PlayerId } from '../../types';
 
 const MIN_ZOOM = 0.3 * DPR;
@@ -109,6 +110,12 @@ export class CafeScene extends Phaser.Scene {
   private itemObjs: Phaser.GameObjects.GameObject[] = [];
   private placedObjs = new Map<string, Phaser.GameObjects.GameObject[]>(); // art of each placed object, so an occupied chair can be hidden
   private decorObjs: Phaser.GameObjects.GameObject[] = [];
+  // live event art: props that stand on floor tiles (hidden while you rearrange) and the effects that animate them
+  private eventFloor: Phaser.GameObjects.GameObject[] = [];
+  private eventTweens: Phaser.Tweens.Tween[] = [];
+  private eventFx: { rain?: Phaser.GameObjects.TileSprite; wash?: Phaser.GameObjects.Rectangle; gfx?: Phaser.GameObjects.Graphics; record?: { x: number; y: number }; owl?: { x: number; y: number }; barrel?: { x: number; y: number }; id: EventId | null; clock: number; nextNote: number } = { id: null, clock: 0, nextNote: 2000 };
+  private eventBlocked = new Set<string>();
+  private eventKey: string | null | undefined = undefined; // the live event and whether it is joined, so starting or joining plays a confetti pop
   private seated = new Map<string, Patron>(); // chair id to the guest sitting on it
   private ghostObjs: Phaser.GameObjects.GameObject[] = [];
   private highlight!: Phaser.GameObjects.Graphics;
@@ -161,6 +168,7 @@ export class CafeScene extends Phaser.Scene {
     const onEdit = (e: EditPayload) => {
       const starting = e.active && !this.edit.active;
       this.edit = e;
+      for (const o of this.eventFloor) (o as Phaser.GameObjects.Image).setVisible?.(!e.active); // the pen and props step aside while you rearrange
       if (starting) for (const p of [...this.patrons]) this.sendHome(p); // guests leave while you rearrange, so no chair is hidden under one
       this.refreshHover();
     };
@@ -195,6 +203,11 @@ export class CafeScene extends Phaser.Scene {
       this.crew.clear();
       this.crewKey = '';
       this.oopsProps = [];
+      this.eventFloor = [];
+      this.eventTweens = [];
+      this.eventFx = { id: null, clock: 0, nextNote: 2000 };
+      this.eventKey = undefined;
+      this.eventBlocked.clear();
     });
     this.enter();
   }
@@ -228,7 +241,7 @@ export class CafeScene extends Phaser.Scene {
   private render(force: boolean) {
     const s = getState();
     const c = s.cafe;
-    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay === this.today()}|${c.event?.day === dateKey() ? c.event.id : ''}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
+    const sig = `${c.theme}|${c.size}|${s.cafe.sitDay === this.today()}|${c.event?.day === dateKey() ? `${c.event.id}${c.event.joined ? 'j' : ''}${c.event.full ? 'f' : ''}` : ''}|${c.placed.map((o) => `${o.id}${o.tileX},${o.tileY},${o.rotation}`).join(';')}`;
     if (!force && sig === this.sig) return;
     this.sig = sig;
     if (c.size !== this.lastSize) {
@@ -239,6 +252,7 @@ export class CafeScene extends Phaser.Scene {
     this.floorObjs.forEach((o) => o.destroy());
     this.itemObjs.forEach((o) => o.destroy());
     this.decorObjs.forEach((o) => o.destroy());
+    this.clearEventArt();
     this.floorObjs = [];
     this.itemObjs = [];
     this.decorObjs = [];
@@ -263,45 +277,219 @@ export class CafeScene extends Phaser.Scene {
       this.itemObjs.push(...objs);
     }
     for (const id of this.seated.keys()) this.showChair(id, false); // a rebuilt room keeps its sitters' chairs covered
-    this.hangEventDecor(c.size, c.event?.day === dateKey() ? c.event.id : null);
+    const live = c.event?.day === dateKey() ? (c.event.id as EventId) : null;
+    this.hangEventDecor(s, live);
     this.blocked = cafeBlocked(s);
+    for (const k of this.eventBlocked) this.blocked.add(k); // guests and crew walk around the pen and the props
+    this.eventPop(live ? `${live}${c.event?.joined ? 'j' : ''}` : null);
     this.reconcileSeats();
     this.paintBackdrop();
     this.refreshHover();
   }
 
-  /** String lights across the back wall on an event day, and the Study Slam banner on top of them. */
-  private hangEventDecor(size: number, event: string | null) {
-    if (!event) return;
-    // each piece hangs on the wall face and is cut into one slice per tile, so guests and furniture sort in front of it correctly
-    const along = (key: string, x0: number, y0: number, x1: number, y1: number, lift: number) => {
-      if (!this.textures.exists(key)) return;
-      const a = cartesianToIso(x0, y0), b = cartesianToIso(x1, y1);
-      const tiles = Math.abs(x1 - x0) + Math.abs(y1 - y0);
-      const flip = x1 < x0 || y1 < y0;
-      const len = Math.hypot(b.x - a.x, b.y - a.y);
-      const tex = this.textures.get(key).getSourceImage() as HTMLImageElement;
-      const k = len / tex.width, per = tex.width / tiles, rot = Math.atan2(b.y - a.y, b.x - a.x);
-      for (let i = 0; i < Math.ceil(tiles); i++) {
-        const sx = Math.round(i * per), sw = Math.min(Math.round((i + 1) * per) + 1, tex.width) - sx; // one pixel of overlap hides the seams
-        if (sw < 1) continue;
-        const sk = `${key}_slice${i}_${tiles}_${tex.width}`;
-        if (!this.textures.exists(sk)) {
-          const cv = this.textures.createCanvas(sk, sw, tex.height);
-          cv?.context.drawImage(tex, sx, 0, sw, tex.height, 0, 0, sw, tex.height);
-          cv?.refresh();
-        }
-        const f = (sx + sw / 2) / tex.width;
-        const im = this.add.image(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f - lift, sk).setScale(k).setRotation(rot);
-        const t = (i + 0.5) * (flip ? -1 : 1);
-        im.setDepth(Math.floor(x0 === x1 ? y0 + t : x0 + t) + 0.6);
-        this.decorObjs.push(im);
+  /** The wall pieces hang on the wall face and are cut into one slice per tile, so guests and furniture sort in front of them correctly. */
+  private wallPiece(key: string, x0: number, y0: number, x1: number, y1: number, lift: number) {
+    if (!this.textures.exists(key)) return;
+    const a = cartesianToIso(x0, y0), b = cartesianToIso(x1, y1);
+    const tiles = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+    const flip = x1 < x0 || y1 < y0;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const tex = this.textures.get(key).getSourceImage() as HTMLImageElement;
+    const k = len / tex.width, per = tex.width / tiles, rot = Math.atan2(b.y - a.y, b.x - a.x);
+    for (let i = 0; i < Math.ceil(tiles); i++) {
+      const sx = Math.round(i * per), sw = Math.min(Math.round((i + 1) * per) + 1, tex.width) - sx; // one pixel of overlap hides the seams
+      if (sw < 1) continue;
+      const sk = `${key}_slice${i}_${tiles}_${tex.width}`;
+      if (!this.textures.exists(sk)) {
+        const cv = this.textures.createCanvas(sk, sw, tex.height);
+        cv?.context.drawImage(tex, sx, 0, sw, tex.height, 0, 0, sw, tex.height);
+        cv?.refresh();
       }
+      const f = (sx + sw / 2) / tex.width;
+      const im = this.add.image(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f - lift, sk).setScale(k).setRotation(rot);
+      const t = (i + 0.5) * (flip ? -1 : 1);
+      im.setDepth(Math.floor(x0 === x1 ? y0 + t : x0 + t) + 0.6);
+      this.decorObjs.push(im);
+    }
+  }
+
+  /** A flat sign on a wall: thin upright strips, each lifted along the wall's slope, which is how a flat picture looks on an isometric wall (rotating it would tilt the sign). */
+  private wallSign(key: string, wall: 'left' | 'right', at: number, span: number, lift: number) {
+    if (!this.textures.exists(key)) return;
+    const a = wall === 'right' ? cartesianToIso(at, 1) : cartesianToIso(1, at + span);
+    const b = wall === 'right' ? cartesianToIso(at + span, 1) : cartesianToIso(1, at);
+    const tex = this.textures.get(key).getSourceImage() as HTMLImageElement;
+    const n = 26, dx = b.x - a.x, k = dx / tex.width, stripW = tex.width / n;
+    for (let i = 0; i < n; i++) {
+      const sx = Math.round(i * stripW), sw = Math.min(Math.round((i + 1) * stripW) + 1, tex.width) - sx;
+      const sk = `${key}_strip${i}_${n}_${tex.width}`;
+      if (!this.textures.exists(sk)) {
+        const cv = this.textures.createCanvas(sk, sw, tex.height);
+        cv?.context.drawImage(tex, sx, 0, sw, tex.height, 0, 0, sw, tex.height);
+        cv?.refresh();
+      }
+      const f = (sx + sw / 2) / tex.width;
+      const im = this.add.image(a.x + dx * f, a.y + (b.y - a.y) * f - lift, sk).setScale(k);
+      im.setDepth(Math.floor(at + span / 2) + 0.65); // just in front of the string lights, which hang at +0.6
+      this.decorObjs.push(im);
+    }
+  }
+
+  /** Runs of a repeating piece (bunting, string lights) along a back wall, one piece for every three tiles. */
+  private wallRun(key: string, wall: 'left' | 'right', from: number, to: number, lift: number, seg = 3) {
+    for (let t = from; t + seg <= to + 1e-6; t += seg) {
+      if (wall === 'right') this.wallPiece(key, t, 1, t + seg, 1, lift);
+      else this.wallPiece(key, 1, to - (t - from), 1, to - (t - from) - seg, lift);
+    }
+  }
+
+  /** Everything a live event adds: string lights, bunting, a sign, and its props standing on the floor. */
+  private hangEventDecor(s: ReturnType<typeof getState>, event: EventId | null) {
+    this.eventBlocked = new Set();
+    this.eventFx.id = event;
+    if (!event) return;
+    const size = s.cafe.size;
+    const view = cafeView(s);
+    const tables: TableAt[] = [], routers: Tile[] = [], counters: Tile[] = [];
+    for (const o of view.placed) {
+      const it = itemOf(o.itemId);
+      if (!it) continue;
+      if (it.role === 'table') tables.push({ x: o.tileX, y: o.tileY, h: it.h ?? 16 });
+      if (it.effect === 'wifi') routers.push({ x: o.tileX, y: o.tileY });
+      if (it.effect === 'espresso' || it.effect === 'pastry' || it.effect === 'register') counters.push({ x: o.tileX, y: o.tileY });
+    }
+    const occupied = new Set<string>([`${this.avatars.A.tile.x},${this.avatars.A.tile.y}`, `${this.avatars.B.tile.x},${this.avatars.B.tile.y}`]);
+    for (const p of this.patrons) occupied.add(`${p.tile.x},${p.tile.y}`);
+    for (const c of this.crew.values()) occupied.add(`${c.tile.x},${c.tile.y}`);
+    const plan = planEventDecor({ event, size, blocked: cafeBlocked(s), occupied, tables, routers, counters });
+    for (const k of plan.blocked) this.eventBlocked.add(k);
+
+    // string lights on both back walls: the warm bulbs come as short swags, so they repeat every three tiles
+    if (plan.lights === 'ev_lights_warm') {
+      this.wallRun(plan.lights, 'right', 1, size, 44);
+      this.wallRun(plan.lights, 'left', 1, size, 44);
+    } else {
+      this.wallPiece(plan.lights, 1, 1, size, 1, 44);
+      this.wallPiece(plan.lights, 1, size, 1, 1, 44);
+    }
+    if (plan.bunting) {
+      this.wallRun(plan.bunting, 'left', 3, size, 30); // the left wall, clear of the door
+      this.wallRun(plan.bunting, 'right', 5, size, 30);
+    }
+    if (plan.sign) {
+      const g = plan.sign;
+      this.wallSign(g.key, g.wall, g.at, 1.8, 32);
+    }
+    if (event === 'study' && size - 0.5 - Math.max(4, size - 6) >= 2) this.wallPiece('sk_banner_study', Math.max(4, size - 6), 1, size - 0.5, 1, 30); // a very small room has no wall long enough for it
+
+    // props on the floor: sorted by tile like furniture, soft shadow under each, hidden while you edit
+    const add = (o: Phaser.GameObjects.Image, depth: number) => { o.setDepth(depth); o.setVisible(!this.edit.active); this.eventFloor.push(o); return o; };
+    const shadow = (x: number, y: number, w: number, depth: number) => {
+      const e = this.add.ellipse(x, y, w, w * 0.4, 0x6b4f4f, 0.14).setDepth(depth).setVisible(!this.edit.active);
+      this.eventFloor.push(e);
     };
-    const lights = event === 'study' ? 'sk_lights_star' : 'sk_lights_globe';
-    along(lights, 1, 1, size, 1, 44);
-    along(lights, 1, size, 1, 1, 44);
-    if (event === 'study' && size - 0.5 - Math.max(4, size - 6) >= 2) along('sk_banner_study', Math.max(4, size - 6), 1, size - 0.5, 1, 30); // a very small room has no wall long enough for it
+    for (const pr of plan.props) {
+      if (!this.textures.exists(pr.key)) continue;
+      const c = pr.role === 'pen' || pr.role === 'pets' ? cartesianToIso(pr.tile.x + 1, pr.tile.y + 1) : tileCenter(pr.tile.x, pr.tile.y);
+      const d = pr.role === 'pen' || pr.role === 'pets' ? pr.tile.x + pr.tile.y + 2 + 0.4 : pr.tile.x + pr.tile.y + 0.4;
+      if (pr.role === 'pen') add(artImage(this, pr.key, c.x, c.y + 14, 0.5, 0.64), d);
+      else if (pr.role === 'pets') {
+        const im = add(artImage(this, pr.key, c.x + 1, c.y + 10, 0.5, 0.64), d + 0.05);
+        im.setScale(64 / im.width);
+        if (!this.reduced) this.eventTweens.push(this.tweens.add({ targets: im, scaleY: im.scaleY * 1.025, scaleX: im.scaleX * 0.99, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })); // the pets breathe
+      } else if (pr.role === 'power') add(artImage(this, pr.key, c.x, c.y, 0.5, 0.5), -20 + 0.01);
+      else {
+        shadow(c.x, c.y + 2, 30, pr.tile.x + pr.tile.y + 0.3);
+        const im = add(artImage(this, pr.key, c.x, c.y + 6, 0.5, 0.86), d);
+        const fx = this.eventFx;
+        if (pr.role === 'record') fx.record = { x: c.x, y: c.y - 14 };
+        if (pr.role === 'owl') fx.owl = { x: c.x, y: c.y - 22 };
+        if (pr.role === 'barrel') fx.barrel = { x: c.x, y: c.y - 16 };
+        if (pr.role === 'record' && !this.reduced) this.eventTweens.push(this.tweens.add({ targets: im, y: im.y - 0.8, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })); // the record spins, the whole player hums
+      }
+    }
+    // laptop clutter stands on the tables, just above what it stands on
+    for (const t of plan.laptops) {
+      if (!this.textures.exists('ev_laptop')) break;
+      const c = tileCenter(t.x, t.y);
+      const im = artImage(this, 'ev_laptop', c.x, c.y - Math.round(t.h * 0.9) + 4, 0.5, 0.62);
+      im.setScale(34 / im.width);
+      add(im, t.x + t.y + 0.55);
+    }
+    // the rain and the warm wash on a jazz night, drawn in the world so they scale with the room
+    if (event === 'jazz' && !this.reduced && this.textures.exists('ev_rain_soft')) {
+      this.eventFx.rain = this.add.tileSprite(0, 0, 64, 64, 'ev_rain_soft').setDepth(9000).setAlpha(0.2).setTileScale(0.34, 0.34);
+    }
+    if (event === 'jazz') this.eventFx.wash = this.add.rectangle(0, 0, 64, 64, 0xffb36b, 0.07).setDepth(8999);
+    if (event === 'study' || event === 'latte') this.eventFx.gfx = this.add.graphics().setDepth(9001);
+  }
+
+  private clearEventArt() {
+    for (const t of this.eventTweens) t.remove();
+    this.eventTweens = [];
+    this.eventFloor.forEach((o) => o.destroy());
+    this.eventFloor = [];
+    const fx = this.eventFx;
+    fx.rain?.destroy(); fx.wash?.destroy(); fx.gfx?.destroy();
+    this.eventFx = { id: null, clock: fx.clock, nextNote: fx.nextNote };
+  }
+
+  /** A one shot confetti pop when an event starts or is joined, near the middle of the room. */
+  private eventPop(k: string | null) {
+    const prev = this.eventKey;
+    this.eventKey = k;
+    if (prev === undefined || !k || prev === k || this.reduced) return; // the first look at the room (prev undefined) never pops
+    const keys = ['ev_confetti_1', 'ev_confetti_2'].filter((q) => this.textures.exists(q));
+    const mid = tileCenter(Math.floor(this.size() / 2), Math.floor(this.size() / 2));
+    keys.forEach((q, i) => {
+      const im = this.add.image(mid.x + (i ? 26 : -26), mid.y - 40, q).setDepth(9500).setScale(0.8).setAlpha(0.95);
+      im.setScale(Math.min(80, im.width * 1.4) / im.width);
+      this.tweens.add({ targets: im, y: im.y - 38, alpha: 0, duration: 1600, ease: 'Sine.easeOut', onComplete: () => im.destroy() });
+    });
+  }
+
+  /** The effects that move every frame: rain, the notes over the record player, rings round the Wi-Fi owl, sparkles by the barrel. */
+  private updateEventFx(delta: number) {
+    const fx = this.eventFx;
+    if (!fx.id) return;
+    const dt = Math.min(delta, 100);
+    fx.clock += dt;
+    const cam = this.cameras.main;
+    const v = cam.worldView;
+    if (fx.rain) {
+      const pad = 160;
+      fx.rain.setPosition(v.centerX, v.centerY).setSize(v.width + pad, v.height + pad);
+      const sc = 0.34; // pinned to the world, so the rain scales with the room, then it falls
+      fx.rain.tilePositionX = (v.centerX - fx.rain.width / 2) / sc - fx.clock * 0.05;
+      fx.rain.tilePositionY = (v.centerY - fx.rain.height / 2) / sc - fx.clock * 0.18;
+    }
+    if (fx.wash) fx.wash.setPosition(v.centerX, v.centerY).setSize(v.width + 160, v.height + 160);
+    if (this.reduced) return;
+    if (fx.record && fx.clock >= fx.nextNote && this.textures.exists('ev_notes')) {
+      fx.nextNote = fx.clock + 2600 + Math.random() * 1400;
+      const im = this.add.image(fx.record.x + 6, fx.record.y - 6, 'ev_notes').setDepth(9100).setAlpha(0);
+      im.setScale(30 / im.width);
+      this.tweens.add({ targets: im, y: im.y - 36, alpha: { from: 0.95, to: 0 }, duration: 2400, ease: 'Sine.easeOut', onComplete: () => im.destroy() });
+    }
+    const g = fx.gfx;
+    if (!g) return;
+    g.clear();
+    if (fx.owl) {
+      for (let i = 0; i < 3; i++) { // three rings spread from the owl, one after another, then fade
+        const ph = ((fx.clock / 2200) + i / 3) % 1;
+        g.lineStyle(1.6, 0x8fd3ee, (1 - ph) * 0.7);
+        g.strokeEllipse(fx.owl.x, fx.owl.y, 14 + ph * 40, (14 + ph * 40) * 0.5);
+      }
+    }
+    if (fx.barrel) {
+      for (let i = 0; i < 3; i++) { // a few twinkling stars round the chai barrel
+        const ph = ((fx.clock / 1800) + i / 3) % 1;
+        const x = fx.barrel.x + Math.sin(i * 2.1) * 20, y = fx.barrel.y - 14 - ph * 14, a = Math.sin(ph * Math.PI) * 0.9, r = 2.4 + Math.sin(ph * Math.PI) * 1.4;
+        g.lineStyle(1.2, 0xffe9a8, a);
+        g.lineBetween(x - r, y, x + r, y);
+        g.lineBetween(x, y - r, x, y + r);
+      }
+    }
   }
 
   private showChair(id: string, visible: boolean) {
@@ -356,6 +544,7 @@ export class CafeScene extends Phaser.Scene {
     this.driftBackdrop(t, delta);
     this.drawFx(t);
     this.updateCrew(delta);
+    this.updateEventFx(delta);
     this.syncGifts();
     for (const q of this.patrons) {
       if (q.float && q.img.scene) q.img.setOrigin(0.5, 1.25 + 0.1 * Math.sin(t / 260 + q.img.x));
@@ -848,7 +1037,7 @@ export class CafeScene extends Phaser.Scene {
         g.strokeEllipse(c.x, c.y - 4, 30 + k * 90, 15 + k * 45);
       }
     }
-    if (live === 'adopt') {
+    if (live === 'adopt' && !this.textures.exists('ev_pen')) { // the painted pen replaces the plain pink patch
       const p = freePatch(s);
       if (p) {
         g.lineStyle(3, 0xff9db6, 0.9);
@@ -857,7 +1046,7 @@ export class CafeScene extends Phaser.Scene {
         g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.closePath(); g.fillPath(); g.strokePath();
       }
     }
-    if (live === 'jazz') {
+    if (live === 'jazz' && !this.textures.exists('ev_rain_soft')) { // the painted rain and warm wash replace the plain dark rain
       const cam = this.cameras.main.worldView;
       g.fillStyle(0x2a2f5a, 0.28);
       g.fillRect(cam.x - 50, cam.y - 50, cam.width + 100, cam.height + 100);
