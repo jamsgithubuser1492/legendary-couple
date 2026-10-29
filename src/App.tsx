@@ -27,6 +27,9 @@ import SurpriseModal from './ui/SurpriseModal';
 import MomentOverlay from './ui/MomentOverlay';
 import CafePanel from './ui/CafePanel';
 import CrewModal from './ui/CrewModal';
+import LabModal from './ui/LabModal';
+import MenuBoardModal from './ui/MenuBoardModal';
+import RecipeBook from './ui/RecipeBook';
 import RosterBoard from './ui/RosterBoard';
 import { EventsModal, GachaModal, LatteModal, OrdersModal } from './ui/CafeGames';
 import { startSync } from './lib/sync';
@@ -100,6 +103,7 @@ export default function App() {
   const [surprise, setSurprise] = useState(false);
   const [cafePanel, setCafePanel] = useState(false);
   const [crewUi, setCrewUi] = useState<'crew' | 'roster' | null>(null);
+  const [labUi, setLabUi] = useState<'lab' | 'board' | 'book' | null>(null);
   const [cafeGame, setCafeGame] = useState<'latte' | 'gacha' | 'events' | 'orders' | null>(null);
   const mgActive = useMinigameActive();
   const desktop = useDesktop();
@@ -167,6 +171,7 @@ export default function App() {
     if (a === 'cafe') changeView('cafe');
     else if (a === 'cafePanel') setCafePanel(true);
     else if (a === 'crew' || a === 'roster') setCrewUi(a);
+    else if (a === 'lab') setLabUi('lab');
     else if (a === 'checkin') setPanel('checkin');
     else if (a === 'week') { setWeekTab('goal'); setWeek(true); }
     else if (a === 'streak') { setWeekTab('streak'); setWeek(true); }
@@ -270,6 +275,7 @@ export default function App() {
     } else if (id === 'town') changeView(view === 'island' ? 'town' : 'island');
     else if (id === 'cafe') changeView(view === 'cafe' ? 'island' : 'cafe');
     else if (id === 'crew') { if (view === 'cafe') setCrewUi('crew'); } // the crew lives inside the café
+    else if (id === 'lab') { if (view === 'cafe') setLabUi('lab'); } // so does the Test Kitchen
   }, true);
 
   // When a partner's saved game arrives with a starting path already chosen, do not ask again.
@@ -326,8 +332,11 @@ export default function App() {
         </button>
       )}
       {cafeGame === 'events' && <EventsModal onClose={() => setCafeGame(null)} />}
-      {cafePanel && <CafePanel onClose={() => setCafePanel(false)} onDecorate={startDecorating} onCrew={() => { setCafePanel(false); setCrewUi('crew'); }} onRoster={() => { setCafePanel(false); setCrewUi('roster'); }} />}
+      {cafePanel && <CafePanel onClose={() => setCafePanel(false)} onDecorate={startDecorating} onCrew={() => { setCafePanel(false); setCrewUi('crew'); }} onLab={(w) => { setCafePanel(false); setLabUi(w); }} onRoster={() => { setCafePanel(false); setCrewUi('roster'); }} />}
       {crewUi === 'crew' && <CrewModal onClose={() => setCrewUi(null)} onRoster={() => setCrewUi('roster')} />}
+      {labUi === 'lab' && <LabModal onClose={() => setLabUi(null)} />}
+      {labUi === 'board' && <MenuBoardModal onClose={() => setLabUi(null)} onBook={() => setLabUi('book')} />}
+      {labUi === 'book' && <RecipeBook onClose={() => setLabUi(null)} onBoard={() => setLabUi('board')} />}
       {crewUi === 'roster' && <RosterBoard onClose={() => setCrewUi(null)} onCrew={() => setCrewUi('crew')} />}
       {interact && <TownInteract lotId={interact} onTogether={(t) => setTogether(t as TogetherTab)} onClose={() => setInteract(null)} onShop={(c) => { setShopCat(c as ShopCategory); setShopOpen(true); }} onOpen={(w) => { if (w === 'quests') setQuestsOpen(true); else if (w === 'arcade') setArcade(true); else if (w === 'log') setTogether('log'); else if (w === 'week') { setWeekTab('goal'); setWeek(true); } else setRituals(true); }} />}
       {shopOpen && <ShopModal initialCat={view === 'town' ? shopCat : undefined} onClose={() => { setShopOpen(false); setShopCat(undefined); }} onPickPreset={(id) => { setEdit((e) => ({ ...e, mode: 'place', presetId: id })); setShopOpen(false); }} />}

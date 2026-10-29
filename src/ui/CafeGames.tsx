@@ -263,7 +263,7 @@ export function OrdersModal({ onClose }: { onClose: () => void }) {
       {orders.length === 0 && <p className="mt-3 rounded-2xl bg-white p-4 text-center text-sm text-cocoa shadow">No orders yet. Guests arrive while your café is open (it needs a seat and a table).</p>}
       <div className="mt-3 space-y-2">
         {orders.map((o) => {
-          const d = drinkOf(o.drink);
+          const d = drinkOf(o.drink, s);
           return (
             <div key={o.id} className={`flex items-center gap-2 rounded-2xl p-2 shadow ${o.by ? 'bg-emerald-50' : 'bg-white'}`}>
               <SpriteImg sprite={['student', 'creative', 'enthusiast', 'regular', 'gardener', 'scholar', 'nomad', 'artist'].includes(o.kind) ? `cx_p_${o.kind}` : `cz_t_${o.kind}`} size={48} />

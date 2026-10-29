@@ -1,7 +1,7 @@
 /** Keyboard shortcuts for desktop play. W, A, S, D and the arrows stay with walking. */
 import { useEffect, useRef } from 'react';
 
-export type ShortcutId = 'quests' | 'decorate' | 'town' | 'cafe' | 'arcade' | 'journal' | 'crew' | 'help' | 'escape';
+export type ShortcutId = 'quests' | 'decorate' | 'town' | 'cafe' | 'arcade' | 'journal' | 'crew' | 'lab' | 'help' | 'escape';
 
 export const SHORTCUTS: { id: ShortcutId; key: string; label: string }[] = [
   { id: 'quests', key: 'Q', label: 'Quests' },
@@ -11,13 +11,14 @@ export const SHORTCUTS: { id: ShortcutId; key: string; label: string }[] = [
   { id: 'arcade', key: 'G', label: 'Arcade' },
   { id: 'journal', key: 'J', label: 'Journal' },
   { id: 'crew', key: 'R', label: 'Café crew (inside the café)' },
+  { id: 'lab', key: 'K', label: 'Test Kitchen (inside the café)' },
   { id: 'help', key: '?', label: 'This list (also H)' },
   { id: 'escape', key: 'Esc', label: 'Close, or step back' },
 ];
 /** The key to show beside a dock entry. */
 export const keyFor = (id: ShortcutId) => SHORTCUTS.find((s) => s.id === id)?.key;
 
-const BY_KEY: Record<string, ShortcutId> = { q: 'quests', d: 'decorate', t: 'town', c: 'cafe', g: 'arcade', j: 'journal', r: 'crew', h: 'help', '?': 'help', Escape: 'escape' };
+const BY_KEY: Record<string, ShortcutId> = { q: 'quests', d: 'decorate', t: 'town', c: 'cafe', g: 'arcade', j: 'journal', r: 'crew', k: 'lab', h: 'help', '?': 'help', Escape: 'escape' };
 
 const typing = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;

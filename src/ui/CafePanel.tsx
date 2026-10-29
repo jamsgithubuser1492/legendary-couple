@@ -1,12 +1,14 @@
 import { collectTips, expandCafe, hireStaff, setCafeTheme, setSign, useGameState } from '../state/store';
 import { CAFE_STEPS, matchaBonus, nextCafeStep, SET_NAMES, SIGNS, sitToday, STAFF, STAR_AT, styleOf, THEMES, tipCap, tipMult, tipRate, tipsPending } from '../state/cafe';
+import { labLocked } from './lab/draft';
+import { menuRecipes, recipesOf } from '../state/lab';
 import { crewDef, currentShift, hiredCrew, rosterActive, rosterDaysLeft, rosterMatch, shiftLabel } from '../state/crew';
 import { Amount } from './Currency';
 import { SpriteImg } from './ItemIcon';
 import Sheet, { primaryBtn, softBtn } from './Sheet';
 
 /** The café's front desk: its rating, what the room earns, the theme, and how big it is. */
-export default function CafePanel({ onClose, onDecorate, onCrew, onRoster }: { onClose: () => void; onDecorate: () => void; onCrew: () => void; onRoster: () => void }) {
+export default function CafePanel({ onClose, onDecorate, onCrew, onRoster, onLab }: { onClose: () => void; onDecorate: () => void; onCrew: () => void; onRoster: () => void; onLab: (w: 'lab' | 'board' | 'book') => void }) {
   const s = useGameState();
   const st = styleOf(s);
   const tips = tipsPending(s);
@@ -56,6 +58,18 @@ export default function CafePanel({ onClose, onDecorate, onCrew, onRoster }: { o
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button className={`${primaryBtn} !px-3 !py-1.5 text-sm`} onClick={onCrew}>Café crew</button>
           <button className={`${softBtn} !px-3 !py-1.5 text-sm`} onClick={onRoster}>Roster</button>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-3 shadow">
+        <div className="font-display font-bold text-cocoa">Test Kitchen 🧪</div>
+        <p className="text-xs text-cocoa/70">
+          {labLocked(s) ?? `${recipesOf(s).length} ${recipesOf(s).length === 1 ? 'recipe' : 'recipes'} found, ${menuRecipes(s).length} of 6 on the menu board.`}
+        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <button className={`${primaryBtn} !px-2 !py-1.5 text-sm`} onClick={() => onLab('lab')}>Test Kitchen</button>
+          <button className={`${softBtn} !px-2 !py-1.5 text-sm`} onClick={() => onLab('board')}>Menu board</button>
+          <button className={`${softBtn} !px-2 !py-1.5 text-sm`} onClick={() => onLab('book')}>Recipe book</button>
         </div>
       </div>
 

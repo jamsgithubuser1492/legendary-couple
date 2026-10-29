@@ -25,3 +25,13 @@ canvas { display: block; }
 @media (prefers-reduced-motion: reduce) { .olw-splash-bar { animation: none; transform: translateX(100%); } }
 kbd { font-family: inherit; }
 
+@keyframes olw-mix { 0% { transform: translateX(0); } 25% { transform: translateX(3px) skewX(6deg); } 50% { transform: translateX(-3px) skewX(-6deg); } 75% { transform: translateX(2px) skewX(4deg); } 100% { transform: translateX(0); } }
+.olw-mix { animation: olw-mix 0.6s ease-in-out 2; transform-origin: 50% 70%; }
+@keyframes olw-drift { 0% { transform: translate(0, 0); } 50% { transform: translate(-3%, -4%); } 100% { transform: translate(0, 0); } }
+@keyframes olw-lamp { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.8; } }
+@keyframes olw-chime { 0% { opacity: 0; transform: scale(0.6); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .olw-mix { animation: none; } }
+@keyframes olw-new { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } } .olw-new { animation: olw-new 1.4s ease-in-out infinite; } @media (prefers-reduced-motion: reduce) { .olw-new { animation: none; } }
+@keyframes olw-shimmer { 0% { transform: translateX(-70%); opacity: 0; } 25% { opacity: 0.55; } 60% { opacity: 0.35; } 100% { transform: translateX(70%); opacity: 0; } }
+.olw-shimmer { animation: olw-shimmer 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .olw-shimmer { animation: none; opacity: 0; } }
