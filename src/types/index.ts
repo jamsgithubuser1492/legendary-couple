@@ -109,7 +109,7 @@ export interface LabRecipe {
   memoryId?: string; // a Journal memory the drink is named after
 }
 export interface LabState {
-  daily: { day: string; n: number }; // experiments done today (kept in its own object so a day rollover never replaces the recipes when two phones merge)
+  daily: { day: string; A: number; B: number }; // experiments done today, counted for each partner so the two phones never write the same number (its own object, so a day rollover never replaces the recipes when two phones merge)
   recipes: Record<string, LabRecipe>;
   menu: Record<string, string>; // menu board slot ("0" to "5") to recipe id, a missing slot is empty
   spotlight: string | null; // the Spotlight Drink, one recipe that is on the menu

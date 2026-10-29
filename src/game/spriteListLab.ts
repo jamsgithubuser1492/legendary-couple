@@ -46,7 +46,7 @@ export const LAB_SPRITES = [
     "key": "labx_thermo_mount",
     "file": "labx_thermo_mount.png",
     "w": 156,
-    "h": 108,
+    "h": 119,
     "dw": 78
   },
   {
@@ -239,13 +239,6 @@ export const LAB_SPRITES = [
     "dw": 36
   },
   {
-    "key": "labx_glass_mason_gloss",
-    "file": "labx_glass_mason_gloss.png",
-    "w": 112,
-    "h": 56,
-    "dw": 56
-  },
-  {
     "key": "labx_glass_mason_shadow",
     "file": "labx_glass_mason_shadow.png",
     "w": 105,
@@ -270,7 +263,7 @@ export const LAB_SPRITES = [
     "key": "labx_glass_mug_full",
     "file": "labx_glass_mug_full.png",
     "w": 118,
-    "h": 122,
+    "h": 121,
     "dw": 62
   },
   {
@@ -284,8 +277,8 @@ export const LAB_SPRITES = [
     "key": "labx_glass_mug_hull",
     "file": "labx_glass_mug_hull.png",
     "w": 118,
-    "h": 123,
-    "dw": 61
+    "h": 116,
+    "dw": 65
   },
   {
     "key": "labx_glass_mug_decal",
@@ -339,7 +332,7 @@ export const LAB_SPRITES = [
   {
     "key": "labx_garnish_strawberry",
     "file": "labx_garnish_strawberry.png",
-    "w": 51,
+    "w": 70,
     "h": 67,
     "dw": 24
   },
@@ -360,14 +353,14 @@ export const LAB_SPRITES = [
   {
     "key": "labx_garnish_sugarrim",
     "file": "labx_garnish_sugarrim.png",
-    "w": 108,
-    "h": 60,
+    "w": 100,
+    "h": 52,
     "dw": 24
   },
   {
     "key": "labx_garnish_yuzu",
     "file": "labx_garnish_yuzu.png",
-    "w": 64,
+    "w": 91,
     "h": 67,
     "dw": 24
   },
@@ -417,92 +410,92 @@ export const LAB_SPRITES = [
     "key": "labx_guide_latte_bear",
     "file": "labx_guide_latte_bear.png",
     "w": 172,
-    "h": 137,
+    "h": 136,
     "dw": 90
   },
   {
     "key": "labx_guide_latte_star",
     "file": "labx_guide_latte_star.png",
-    "w": 157,
-    "h": 131,
+    "w": 153,
+    "h": 130,
     "dw": 90
   },
   {
     "key": "labx_guide_latte_bunny",
     "file": "labx_guide_latte_bunny.png",
     "w": 171,
-    "h": 137,
+    "h": 131,
     "dw": 90
   },
   {
     "key": "labx_guide_latte_swirl",
     "file": "labx_guide_latte_swirl.png",
     "w": 168,
-    "h": 134,
+    "h": 131,
     "dw": 90
   },
   {
     "key": "labx_guide_latte_flower",
     "file": "labx_guide_latte_flower.png",
     "w": 170,
-    "h": 135,
+    "h": 131,
     "dw": 90
   },
   {
     "key": "labx_card_classic",
     "file": "labx_card_classic.png",
-    "w": 190,
-    "h": 267,
+    "w": 186,
+    "h": 265,
     "dw": 180
   },
   {
     "key": "labx_card_spring",
     "file": "labx_card_spring.png",
-    "w": 191,
-    "h": 267,
+    "w": 187,
+    "h": 265,
     "dw": 180
   },
   {
     "key": "labx_card_summer",
     "file": "labx_card_summer.png",
-    "w": 194,
-    "h": 267,
+    "w": 190,
+    "h": 265,
     "dw": 180
   },
   {
     "key": "labx_card_autumn",
     "file": "labx_card_autumn.png",
-    "w": 190,
+    "w": 186,
     "h": 279,
     "dw": 180
   },
   {
     "key": "labx_card_winter",
     "file": "labx_card_winter.png",
-    "w": 191,
+    "w": 187,
     "h": 279,
     "dw": 180
   },
   {
     "key": "labx_card_vip",
     "file": "labx_card_vip.png",
-    "w": 194,
-    "h": 281,
+    "w": 189,
+    "h": 279,
     "dw": 180
   },
   {
     "key": "labx_card_overlay_shimmer",
     "file": "labx_card_overlay_shimmer.png",
-    "w": 162,
-    "h": 164,
-    "dw": 81
+    "w": 156,
+    "h": 146,
+    "dw": 78
   },
   {
     "key": "labx_card_overlay_celebrate",
     "file": "labx_card_overlay_celebrate.png",
-    "w": 166,
-    "h": 160,
-    "dw": 83
+    "w": 161,
+    "h": 156,
+    "dw": 80
   },
   {
     "key": "labx_card_plaque",
@@ -568,23 +561,9 @@ export const LAB_SPRITES = [
     "dw": 48
   },
   {
-    "key": "labx_menu_cat_flavors2",
-    "file": "labx_menu_cat_flavors2.png",
-    "w": 96,
-    "h": 41,
-    "dw": 48
-  },
-  {
     "key": "labx_menu_cat_vip",
     "file": "labx_menu_cat_vip.png",
     "w": 95,
-    "h": 41,
-    "dw": 48
-  },
-  {
-    "key": "labx_menu_cat_vip2",
-    "file": "labx_menu_cat_vip2.png",
-    "w": 96,
     "h": 41,
     "dw": 48
   },
@@ -759,8 +738,8 @@ export const LAB_SPRITES = [
   {
     "key": "labx_menu_screen_glow",
     "file": "labx_menu_screen_glow.png",
-    "w": 135,
-    "h": 165,
-    "dw": 68
+    "w": 126,
+    "h": 156,
+    "dw": 63
   }
 ] as const;

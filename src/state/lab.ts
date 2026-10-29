@@ -223,21 +223,21 @@ export function validateName(raw: string, s: GameState, selfId?: string): { ok: 
   if (KNOWN_NAMES().some((n) => n.toLowerCase() === low) || recipesOf(s).some((r) => r.id !== selfId && r.name.toLowerCase() === low)) return { ok: false, name, reason: 'A drink already has that name. Try another.' };
   return { ok: true, name };
 }
-/** "Honey Matcha", or with the topping when that is taken, then a number, so a new drink always has its own name. */
+/** "Honey Matcha", then "Honey Matcha 2" and so on, so a new drink always has its own name. */
 export function defaultName(s: GameState, r: Pick<LabRecipe, 'base' | 'flavor' | 'topping'>): string {
-  const f = ingredientOf(r.flavor)?.name ?? '', b = (ingredientOf(r.base)?.name ?? '').replace(' Tea', ''), t = ingredientOf(r.topping)?.name ?? '';
-  const tries = [`${f} ${b}`.trim(), `${f} ${b} with ${t}`.trim()];
-  for (const n of tries) if (validateName(n, s).ok) return n.slice(0, MAX_NAME);
-  for (let i = 2; i < 99; i++) { const n = `${tries[0]} ${i}`.slice(0, MAX_NAME); if (validateName(n, s).ok) return n; }
-  return tries[0].slice(0, MAX_NAME);
+  const f = ingredientOf(r.flavor)?.name ?? '', b = (ingredientOf(r.base)?.name ?? '').replace(' Tea', '');
+  const first = `${f} ${b}`.trim().slice(0, MAX_NAME);
+  if (validateName(first, s).ok) return first;
+  for (let i = 2; i < 99; i++) { const n = `${first.slice(0, MAX_NAME - 3)} ${i}`; if (validateName(n, s).ok) return n; }
+  return first;
 }
 
 // ---------------------------------------------------------------- state
-export const newLab = (): LabState => ({ daily: { day: '', n: 0 }, recipes: {}, menu: {}, spotlight: null, seen: [] });
+export const newLab = (): LabState => ({ daily: { day: '', A: 0, B: 0 }, recipes: {}, menu: {}, spotlight: null, seen: [] });
 
 export function experimentsLeft(s: GameState, day: string = dateKey()): number {
   const d = s.cafe.lab?.daily;
-  return Math.max(0, DAILY_EXPERIMENTS - (d && d.day === day ? d.n : 0));
+  return Math.max(0, DAILY_EXPERIMENTS - (d && d.day === day ? (d.A || 0) + (d.B || 0) : 0));
 }
 
 const patchLab = (s: GameState, lab: LabState): GameState => ({ ...s, cafe: { ...s.cafe, lab } });
@@ -261,7 +261,7 @@ export function normalizeLab(c: CafeState): CafeState {
   const spotlight = have?.spotlight && used.has(have.spotlight) ? have.spotlight : null;
   const d = have?.daily;
   const lab: LabState = {
-    daily: { day: typeof d?.day === 'string' ? d.day : '', n: Math.max(0, Math.min(DAILY_EXPERIMENTS * 2, Math.round(d?.n ?? 0))) }, // two phones can each do their share, so allow a little over
+    daily: { day: typeof d?.day === 'string' ? d.day : '', A: Math.max(0, Math.min(DAILY_EXPERIMENTS * 2, Math.round(d?.A ?? 0))), B: Math.max(0, Math.min(DAILY_EXPERIMENTS * 2, Math.round(d?.B ?? 0))) }, // two phones can each do their share, so allow a little over
     recipes, menu, spotlight, seen: [...new Set((have?.seen ?? []).filter((x) => !!ingredientOf(x)))],
   };
   return { ...c, lab };
@@ -322,10 +322,11 @@ export function applyExperiment(s: GameState, input: ExperimentInput, opts: { by
   } else if (improved) {
     recipe = { ...old, glass, art, rim, quality, tier: tierOf({ flavor, topping, quality }) };
   } else recipe = old;
-  const used = lab0.daily.day === day ? lab0.daily.n : 0;
+  const who: 'A' | 'B' = opts.by === 'B' ? 'B' : 'A';
+  const today = lab0.daily.day === day ? lab0.daily : { day, A: 0, B: 0 };
   const lab: LabState = {
     ...lab0,
-    daily: { day, n: used + 1 },
+    daily: { ...today, day, [who]: (today[who] || 0) + 1 },
     recipes: { ...lab0.recipes, [id]: recipe },
     seen: [...new Set([...lab0.seen, base, flavor, topping])],
   };
