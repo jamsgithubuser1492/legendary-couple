@@ -144,7 +144,11 @@ export default function TracePad({ pattern, base, disabled, onScore, score }: { 
           onPointerUp={() => (down.current = false)}
           onPointerCancel={() => (down.current = false)}
         />
-        {good && painted && <LabImg k={`labx_art_latte_${pattern}`} className="pointer-events-none absolute left-1/2 top-1/2 w-[62%] -translate-x-1/2 -translate-y-1/2 opacity-90" style={{ animation: 'olw-chime 1.2s ease-out reverse both' }} />}
+        {good && painted && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <LabImg k={`labx_art_latte_${pattern}`} className="w-[62%] opacity-90" style={{ animation: 'olw-reveal 0.9s ease-out both' }} />
+          </div>
+        )}
         {painted && <LabImg k={`labx_guide_latte_${pattern}`} className="pointer-events-none absolute bottom-1 right-1 w-14 rounded-md bg-cream/80 p-0.5" title="The numbered guide" />}
       </div>
       <div className="mt-1.5 flex items-center gap-2">

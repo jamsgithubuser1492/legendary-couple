@@ -226,7 +226,11 @@ export function validateName(raw: string, s: GameState, selfId?: string): { ok: 
 /** "Honey Matcha", then "Honey Matcha 2" and so on, so a new drink always has its own name. */
 export function defaultName(s: GameState, r: Pick<LabRecipe, 'base' | 'flavor' | 'topping'>): string {
   const f = ingredientOf(r.flavor)?.name ?? '', b = (ingredientOf(r.base)?.name ?? '').replace(' Tea', '');
-  const first = `${f} ${b}`.trim().slice(0, MAX_NAME);
+  let first = `${f} ${b}`.trim();
+  if (first.length > MAX_NAME) { // cut at a whole word, never mid word ("Golden Turmer")
+    const cut = first.slice(0, MAX_NAME);
+    first = cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim() || cut;
+  }
   if (validateName(first, s).ok) return first;
   for (let i = 2; i < 99; i++) { const n = `${first.slice(0, MAX_NAME - 3)} ${i}`; if (validateName(n, s).ok) return n; }
   return first;

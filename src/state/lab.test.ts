@@ -377,3 +377,11 @@ describe('old saves and two phones', () => {
     expect(defaultName(game(), { base: 'espresso', flavor: 'strawberry', topping: 'boba' })).toBe('Strawberry Espresso');
   });
 });
+
+describe('default names', () => {
+  it('never cut a word in half', () => {
+    const n = defaultName(game(), { base: 'turmeric', flavor: 'saltedcaramel', topping: 'boba' });
+    expect(n.length).toBeLessThanOrEqual(28);
+    expect(n.endsWith('Turmer')).toBe(false);
+  });
+});

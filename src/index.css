@@ -35,3 +35,5 @@ kbd { font-family: inherit; }
 @keyframes olw-shimmer { 0% { transform: translateX(-70%); opacity: 0; } 25% { opacity: 0.55; } 60% { opacity: 0.35; } 100% { transform: translateX(70%); opacity: 0; } }
 .olw-shimmer { animation: olw-shimmer 3.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .olw-shimmer { animation: none; opacity: 0; } }
+@keyframes olw-reveal { from { opacity: 0; transform: scale(0.8); } to { opacity: 0.9; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { [style*="olw-reveal"] { animation: none !important; } }

@@ -193,7 +193,7 @@ export default function LabModal({ onClose, start }: { onClose: () => void; star
       </div>
 
       {kept && (
-        <div className="olw-backdrop fixed inset-0 z-50 flex items-center justify-center bg-cocoa/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Your new drink">
+        <div className="olw-backdrop fixed inset-0 z-[90] flex items-center justify-center bg-cocoa/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Your new drink">
           <div className="olw-dialog max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-cream p-5 shadow-2xl">
             {kept.discoveredNew ? (
               <NameStep recipeId={kept.id} headline={kept.text} celebrate={!reduce} onDone={() => { setKept(null); setTasted(null); }} />
